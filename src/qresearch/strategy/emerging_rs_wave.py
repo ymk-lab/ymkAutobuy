@@ -36,8 +36,14 @@ class EmergingRSWaveConfig:
     already_strong_cap: float = 0.10
     exit_ma: int = 50
     peak_dd_stop: float = 0.10
+    # Optional softer peak DD: trim to half_weight before hard stop.
+    soft_dd_trim: float | None = None
     entry_weight: float = 1.0
     half_weight: float = 0.50
+    # If True, first weaken signal flats instead of half→flat.
+    weaken_goes_flat: bool = False
+    # Trading days to wait after a flat before a new entry.
+    cooldown_days: int = 0
 
 
 @dataclass
@@ -102,8 +108,12 @@ class EmergingRSWaveBook:
         held: str | None = None
         w = 0.0
         peak = np.nan
+        cooldown_left = 0
 
         for i, dt in enumerate(dates):
+            if cooldown_left > 0 and held is None:
+                cooldown_left -= 1
+
             if held is not None:
                 price = float(px.at[dt, held])
                 if np.isfinite(price):
@@ -115,8 +125,17 @@ class EmergingRSWaveBook:
                 weak = (np.isfinite(ex_s) and ex_s < 0.0) or (
                     np.isfinite(ma) and np.isfinite(price) and price < ma
                 )
-                dd = (price / peak - 1.0) if (np.isfinite(peak) and peak > 0 and np.isfinite(price)) else 0.0
+                dd = (
+                    (price / peak - 1.0)
+                    if (np.isfinite(peak) and peak > 0 and np.isfinite(price))
+                    else 0.0
+                )
                 hard = dd <= -abs(cfg.peak_dd_stop)
+                soft = (
+                    cfg.soft_dd_trim is not None
+                    and dd <= -abs(cfg.soft_dd_trim)
+                    and w > cfg.half_weight + 1e-12
+                )
                 gate_off = not bool(gate_on.iloc[i])
 
                 new_w = w
@@ -124,13 +143,16 @@ class EmergingRSWaveBook:
                 if hard or gate_off:
                     new_w = 0.0
                     reason = "peak_dd_stop" if hard else "gate_off"
+                elif soft:
+                    new_w = cfg.half_weight
+                    reason = "soft_dd_trim"
                 elif weak:
-                    if w >= cfg.entry_weight - 1e-12:
-                        new_w = cfg.half_weight
-                        reason = "weaken_to_half"
-                    else:
+                    if cfg.weaken_goes_flat or w <= cfg.half_weight + 1e-12:
                         new_w = 0.0
                         reason = "weaken_flat"
+                    else:
+                        new_w = cfg.half_weight
+                        reason = "weaken_to_half"
 
                 if new_w != w:
                     events.append(
@@ -149,8 +171,9 @@ class EmergingRSWaveBook:
                     if w == 0.0:
                         held = None
                         peak = np.nan
+                        cooldown_left = max(cooldown_left, int(cfg.cooldown_days))
 
-            if held is None and bool(gate_on.iloc[i]):
+            if held is None and bool(gate_on.iloc[i]) and cooldown_left <= 0:
                 row_ok = entry_ok.iloc[i]
                 candidates = [s for s in symbols if bool(row_ok.get(s, False))]
                 # require finite excess for ranking

@@ -115,3 +115,7 @@ examples/data/panel/
 !examples/data/emerging_rs_wave_soxx/
 !examples/data/emerging_rs_wave_soxx/*.csv
 !examples/data/emerging_rs_wave_soxx/*.json
+
+!examples/data/emerging_rs_wave_soxx_dd/
+!examples/data/emerging_rs_wave_soxx_dd/*.csv
+!examples/data/emerging_rs_wave_soxx_dd/*.json

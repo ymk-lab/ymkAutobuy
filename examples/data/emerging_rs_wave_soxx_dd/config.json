@@ -1,0 +1,33 @@
+{
+  "base": "EmergingRSWave G4 on SOXX",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "goal": "improve max drawdown while still beating SOXX B&H",
+  "variants": [
+    "G4_base",
+    "G4_dd7",
+    "G4_dd5",
+    "G4_soft5_hard10",
+    "G4_soft5_hard8",
+    "G4_entry80",
+    "G4_entry70",
+    "G4_weaken_flat",
+    "G4_cooldown3",
+    "G4_cooldown5",
+    "G4_dd7_entry80",
+    "G4_soft5_entry80",
+    "G4_dd7_weakenflat",
+    "G4_dd7_cd3_entry80"
+  ],
+  "soxx_bh": {
+    "total_return": 1.5139383373703867,
+    "max_drawdown": -0.34213469085926174,
+    "sharpe": 1.523397711593815,
+    "end_equity": 125696.91686851933,
+    "avg_exposure": null
+  },
+  "base_dd": -0.19095811452138878,
+  "base_ret": 3.983854883131376
+}
