@@ -95,3 +95,7 @@ examples/data/panel/
 !examples/data/qqq_coresat_sharpe_grid/
 !examples/data/qqq_coresat_sharpe_grid/*.csv
 !examples/data/qqq_coresat_sharpe_grid/*.json
+
+!examples/data/qqq_coresat_sharpe_grid2/
+!examples/data/qqq_coresat_sharpe_grid2/*.csv
+!examples/data/qqq_coresat_sharpe_grid2/*.json

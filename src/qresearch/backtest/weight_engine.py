@@ -24,10 +24,16 @@ class WeightBacktestEngine:
     position_clip: float = 1.0
     # Ignore tiny retunes so Futu per-order mins do not dominate soft-vol drift.
     trade_threshold: float = 0.02
+    # "threshold" = classic band; "event" = trade on strategy event_mask or band breach
+    rebalance_mode: str = "threshold"
 
     def __post_init__(self) -> None:
         if self.fees is None:
             self.fees = FutuUsEquityFees()
+        mode = self.rebalance_mode.lower()
+        if mode not in {"threshold", "event"}:
+            raise ValueError("rebalance_mode must be 'threshold' or 'event'")
+        self.rebalance_mode = mode
 
     def run(self, data: pd.DataFrame, strategy: Strategy) -> BacktestResult:
         assert self.fees is not None
@@ -40,24 +46,42 @@ class WeightBacktestEngine:
             if regimes is not None:
                 regimes = regimes.reindex(ohlcv.index)
 
+        event = None
+        if hasattr(strategy, "last_event_mask") and strategy.last_event_mask is not None:
+            event = strategy.last_event_mask.reindex(ohlcv.index).fillna(False).to_numpy()
+
         desired = signal.shift(1).fillna(0.0).clip(-self.position_clip, self.position_clip)
         if not self.allow_short:
             desired = desired.clip(lower=0.0)
+        # shift event mask with signal (decide t, trade t+1)
+        if event is not None:
+            event_exec = pd.Series(event, index=ohlcv.index).shift(1).fillna(True).to_numpy(dtype=bool)
+        else:
+            event_exec = np.ones(len(ohlcv), dtype=bool)
 
-        # Apply trade threshold path-dependently on executed weights.
         executed = np.zeros(len(desired), dtype=float)
         prev = 0.0
         thr = float(self.trade_threshold)
         for i, w in enumerate(desired.to_numpy(dtype=float)):
-            if prev == 0.0 and w != 0.0:
-                prev = w
-            elif w == 0.0 and prev != 0.0:
-                prev = 0.0
-            elif abs(w - prev) >= thr:
-                prev = w
+            force = bool(event_exec[i]) if self.rebalance_mode == "event" else False
+            if self.rebalance_mode == "event":
+                if force and abs(w - prev) > 1e-12:
+                    prev = w
+                elif prev == 0.0 and w != 0.0 and force:
+                    prev = w
+                elif w == 0.0 and prev != 0.0 and force:
+                    prev = 0.0
+                elif abs(w - prev) >= thr:
+                    prev = w
+            else:
+                if prev == 0.0 and w != 0.0:
+                    prev = w
+                elif w == 0.0 and prev != 0.0:
+                    prev = 0.0
+                elif abs(w - prev) >= thr:
+                    prev = w
             executed[i] = prev
         target = pd.Series(executed, index=ohlcv.index, name="position")
-
         open_px = ohlcv["open"].astype(float)
         close_px = ohlcv["close"].astype(float)
         asset_ret = close_px / open_px - 1.0

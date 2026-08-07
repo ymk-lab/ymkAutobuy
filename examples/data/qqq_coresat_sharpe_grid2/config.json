@@ -1,0 +1,14 @@
+{
+  "baseline": "weekly soft-vol 70/30 vol15 thr2%",
+  "capital_usd": 50000.0,
+  "windows": {
+    "primary_2025": [
+      "2025-01-01",
+      "2026-08-06"
+    ],
+    "secondary_2020": [
+      "2020-01-01",
+      "2026-08-06"
+    ]
+  }
+}

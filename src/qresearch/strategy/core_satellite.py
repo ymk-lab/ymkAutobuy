@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -14,7 +14,7 @@ from qresearch.strategy.examples import RegimeAwareTrendStrategy
 
 @dataclass
 class CoreSatelliteSoftVolStrategy(Strategy):
-    """70/30-style book: soft-vol core + binary satellite (e.g. S12).
+    """Core soft-vol book + satellite signal (e.g. S12).
 
     total_weight = core_weight * scale + satellite_weight * satellite_signal
     scale = clip(vol_target / realized_vol, core_scale_floor, 1.0)
@@ -25,8 +25,7 @@ class CoreSatelliteSoftVolStrategy(Strategy):
     vol_lookback: int = 20
     vol_target: float = 0.15
     core_scale_floor: float = 0.50
-    # "D" = update soft-vol scale daily; "W" = freeze scale within calendar week
-    soft_vol_cadence: str = "D"
+    soft_vol_cadence: str = "D"  # D daily, W weekly
     satellite: Strategy | None = None
     name: str = "core_satellite_soft_vol"
 
@@ -50,6 +49,7 @@ class CoreSatelliteSoftVolStrategy(Strategy):
         if cadence not in {"D", "W"}:
             raise ValueError("soft_vol_cadence must be 'D' or 'W'")
         self.soft_vol_cadence = cadence
+        self.last_event_mask: pd.Series | None = None
 
     def generate_regimes(self, data: pd.DataFrame) -> pd.Series | None:
         assert self.satellite is not None
@@ -66,13 +66,12 @@ class CoreSatelliteSoftVolStrategy(Strategy):
         )
         scale = (self.vol_target / realized).replace([np.inf, -np.inf], np.nan)
         scale = scale.clip(lower=self.core_scale_floor, upper=1.0).fillna(self.core_scale_floor)
-        # Warmup: keep core at floor until vol is defined? Prefer full core target after floor fill.
-        # Until lookback ready, use scale=1.0 (no overlay) only if we have prices; else 0.
         warm = realized.isna()
         scale = scale.mask(warm, other=1.0)
+
+        week = pd.Series(scale.index.to_period("W-FRI"), index=scale.index)
+        week_start = (week != week.shift(1)).fillna(True)
         if self.soft_vol_cadence == "W":
-            # Update on week markers, hold through the week (causal: use week's first bar scale).
-            week = scale.index.to_period("W-FRI")
             scale = scale.groupby(week).transform("first")
 
         sat = (
@@ -82,18 +81,33 @@ class CoreSatelliteSoftVolStrategy(Strategy):
             .fillna(0.0)
             .clip(lower=0.0, upper=1.0)
         )
+        sat_on = sat > 0
+        sat_event = sat_on != sat_on.shift(1).fillna(False)
+
         core = self.core_weight * scale
         total = (core + self.satellite_weight * sat).clip(upper=1.0)
+
+        # Events: week boundary (core retune) or satellite flip.
+        self.last_event_mask = (week_start | sat_event).reindex(data.index).fillna(True)
         return total.rename("signal")
 
 
 @dataclass
 class BinaryEntryConfirm(Strategy):
-    """Require base long for ``confirm_days`` before going long; exit with base."""
+    """Asymmetric confirmation for entries/exits on a binary-ish base signal.
+
+    ``entry_confirm_days=0`` / ``exit_confirm_days=0`` means act on the first
+    confirming bar (immediate).
+    """
 
     base: Strategy
-    confirm_days: int = 2
+    entry_confirm_days: int = 2
+    exit_confirm_days: int = 0
     name: str = "binary_entry_confirm"
+
+    def __post_init__(self) -> None:
+        if self.entry_confirm_days < 0 or self.exit_confirm_days < 0:
+            raise ValueError("confirm days must be >= 0")
 
     def generate_regimes(self, data: pd.DataFrame) -> pd.Series | None:
         if hasattr(self.base, "generate_regimes"):
@@ -101,18 +115,59 @@ class BinaryEntryConfirm(Strategy):
         return None
 
     def generate_signals(self, data: pd.DataFrame) -> pd.Series:
-        if self.confirm_days < 1:
-            raise ValueError("confirm_days must be >= 1")
         raw = self.base.generate_signals(data).astype(float).reindex(data.index).fillna(0.0)
         base_long = (raw > 0).to_numpy()
         base_w = raw.to_numpy(dtype=float)
         out = np.zeros(len(data), dtype=float)
-        streak = 0
+        pos = 0.0
+        last_long_w = 1.0
+        up_streak = 0
+        down_streak = 0
+        entry_need = 1 if self.entry_confirm_days == 0 else self.entry_confirm_days
+        exit_need = 1 if self.exit_confirm_days == 0 else self.exit_confirm_days
+
         for i in range(len(data)):
-            if not base_long[i]:
-                streak = 0
-                out[i] = 0.0
-                continue
-            streak += 1
-            out[i] = base_w[i] if streak >= self.confirm_days else 0.0
+            if base_long[i]:
+                up_streak += 1
+                down_streak = 0
+                last_long_w = base_w[i]
+            else:
+                down_streak += 1
+                up_streak = 0
+
+            if pos == 0.0:
+                if base_long[i] and up_streak >= entry_need:
+                    pos = base_w[i]
+            elif base_long[i]:
+                pos = base_w[i]
+            elif down_streak >= exit_need:
+                pos = 0.0
+            else:
+                # waiting for exit confirmation; keep last long weight
+                pos = last_long_w
+            out[i] = pos
         return pd.Series(out, index=data.index, name="signal")
+
+
+@dataclass
+class LongMAGate(Strategy):
+    """Allow base longs only when close is above a long moving average."""
+
+    base: Strategy
+    ma_window: int = 200
+    name: str = "long_ma_gate"
+
+    def generate_regimes(self, data: pd.DataFrame) -> pd.Series | None:
+        if hasattr(self.base, "generate_regimes"):
+            return self.base.generate_regimes(data)
+        return None
+
+    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+        if self.ma_window < 2:
+            raise ValueError("ma_window must be >= 2")
+        raw = self.base.generate_signals(data).astype(float).reindex(data.index).fillna(0.0)
+        close = data["close"].astype(float)
+        ma = close.rolling(self.ma_window, min_periods=self.ma_window).mean()
+        ok = (close > ma).fillna(False)
+        out = raw.where(ok, other=0.0)
+        return out.rename("signal")

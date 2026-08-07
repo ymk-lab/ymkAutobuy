@@ -9,7 +9,11 @@ from qresearch.strategy.multi import (
     MultiAssetStrategy,
     PerAssetStrategyAdapter,
 )
-from qresearch.strategy.core_satellite import BinaryEntryConfirm, CoreSatelliteSoftVolStrategy
+from qresearch.strategy.core_satellite import (
+    BinaryEntryConfirm,
+    CoreSatelliteSoftVolStrategy,
+    LongMAGate,
+)
 from qresearch.strategy.dip_probe import DipProbeEntryFilter
 from qresearch.strategy.progressive_scale import (
     MinCombineScale,
@@ -30,6 +34,7 @@ __all__ = [
     "DipProbeEntryFilter",
     "CoreSatelliteSoftVolStrategy",
     "BinaryEntryConfirm",
+    "LongMAGate",
     "TimeConfirmScale",
     "PriceConfirmScale",
     "PullbackAddScale",
