@@ -15,6 +15,7 @@ venv/
 .DS_Store
 *.csv
 !examples/data/sample_ohlcv.csv
+!examples/data/PYPL_US_6m.csv
 examples/data/panel/
 .idea/
 .vscode/
