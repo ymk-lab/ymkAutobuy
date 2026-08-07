@@ -35,3 +35,6 @@ examples/data/panel/
 
 !examples/data/qqq100_6m/
 !examples/data/qqq100_6m/*.csv
+
+!examples/data/regime_rs_tune/
+!examples/data/regime_rs_tune/*.csv

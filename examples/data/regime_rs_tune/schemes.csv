@@ -1,0 +1,11 @@
+id,fast,slow,vol_lb,vol_mult,rs_win,rs_thr,note,scheme
+1,10,40,20,1.25,20,0.05,baseline,S01_baseline
+2,5,20,20,1.25,20,0.05,faster_ma,S02_faster_ma
+3,15,50,20,1.25,20,0.05,slower_ma,S03_slower_ma
+4,10,30,20,1.25,20,0.05,ma_10_30,S04_ma_10_30
+5,10,40,20,1.1,20,0.05,easier_highvol,S05_easier_highvol
+6,10,40,20,1.5,20,0.05,stricter_highvol,S06_stricter_highvol
+7,10,40,10,1.25,20,0.05,short_vol_window,S07_short_vol_window
+8,10,40,20,1.25,20,0.03,rs3,S08_rs3
+9,10,40,20,1.25,20,0.08,rs8,S09_rs8
+10,10,40,20,1.25,10,0.05,rs_win10,S10_rs_win10
