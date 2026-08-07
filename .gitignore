@@ -10,6 +10,8 @@ build/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
 .DS_Store
 *.csv
 !examples/data/sample_ohlcv.csv

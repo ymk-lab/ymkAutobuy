@@ -53,10 +53,16 @@ class TargetWeightExecutor:
             delta = target_qty - current_qty
             if abs(delta) * px < self.min_trade_notional or abs(delta) < self.min_qty:
                 continue
+            qty = abs(delta)
+            quantize = getattr(self.broker, "quantize_quantity", None)
+            if callable(quantize):
+                qty = float(quantize(qty))
+                if qty <= 0 or qty * px < self.min_trade_notional:
+                    continue
             order = Order(
                 symbol=sym,
                 side=OrderSide.BUY if delta > 0 else OrderSide.SELL,
-                quantity=abs(delta),
+                quantity=qty,
                 order_type=OrderType.MARKET,
                 created_at=pd.Timestamp(timestamp),
             )

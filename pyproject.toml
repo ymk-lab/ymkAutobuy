@@ -17,6 +17,9 @@ dependencies = [
 dev = [
   "pytest>=8.0",
 ]
+longbridge = [
+  "longbridge>=4.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
