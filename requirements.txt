@@ -3,3 +3,4 @@ pandas>=2.1
 pytest>=8.0
 longbridge>=4.0
 yfinance>=0.2
+python-dotenv>=1.0
