@@ -1,0 +1,14 @@
+{
+  "strategy": "EmergingRSWaveBook",
+  "gate": "G1",
+  "config": {
+    "soft_dd_trim": 0.07,
+    "peak_dd_stop": 0.12
+  },
+  "universe": "QQQ/NDX-style",
+  "symbols_n": 97,
+  "capital_usd": 50000.0,
+  "costs": "Futu+3bps next-bar flat-start per window",
+  "n_windows": 15,
+  "beat_bh_rate": 0.6666666666666666
+}
