@@ -41,3 +41,7 @@ examples/data/panel/
 
 !examples/data/regime_rs_tune30/
 !examples/data/regime_rs_tune30/*.csv
+
+!examples/data/s12_drawdown_mc/
+!examples/data/s12_drawdown_mc/*.csv
+!examples/data/s12_drawdown_mc/*.json
