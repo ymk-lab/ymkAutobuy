@@ -19,6 +19,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
 pip install -e ".[longbridge]"
+pip install yfinance python-dotenv
 
 chmod +x deploy/vps-cron/run.sh deploy/vps-cron/install.sh
 
