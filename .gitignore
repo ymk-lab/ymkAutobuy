@@ -71,3 +71,7 @@ examples/data/panel/
 !examples/data/dia_l1l4_vs_s12/
 !examples/data/dia_l1l4_vs_s12/*.csv
 !examples/data/dia_l1l4_vs_s12/*.json
+
+!examples/data/smh_l1l4_vs_s12/
+!examples/data/smh_l1l4_vs_s12/*.csv
+!examples/data/smh_l1l4_vs_s12/*.json
