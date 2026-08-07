@@ -1,0 +1,15 @@
+{
+  "symbol": "AAPL",
+  "window": [
+    "2025-01-01",
+    "2026-08-06"
+  ],
+  "capital_usd": 50000.0,
+  "s12": {
+    "fast": 10,
+    "slow": 40,
+    "vol_lb": 20,
+    "vol_mult": 1.35
+  },
+  "note": "AAPL = Apple Inc."
+}
