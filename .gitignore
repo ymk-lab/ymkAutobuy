@@ -45,3 +45,9 @@ examples/data/panel/
 !examples/data/s12_drawdown_mc/
 !examples/data/s12_drawdown_mc/*.csv
 !examples/data/s12_drawdown_mc/*.json
+
+!examples/data/sox_universe.csv
+
+!examples/data/s12_dip_tune20/
+!examples/data/s12_dip_tune20/*.csv
+!examples/data/s12_dip_tune20/*.json

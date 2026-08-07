@@ -9,6 +9,7 @@ from qresearch.strategy.multi import (
     MultiAssetStrategy,
     PerAssetStrategyAdapter,
 )
+from qresearch.strategy.dip_probe import DipProbeEntryFilter
 from qresearch.strategy.relative_strength import RelativeStrengthEntryFilter
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "RegimeAwareTrendStrategy",
     "RegimeCrossoverStrategy",
     "RelativeStrengthEntryFilter",
+    "DipProbeEntryFilter",
     "MultiAssetStrategy",
     "CrossSectionalMomentumStrategy",
     "PerAssetStrategyAdapter",
