@@ -1,0 +1,8 @@
+{
+  "symbol": "QQQ",
+  "capital_usd": 50000.0,
+  "trade_threshold": 0.02,
+  "costs": "Futu + 3bps",
+  "start_mode": "flat_at_window_start",
+  "n_configs": 16
+}
