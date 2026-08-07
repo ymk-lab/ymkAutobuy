@@ -91,3 +91,7 @@ examples/data/panel/
 !examples/data/qqq_core_satellite/
 !examples/data/qqq_core_satellite/*.csv
 !examples/data/qqq_core_satellite/*.json
+
+!examples/data/qqq_coresat_sharpe_grid/
+!examples/data/qqq_coresat_sharpe_grid/*.csv
+!examples/data/qqq_coresat_sharpe_grid/*.json
