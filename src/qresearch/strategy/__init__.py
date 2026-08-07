@@ -5,11 +5,13 @@ from qresearch.strategy.multi import (
     MultiAssetStrategy,
     PerAssetStrategyAdapter,
 )
+from qresearch.strategy.relative_strength import RelativeStrengthEntryFilter
 
 __all__ = [
     "Strategy",
     "SMACrossoverStrategy",
     "RegimeAwareTrendStrategy",
+    "RelativeStrengthEntryFilter",
     "MultiAssetStrategy",
     "CrossSectionalMomentumStrategy",
     "PerAssetStrategyAdapter",
