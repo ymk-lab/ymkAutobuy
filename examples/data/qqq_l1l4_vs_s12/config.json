@@ -1,0 +1,18 @@
+{
+  "window": [
+    "2025-01-01",
+    "2026-08-06"
+  ],
+  "capital_usd": 50000.0,
+  "compare": [
+    "L1+L4 progressive min-combine",
+    "S12 full weight when signal on (no RS)",
+    "QQQ buy hold"
+  ],
+  "s12": {
+    "fast": 10,
+    "slow": 40,
+    "vol_lb": 20,
+    "vol_mult": 1.35
+  }
+}
