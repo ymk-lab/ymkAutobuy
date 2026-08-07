@@ -6,7 +6,7 @@
     "G3",
     "G4"
   ],
-  "universe_n_requested": 98,
+  "universe_n_requested": 97,
   "universe_n_used": 97,
   "symbols_used": [
     "AAPL",
@@ -119,9 +119,9 @@
     "exit": "weaken/SMA50\u2192half then flat; peakDD>=10% or gate_off\u2192flat"
   },
   "qqq_bh": {
-    "total_return": 0.4262352492761077,
-    "max_drawdown": -0.22639593328563012,
-    "sharpe": 1.0893067632531703,
-    "end_equity": 71311.76246380538
+    "total_return": 0.4282005487913645,
+    "max_drawdown": -0.2263957807831508,
+    "sharpe": 1.0929857370883707,
+    "end_equity": 71410.02743956822
   }
 }
