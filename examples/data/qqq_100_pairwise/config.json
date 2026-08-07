@@ -1,0 +1,14 @@
+{
+  "symbol": "QQQ",
+  "capital_usd": 50000.0,
+  "window": [
+    "2025-01-01",
+    "2026-08-06"
+  ],
+  "n_base": 100,
+  "combine": "equal_weight_0.5_0.5",
+  "n_pairs": 4950,
+  "n_beat_bh": 6,
+  "bh_return": 0.4153111023593654,
+  "costs": "Futu + 3bps; thr 2%; next-bar; flat start"
+}
