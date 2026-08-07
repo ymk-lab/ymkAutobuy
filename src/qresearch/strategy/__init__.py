@@ -13,6 +13,7 @@ from qresearch.strategy.core_satellite import (
     BinaryEntryConfirm,
     CoreSatelliteSoftVolStrategy,
     LongMAGate,
+    RegimeCoreSatelliteStrategy,
 )
 from qresearch.strategy.dip_probe import DipProbeEntryFilter
 from qresearch.strategy.progressive_scale import (
@@ -33,6 +34,7 @@ __all__ = [
     "RelativeStrengthEntryFilter",
     "DipProbeEntryFilter",
     "CoreSatelliteSoftVolStrategy",
+    "RegimeCoreSatelliteStrategy",
     "BinaryEntryConfirm",
     "LongMAGate",
     "TimeConfirmScale",

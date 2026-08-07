@@ -1,0 +1,17 @@
+{
+  "symbols": [
+    "QQQ",
+    "SOXX",
+    "TSLA"
+  ],
+  "capital_usd": 50000.0,
+  "trade_threshold": 0.02,
+  "costs": "Futu + 3bps",
+  "start_mode": "flat_at_window_start",
+  "regime_coresat": {
+    "bull": "85/15 when close>MA200 and not high-vol",
+    "base": "70/30",
+    "bear": "0/30 when close<=MA100 (core can flatten)",
+    "soft_vol": "weekly target 15% floor 50% on active core"
+  }
+}
