@@ -88,15 +88,26 @@
         pills.appendChild(s);
       });
 
+    // Live account (broker) must win over stale signal.positions snapshot.
+    const account = data.account || {};
     $("#m-sleeve").textContent = fmtUsd(signal.sleeve_equity_usd);
-    $("#m-cash").textContent = fmtUsd(signal.cash_usd);
-    const pos = signal.positions || {};
+    $("#m-cash").textContent = fmtUsd(
+      account.cash_usd != null ? account.cash_usd : signal.cash_usd
+    );
+    const pos =
+      account.positions && Object.keys(account.positions).length
+        ? account.positions
+        : signal.positions || {};
     const posKeys = Object.keys(pos);
     $("#m-pos").textContent = posKeys.length
       ? posKeys.map((k) => `${k}×${pos[k]}`).join(", ")
       : "無持倉";
     $("#m-asof").textContent = signal.asof || "—";
-    $("#signal-view").textContent = JSON.stringify(signal, null, 2);
+    $("#signal-view").textContent = JSON.stringify(
+      { account, target: signal.target, asof: signal.asof, gate_open: signal.gate_open, signal },
+      null,
+      2
+    );
     $("#server-clock").textContent = data.server_time_utc
       ? `伺服器 ${data.server_time_utc.replace("T", " ").slice(0, 19)} UTC`
       : "—";
@@ -107,17 +118,27 @@
     b.className = submitEnabled ? "badge badge-on" : "badge badge-off";
   }
 
-  async function refreshStatus({ quiet = false } = {}) {
+  async function refreshStatus({ quiet = false, live = false } = {}) {
     if (!quiet) {
-      pushActivity("處理中：重新整理狀態…", "info");
-      toast("處理中：重新整理狀態…", "info");
+      pushActivity(
+        live ? "處理中：重新整理並向長橋同步帳戶…" : "處理中：重新整理狀態…",
+        "info"
+      );
+      toast(live ? "處理中：向長橋同步帳戶…" : "處理中：重新整理狀態…", "info");
     }
-    const res = await fetch("/api/status");
+    const res = await fetch(live ? "/api/status?live=1" : "/api/status");
     if (!res.ok) throw new Error(`狀態讀取失敗 (${res.status})`);
     const data = await res.json();
     renderStatus(data);
     if (!quiet) {
-      pushActivity("完成：狀態已更新", "ok");
+      const pos = (data.account && data.account.positions) || {};
+      const n = Object.keys(pos).length;
+      pushActivity(
+        n
+          ? `完成：狀態已更新（持倉 ${Object.keys(pos).join(", ")}）`
+          : "完成：狀態已更新（目前無持倉）",
+        "ok"
+      );
       toast("完成：狀態已更新", "ok");
     }
     return data;
@@ -177,15 +198,15 @@
         if (evt.data && evt.data.submit_enabled != null) {
           submitEnabled = !!evt.data.submit_enabled;
         }
-        if (evt.data && evt.data.cash_usd != null && statusCache) {
-          const signal = {
-            ...(statusCache.signal || {}),
+        if (evt.data && (evt.data.account || evt.data.cash_usd != null) && statusCache) {
+          const account = evt.data.account || {
             cash_usd: evt.data.cash_usd,
             positions: evt.data.positions || {},
+            quotes: evt.data.quotes || {},
           };
           renderStatus({
             ...statusCache,
-            signal,
+            account,
             submit_enabled: submitEnabled,
           });
         }
@@ -224,7 +245,8 @@
         withButton(action, async () => {
           markActive(action);
           setBusy(true, "處理中");
-          await refreshStatus();
+          // Pull live broker positions so we never flash stale "無持倉" from signal JSON.
+          await refreshStatus({ live: true });
           setBusy(false);
           markActive("");
         });

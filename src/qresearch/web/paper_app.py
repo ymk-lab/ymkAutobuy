@@ -111,11 +111,55 @@ def _account_snapshot() -> dict[str, Any]:
     return {"ok": True, "cash_usd": cash, "positions": positions, "quotes": quotes}
 
 
-def _status_payload() -> dict[str, Any]:
+def _account_path() -> Path:
+    return _out_dir() / "account_live.json"
+
+
+def _save_account(snap: dict[str, Any]) -> dict[str, Any]:
+    """Persist live account snapshot so UI refresh does not fall back to stale signal."""
+    payload = {
+        "ok": bool(snap.get("ok", True)),
+        "cash_usd": snap.get("cash_usd"),
+        "positions": snap.get("positions") or {},
+        "quotes": snap.get("quotes") or {},
+        "updated_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    if snap.get("quote_warning"):
+        payload["quote_warning"] = snap["quote_warning"]
+    if snap.get("error"):
+        payload["error"] = snap["error"]
+        payload["ok"] = False
+    _account_path().write_text(json.dumps(payload, indent=2, default=float) + "\n")
+    return payload
+
+
+def _account_from_files() -> dict[str, Any]:
+    live = _read_json(_account_path())
+    if live:
+        return live
+    run = _read_json(_out_dir() / "latest_run.json") or {}
+    if run.get("positions_after") is not None or run.get("cash_after") is not None:
+        return {
+            "ok": True,
+            "cash_usd": run.get("cash_after"),
+            "positions": run.get("positions_after") or {},
+            "quotes": {},
+            "updated_at_utc": run.get("generated_at_utc"),
+            "source": "latest_run",
+        }
+    return {"ok": True, "cash_usd": None, "positions": {}, "quotes": {}, "source": "none"}
+
+
+def _status_payload(*, live: bool = False) -> dict[str, Any]:
     out = _out_dir()
     signal = _read_json(out / "latest_signal.json") or {}
     run = _read_json(out / "latest_run.json") or {}
     state = _read_json(out / "state.json") or {}
+    if live:
+        snap = _account_snapshot()
+        account = _save_account(snap) if snap.get("ok") else {**snap, "positions": {}, "quotes": {}}
+    else:
+        account = _account_from_files()
     return {
         "ok": True,
         "root": str(ROOT),
@@ -123,6 +167,7 @@ def _status_payload() -> dict[str, Any]:
         "submit_enabled": _env_submit(),
         "sleeve_usd": os.getenv("QRESEARCH_SLEEVE_USD", ""),
         "signal": signal,
+        "account": account,
         "last_run": run,
         "state": state,
         "server_time_utc": datetime.now(timezone.utc).isoformat(),
@@ -135,8 +180,8 @@ def index() -> FileResponse:
 
 
 @app.get("/api/status")
-def api_status() -> dict[str, Any]:
-    return _status_payload()
+def api_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
+    return _status_payload(live=bool(live))
 
 
 @app.get("/api/signal")
@@ -174,18 +219,25 @@ async def api_sync_account() -> StreamingResponse:
                 yield _sse({"phase": "error", "message": f"失敗：{snap.get('error')}", "level": "error"})
                 yield _sse({"phase": "done", "ok": False})
                 return
+            saved = await asyncio.to_thread(_save_account, snap)
+            npos = len(saved.get("positions") or {})
+            pos_txt = (
+                ", ".join(f"{k}×{v:g}" for k, v in (saved.get("positions") or {}).items())
+                if npos
+                else "無持倉"
+            )
             yield _sse(
                 {
                     "phase": "progress",
                     "message": (
-                        f"完成帳戶同步：現金 USD {snap.get('cash_usd'):,.2f}，"
-                        f"持倉 {len(snap.get('positions') or {})} 檔"
+                        f"完成帳戶同步：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
+                        f"持倉 {pos_txt}"
                     ),
                     "level": "ok",
-                    "data": snap,
+                    "data": {"account": saved, **snap},
                 }
             )
-            yield _sse({"phase": "done", "ok": True, "data": snap})
+            yield _sse({"phase": "done", "ok": True, "data": {"account": saved, **snap}})
         except Exception as exc:  # noqa: BLE001
             yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
@@ -253,18 +305,38 @@ async def api_run(
 
             code = await proc.wait()
             signal = _read_json(_out_dir() / "latest_signal.json") or {}
+            run = _read_json(_out_dir() / "latest_run.json") or {}
+            # Prefer fresh broker snapshot; fall back to run result.
+            try:
+                account = await asyncio.to_thread(_save_account, await asyncio.to_thread(_account_snapshot))
+            except Exception:
+                account = _save_account(
+                    {
+                        "ok": True,
+                        "cash_usd": run.get("cash_after", signal.get("cash_usd")),
+                        "positions": run.get("positions_after") or signal.get("positions") or {},
+                    }
+                )
             if code == 0:
                 tgt = signal.get("target") or {}
                 tgt_s = ", ".join(f"{k} {v:.0%}" for k, v in tgt.items()) or "空手"
+                pos = account.get("positions") or {}
+                pos_s = ", ".join(f"{k}×{v:g}" for k, v in pos.items()) or "無持倉"
                 yield _sse(
                     {
                         "phase": "progress",
-                        "message": f"完成：asof={signal.get('asof')} 目標={tgt_s}",
+                        "message": f"完成：asof={signal.get('asof')} 目標={tgt_s}；帳戶持倉 {pos_s}",
                         "level": "ok",
-                        "data": {"signal": signal},
+                        "data": {"signal": signal, "account": account},
                     }
                 )
-                yield _sse({"phase": "done", "ok": True, "data": {"signal": signal, "exit_code": code}})
+                yield _sse(
+                    {
+                        "phase": "done",
+                        "ok": True,
+                        "data": {"signal": signal, "account": account, "exit_code": code},
+                    }
+                )
             else:
                 yield _sse(
                     {
