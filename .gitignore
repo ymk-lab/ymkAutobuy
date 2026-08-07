@@ -79,3 +79,7 @@ examples/data/panel/
 !examples/data/mu_l1l4_vs_s12/
 !examples/data/mu_l1l4_vs_s12/*.csv
 !examples/data/mu_l1l4_vs_s12/*.json
+
+!examples/data/mcd_l1l4_vs_s12/
+!examples/data/mcd_l1l4_vs_s12/*.csv
+!examples/data/mcd_l1l4_vs_s12/*.json
