@@ -71,3 +71,16 @@ crontab -e
 - 回測是「訊號日收盤 → 次日開盤」；cron 收盤後立刻市價單，與回測略有時差（paper 可接受）。
 - 憑證權限：`chmod 600 .env`
 - 本流程**不會**把 Cursor Agent 當常駐程序；VPS cron 才是執行者。
+
+
+## Paper UI（可選）
+
+```bash
+cd /opt/qresearch
+source .venv/bin/activate
+pip install -e ".[web]"
+./deploy/vps-cron/run-ui.sh
+# 瀏覽 http://<VPS-IP>:8787
+```
+
+按鈕操作會以「處理中 / 完成 / 錯誤」即時提示後台進度（SSE）。
