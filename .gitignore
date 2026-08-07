@@ -87,3 +87,7 @@ examples/data/panel/
 !examples/data/aapl_l1l4_vs_s12/
 !examples/data/aapl_l1l4_vs_s12/*.csv
 !examples/data/aapl_l1l4_vs_s12/*.json
+
+!examples/data/qqq_core_satellite/
+!examples/data/qqq_core_satellite/*.csv
+!examples/data/qqq_core_satellite/*.json

@@ -9,6 +9,7 @@ from qresearch.strategy.multi import (
     MultiAssetStrategy,
     PerAssetStrategyAdapter,
 )
+from qresearch.strategy.core_satellite import CoreSatelliteSoftVolStrategy
 from qresearch.strategy.dip_probe import DipProbeEntryFilter
 from qresearch.strategy.progressive_scale import (
     MinCombineScale,
@@ -27,6 +28,7 @@ __all__ = [
     "RegimeCrossoverStrategy",
     "RelativeStrengthEntryFilter",
     "DipProbeEntryFilter",
+    "CoreSatelliteSoftVolStrategy",
     "TimeConfirmScale",
     "PriceConfirmScale",
     "PullbackAddScale",

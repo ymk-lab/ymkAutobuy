@@ -1,0 +1,33 @@
+{
+  "symbol": "QQQ",
+  "capital_usd": 50000.0,
+  "core_weight": 0.7,
+  "satellite_weight": 0.3,
+  "vol_target": 0.15,
+  "vol_lookback": 20,
+  "core_scale_floor": 0.5,
+  "satellite": "S12_full_no_RS",
+  "s12": {
+    "fast": 10,
+    "slow": 40,
+    "vol_lb": 20,
+    "vol_mult": 1.35
+  },
+  "costs": "Futu US fixed schedule + 3bps slippage",
+  "execution": "next-bar open",
+  "windows": {
+    "primary_2025_to_now": [
+      "2025-01-01",
+      "2026-08-06"
+    ],
+    "secondary_2020_to_now": [
+      "2020-01-01",
+      "2026-08-06"
+    ]
+  },
+  "adr": [
+    "0001",
+    "0002",
+    "0003"
+  ]
+}
