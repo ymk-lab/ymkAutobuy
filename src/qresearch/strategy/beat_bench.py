@@ -131,6 +131,86 @@ class BeatBenchStrategy(Strategy):
 
 
 @dataclass
+class SevereTrimFastReentryStrategy(Strategy):
+    """Default full long; trim on severe risk; reclaim mid-MA to go full again.
+
+    Risk-off (trim_weight):
+      - high-vol AND close < severe_ma, OR
+      - close < exit_ma for confirm_days consecutive bars
+    Risk-on (1.0):
+      - close > reentry_ma
+    Otherwise keep prior state (hysteresis), starting full after warmup.
+    """
+
+    exit_ma: int = 200
+    severe_ma: int = 100
+    reentry_ma: int = 50
+    confirm_days: int = 2
+    trim_weight: float = 0.50
+    vol_lookback: int = 20
+    vol_mult: float = 1.35
+    name: str = "severe_trim_fast_reentry"
+
+    def __post_init__(self) -> None:
+        if not (0.0 <= self.trim_weight <= 1.0):
+            raise ValueError("trim_weight must be in [0, 1]")
+        if self.confirm_days < 1:
+            raise ValueError("confirm_days must be >= 1")
+        if self.reentry_ma >= self.exit_ma:
+            raise ValueError("reentry_ma should be faster than exit_ma")
+        self.detector = VolatilityRegimeDetector(
+            lookback=self.vol_lookback, high_vol_multiplier=self.vol_mult
+        )
+
+    def generate_regimes(self, data: pd.DataFrame) -> pd.Series:
+        return self.detector.detect(data)
+
+    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+        close = data["close"].astype(float)
+        ma_x = close.rolling(self.exit_ma, min_periods=self.exit_ma).mean()
+        ma_s = close.rolling(self.severe_ma, min_periods=self.severe_ma).mean()
+        ma_r = close.rolling(self.reentry_ma, min_periods=self.reentry_ma).mean()
+        regimes = self.generate_regimes(data)
+        high_vol = (regimes == "high_vol").fillna(False)
+        unknown = (regimes == "unknown").fillna(True)
+
+        n = len(data)
+        out = np.ones(n, dtype=float)
+        c = close.to_numpy(dtype=float)
+        x = ma_x.to_numpy(dtype=float)
+        s = ma_s.to_numpy(dtype=float)
+        r = ma_r.to_numpy(dtype=float)
+        hv = high_vol.to_numpy(dtype=bool)
+        unk = unknown.to_numpy(dtype=bool)
+
+        weight = 1.0
+        below_streak = 0
+        for i in range(n):
+            if unk[i] or not np.isfinite(x[i]) or not np.isfinite(s[i]):
+                weight = 0.0
+                below_streak = 0
+                out[i] = 0.0
+                continue
+
+            if c[i] < x[i]:
+                below_streak += 1
+            else:
+                below_streak = 0
+
+            severe = (hv[i] and c[i] < s[i]) or (below_streak >= self.confirm_days)
+            reclaim = np.isfinite(r[i]) and c[i] > r[i]
+
+            if severe:
+                weight = self.trim_weight
+            elif reclaim:
+                weight = 1.0
+            # else keep prior weight
+            out[i] = weight
+
+        return pd.Series(out, index=data.index, name="signal")
+
+
+@dataclass
 class OffenseTrimStrategy(Strategy):
     """Stay mostly full; trim to trim_weight on medium risk; flat on severe.
 

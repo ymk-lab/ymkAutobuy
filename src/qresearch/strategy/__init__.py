@@ -25,7 +25,11 @@ from qresearch.strategy.progressive_scale import (
     TimeConfirmScale,
 )
 from qresearch.strategy.relative_strength import RelativeStrengthEntryFilter
-from qresearch.strategy.beat_bench import BeatBenchStrategy, OffenseTrimStrategy
+from qresearch.strategy.beat_bench import (
+    BeatBenchStrategy,
+    OffenseTrimStrategy,
+    SevereTrimFastReentryStrategy,
+)
 
 __all__ = [
     "Strategy",
@@ -37,6 +41,7 @@ __all__ = [
     "CoreSatelliteSoftVolStrategy",
     "RegimeCoreSatelliteStrategy",
     "BeatBenchStrategy",
+    "SevereTrimFastReentryStrategy",
     "OffenseTrimStrategy",
     "BinaryEntryConfirm",
     "LongMAGate",

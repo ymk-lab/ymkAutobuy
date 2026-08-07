@@ -1,0 +1,47 @@
+{
+  "symbol": "QQQ",
+  "priority": [
+    "vs_bh_return",
+    "max_drawdown"
+  ],
+  "default": {
+    "class": "SevereTrimFastReentryStrategy",
+    "trim_weight": 0.5,
+    "reentry_ma": 50,
+    "confirm_days": 2,
+    "severe_ma": 100,
+    "exit_ma": 200
+  },
+  "walkforward": {
+    "oos_years": [
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "train": "prior_2y",
+    "grid": {
+      "trim_weight": [
+        0.3,
+        0.5,
+        0.7
+      ],
+      "reentry_ma": [
+        20,
+        50
+      ],
+      "confirm_days": [
+        1,
+        2
+      ],
+      "severe_ma": [
+        50,
+        100
+      ]
+    }
+  },
+  "costs": "Futu + 3bps",
+  "start_mode": "flat_each_window"
+}
