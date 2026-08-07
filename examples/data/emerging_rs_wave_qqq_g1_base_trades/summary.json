@@ -1,0 +1,29 @@
+{
+  "strategy": "G1_base EmergingRSWave",
+  "window": [
+    "2025-01-02",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0,
+  "end_equity_usd": 109536.47176887715,
+  "total_return": 1.190729435377543,
+  "max_drawdown": -0.2684760965817712,
+  "qqq_bh_return": 0.4161768498441356,
+  "qqq_bh_max_drawdown": -0.22639583903689942,
+  "vs_bh_pp": 77.45525855334074,
+  "n_fills": 70,
+  "n_buys": 28,
+  "n_sells": 42,
+  "total_buy_notional_usd": 1818777.4000000001,
+  "total_sell_notional_usd": 1766097.23,
+  "total_buy_cost_usd": 746.4700000000001,
+  "total_sell_cost_usd": 723.92,
+  "total_cost_usd": 1470.39,
+  "n_round_trips_closed": 27,
+  "n_round_trips_open": 1,
+  "closed_pnl_usd": 57535.780000000006,
+  "closed_wins": 10,
+  "closed_losses": 17,
+  "open_mTM_pnl_usd": 2000.69,
+  "sum_all_rt_pnl_usd": 59536.47000000001
+}

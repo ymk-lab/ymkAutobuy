@@ -131,3 +131,6 @@ examples/data/panel/
 !examples/data/emerging_rs_wave_qqq_g1_soft7_hard12/
 !examples/data/emerging_rs_wave_qqq_g1_soft7_hard12/*.csv
 !examples/data/emerging_rs_wave_qqq_g1_soft7_hard12/*.json
+
+!examples/data/emerging_rs_wave_qqq_g1_base_trades/
+!examples/data/emerging_rs_wave_qqq_g1_base_trades/*
