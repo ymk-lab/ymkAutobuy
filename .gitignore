@@ -26,3 +26,6 @@ examples/data/panel/
 
 !examples/data/qqq100b/
 !examples/data/qqq100b/*.csv
+
+!examples/data/qqq100b_b/
+!examples/data/qqq100b_b/*.csv
