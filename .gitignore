@@ -12,6 +12,6 @@ venv/
 .env
 .DS_Store
 *.csv
-!examples/sample_data.csv
+!examples/data/sample_ohlcv.csv
 .idea/
 .vscode/
