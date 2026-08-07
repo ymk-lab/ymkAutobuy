@@ -1,0 +1,11 @@
+# Emerging RS G1 — Longbridge paper (small VPS)
+# Install: crontab -e  → paste (fix /opt/qresearch with your clone path)
+
+SHELL=/bin/bash
+CRON_TZ=America/New_York
+
+# After US equity close: compute G1 target; submit only if QRESEARCH_LB_SUBMIT=1 in .env
+30 16 * * 1-5 /opt/qresearch/deploy/vps-cron/run.sh once >> /opt/qresearch/examples/data/emerging_rs_g1_paper/logs/cron_stdout.log 2>&1
+
+# Optional: morning check / re-run before open (skips if already submitted for same asof)
+# 25 9 * * 1-5 /opt/qresearch/deploy/vps-cron/run.sh once >> /opt/qresearch/examples/data/emerging_rs_g1_paper/logs/cron_stdout.log 2>&1

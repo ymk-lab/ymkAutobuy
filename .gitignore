@@ -138,3 +138,7 @@ examples/data/panel/
 !examples/data/emerging_rs_wave_qqq_g1_longbridge/
 !examples/data/emerging_rs_wave_qqq_g1_longbridge/*.csv
 !examples/data/emerging_rs_wave_qqq_g1_longbridge/*.json
+
+!examples/data/emerging_rs_g1_paper/
+!examples/data/emerging_rs_g1_paper/*.json
+!examples/data/emerging_rs_g1_paper/*.csv

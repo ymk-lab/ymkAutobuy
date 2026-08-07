@@ -1,0 +1,32 @@
+{
+  "asof": "2026-08-07",
+  "gate": "G1",
+  "gate_open": true,
+  "target_raw": {
+    "ORLY": 1.0
+  },
+  "n_events": 139,
+  "events_today": [],
+  "mode": "once",
+  "submit": false,
+  "positions": {},
+  "target": {
+    "ORLY.US": 1.0
+  },
+  "marks": {
+    "ORLY.US": 93.68,
+    "QQQ.US": 719.97
+  },
+  "sleeve_equity_usd": 50000.0,
+  "cash_usd": 1000000.0,
+  "generated_at_utc": "2026-08-07 18:26:49.397214",
+  "preview_orders": [
+    {
+      "order_id": "dry-b80d5ca21b90",
+      "symbol": "ORLY.US",
+      "side": "buy",
+      "quantity": 528.0,
+      "price": 93.68
+    }
+  ]
+}
