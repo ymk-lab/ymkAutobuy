@@ -51,3 +51,7 @@ examples/data/panel/
 !examples/data/s12_dip_tune20/
 !examples/data/s12_dip_tune20/*.csv
 !examples/data/s12_dip_tune20/*.json
+
+!examples/data/progressive_pair_mc/
+!examples/data/progressive_pair_mc/*.csv
+!examples/data/progressive_pair_mc/*.json

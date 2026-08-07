@@ -1,0 +1,32 @@
+{
+  "window": [
+    "2025-08-01",
+    "2026-08-01"
+  ],
+  "n_runs": 100,
+  "n_stocks": 10,
+  "capital_usd": 50000.0,
+  "seed": 20260807,
+  "combine": "min(weight_a, weight_b)",
+  "base": "S12 + RS entry",
+  "logics": [
+    "L1_time",
+    "L2_price",
+    "L3_pullback",
+    "L4_regime",
+    "L5_pyramid"
+  ],
+  "n_pairs": 10,
+  "pairs": [
+    "L1_time+L2_price",
+    "L1_time+L3_pullback",
+    "L1_time+L4_regime",
+    "L1_time+L5_pyramid",
+    "L2_price+L3_pullback",
+    "L2_price+L4_regime",
+    "L2_price+L5_pyramid",
+    "L3_pullback+L4_regime",
+    "L3_pullback+L5_pyramid",
+    "L4_regime+L5_pyramid"
+  ]
+}
