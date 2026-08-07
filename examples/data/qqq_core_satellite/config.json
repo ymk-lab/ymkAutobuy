@@ -6,6 +6,8 @@
   "vol_target": 0.15,
   "vol_lookback": 20,
   "core_scale_floor": 0.5,
+  "soft_vol_cadence": "W",
+  "trade_threshold": 0.02,
   "satellite": "S12_full_no_RS",
   "s12": {
     "fast": 10,
@@ -28,6 +30,7 @@
   "adr": [
     "0001",
     "0002",
-    "0003"
+    "0003",
+    "0004"
   ]
 }

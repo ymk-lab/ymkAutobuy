@@ -25,7 +25,7 @@ class CoreSatelliteSoftVolStrategy(Strategy):
     vol_lookback: int = 20
     vol_target: float = 0.15
     core_scale_floor: float = 0.50
-    soft_vol_cadence: str = "D"  # D daily, W weekly
+    soft_vol_cadence: str = "W"  # W weekly (default), D daily
     satellite: Strategy | None = None
     name: str = "core_satellite_soft_vol"
 

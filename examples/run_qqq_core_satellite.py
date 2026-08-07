@@ -88,6 +88,7 @@ def main() -> None:
         initial_capital=CAPITAL,
         fees=FutuUsEquityFees(slippage_bps=3.0),
         allow_short=False,
+        trade_threshold=0.02,
     )
 
     strategies = {
@@ -99,6 +100,7 @@ def main() -> None:
             vol_lookback=20,
             vol_target=0.15,
             core_scale_floor=0.50,
+            soft_vol_cadence="W",
             satellite=s12(),
         ),
     }
@@ -170,12 +172,14 @@ def main() -> None:
         "vol_target": 0.15,
         "vol_lookback": 20,
         "core_scale_floor": 0.50,
+        "soft_vol_cadence": "W",
+        "trade_threshold": 0.02,
         "satellite": "S12_full_no_RS",
         "s12": {"fast": 10, "slow": 40, "vol_lb": 20, "vol_mult": 1.35},
         "costs": "Futu US fixed schedule + 3bps slippage",
         "execution": "next-bar open",
         "windows": {k: [str(a.date()), str(b.date())] for k, (a, b) in windows.items()},
-        "adr": ["0001", "0002", "0003"],
+        "adr": ["0001", "0002", "0003", "0004"],
     }
     (OUT / "config.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 

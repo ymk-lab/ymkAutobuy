@@ -61,8 +61,12 @@ _Avoid_: 核心歸零
 _Avoid_: 對 QQQ 使用以 QQQ 為基準的 RS 過濾
 
 **Rebalance Cadence**:
-每日根據收盤計算目標權重，於下一交易日開盤執行（next-bar）。
+帳本目標權重依收盤計算，於下一交易日開盤執行（next-bar）；衛星 S12 每日決策，核心 Soft Vol 縮放預設週調（見 Soft Vol Cadence）。
 _Avoid_: 同根 K 線成交、無成本假設
+
+**Soft Vol Cadence**:
+核心 Soft Vol 縮放係數預設每週重算一次（週五為界），週內持有該週首值；衛星訊號仍可每日翻轉。
+_Avoid_: 無證據地把 Soft Vol 改回日頻、為降交易成本而改動衛星決策頻率
 
 **Soft Vol Target**:
 核心 Soft Vol Overlay 使用近 20 日年化實現波動，目標波動 15%；縮放係數限制在 [0.5, 1.0]。
