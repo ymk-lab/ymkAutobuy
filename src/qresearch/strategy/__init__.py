@@ -30,6 +30,7 @@ from qresearch.strategy.beat_bench import (
     OffenseTrimStrategy,
     SevereTrimFastReentryStrategy,
 )
+from qresearch.strategy.hold_high_dip import HoldHighDipScaleStrategy
 
 __all__ = [
     "Strategy",
@@ -43,6 +44,7 @@ __all__ = [
     "BeatBenchStrategy",
     "SevereTrimFastReentryStrategy",
     "OffenseTrimStrategy",
+    "HoldHighDipScaleStrategy",
     "BinaryEntryConfirm",
     "LongMAGate",
     "TimeConfirmScale",

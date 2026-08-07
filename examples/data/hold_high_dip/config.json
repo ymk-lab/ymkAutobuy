@@ -1,0 +1,28 @@
+{
+  "strategy": "HoldHighDipScaleStrategy",
+  "logic": {
+    "keep_highs": "full while above SMA50 / until 2-day break",
+    "sell": "from full only, after 2 closes below SMA50",
+    "dip_scale": "while not full, if 20d return lags bench by >3%, +10%/day up to 50%",
+    "full_again": "close > SMA50 \u2192 100%"
+  },
+  "params": {
+    "exit_ma": 50,
+    "reclaim_ma": 50,
+    "exit_confirm": 2,
+    "rel_lookback": 20,
+    "rel_lag": 0.03,
+    "add_step": 0.1,
+    "max_dip_weight": 0.5
+  },
+  "benchmarks": {
+    "QQQ": "SPY",
+    "MU": "QQQ"
+  },
+  "capital_usd": 50000.0,
+  "window": [
+    "2025-01-01",
+    "2026-08-06"
+  ],
+  "costs": "Futu+3bps thr2% next-bar flat-start"
+}
