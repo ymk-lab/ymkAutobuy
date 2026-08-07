@@ -1,0 +1,15 @@
+{
+  "priority": [
+    "vs_bh_return",
+    "max_drawdown"
+  ],
+  "symbols": [
+    "QQQ",
+    "SOXX",
+    "TSLA"
+  ],
+  "capital_usd": 50000.0,
+  "costs": "Futu + 3bps",
+  "start_mode": "flat_at_window_start",
+  "adr": "0005"
+}
