@@ -107,3 +107,7 @@ examples/data/panel/
 !examples/data/emerging_rs_wave_gates/
 !examples/data/emerging_rs_wave_gates/*.csv
 !examples/data/emerging_rs_wave_gates/*.json
+
+!examples/data/emerging_rs_wave_scan/
+!examples/data/emerging_rs_wave_scan/*.csv
+!examples/data/emerging_rs_wave_scan/*.json

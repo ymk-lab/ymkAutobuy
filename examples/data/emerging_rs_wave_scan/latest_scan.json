@@ -1,0 +1,25 @@
+{
+  "asof": "2026-08-07",
+  "gate": "G1",
+  "gate_open": true,
+  "action": "HOLD",
+  "buy_or_hold": "ORLY",
+  "slot_weight": 1.0,
+  "reason": "\u5e2d\u4f4d\u5df2\u4f54\u7528\uff1a\u7e7c\u7e8c\u6301\u6709 ORLY 100%\uff1b\u4eca\u65e5\u65b0\u8a0a\u865f\u4e0d\u958b\u7b2c\u4e8c\u6a94",
+  "candidates": [
+    {
+      "symbol": "CSGP",
+      "excess_20": 0.09616377029961742,
+      "excess_10": 0.06498422814005678,
+      "excess_60": -0.084258831189578,
+      "close": 30.934999465942383
+    },
+    {
+      "symbol": "CPRT",
+      "excess_20": 0.08446285404595866,
+      "excess_10": 0.00832167082779578,
+      "excess_60": -0.13315358024622448,
+      "close": 29.665000915527344
+    }
+  ]
+}
