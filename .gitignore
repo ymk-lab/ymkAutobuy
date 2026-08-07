@@ -59,3 +59,7 @@ examples/data/panel/
 !examples/data/qqq_etf_compare/
 !examples/data/qqq_etf_compare/*.csv
 !examples/data/qqq_etf_compare/*.json
+
+!examples/data/qqq_etf_compare_2025/
+!examples/data/qqq_etf_compare_2025/*.csv
+!examples/data/qqq_etf_compare_2025/*.json
