@@ -38,3 +38,6 @@ examples/data/panel/
 
 !examples/data/regime_rs_tune/
 !examples/data/regime_rs_tune/*.csv
+
+!examples/data/regime_rs_tune30/
+!examples/data/regime_rs_tune30/*.csv
