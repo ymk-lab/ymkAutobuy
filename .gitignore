@@ -123,3 +123,7 @@ examples/data/panel/
 !examples/data/emerging_rs_wave_soxx_g1_dd/
 !examples/data/emerging_rs_wave_soxx_g1_dd/*.csv
 !examples/data/emerging_rs_wave_soxx_g1_dd/*.json
+
+!examples/data/emerging_rs_wave_qqq_g1_weaken_flat/
+!examples/data/emerging_rs_wave_qqq_g1_weaken_flat/*.csv
+!examples/data/emerging_rs_wave_qqq_g1_weaken_flat/*.json

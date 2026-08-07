@@ -1,0 +1,13 @@
+{
+  "strategy": "EmergingRSWaveBook",
+  "gate": "G1",
+  "config": {
+    "weaken_goes_flat": true
+  },
+  "universe": "QQQ/NDX-style",
+  "symbols_n": 97,
+  "capital_usd": 50000.0,
+  "costs": "Futu+3bps next-bar flat-start per window",
+  "n_windows": 15,
+  "beat_bh_rate": 0.3333333333333333
+}
