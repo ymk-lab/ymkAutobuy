@@ -1,0 +1,13 @@
+{
+  "symbol": "QQQ",
+  "capital_usd": 50000.0,
+  "window": [
+    "2025-01-01",
+    "2026-08-06"
+  ],
+  "n_strategies": 100,
+  "costs": "Futu US fixed + 3bps slip; thr 2%; next-bar open; flat start",
+  "methodology": "a priori logic families + classic parameter grids; no contest-window tuning",
+  "bh_return": 0.4040991929168507,
+  "n_beat_bh": 1
+}
