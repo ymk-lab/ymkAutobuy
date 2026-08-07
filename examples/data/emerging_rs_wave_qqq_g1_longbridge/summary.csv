@@ -1,0 +1,2 @@
+gate,total_return,max_drawdown,sharpe,end_equity,bh_return,bh_max_drawdown,vs_bh_pp,beat_bh,n_enters,n_trades,universe_n_used
+G1,1.1920934627762931,-0.268470639947621,1.5793003176264477,109604.67313881466,0.42683981935770476,-0.2263816894439239,76.52536434185883,True,28,70,97
