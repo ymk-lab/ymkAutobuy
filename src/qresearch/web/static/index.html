@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>qresearch · G1 Paper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="brand">qresearch</p>
+        <p class="brand-sub">Emerging RS · G1 Paper</p>
+      </div>
+      <div class="top-meta">
+        <span id="badge-submit" class="badge">SUBMIT …</span>
+        <span id="badge-busy" class="badge badge-idle">待命</span>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <h1 id="hero-target">讀取中…</h1>
+          <p id="hero-reason" class="lede">
+            長橋模擬盤控制台。每個按鈕都會回報後台進度。
+          </p>
+          <div class="hero-pills" id="hero-pills"></div>
+        </div>
+        <div class="hero-panel" aria-label="帳戶摘要">
+          <div class="metric">
+            <span class="metric-label">袖口權益</span>
+            <strong id="m-sleeve">—</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">帳戶現金</span>
+            <strong id="m-cash">—</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">持倉</span>
+            <strong id="m-pos">—</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">訊號日</span>
+            <strong id="m-asof">—</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="actions" aria-label="操作">
+        <button type="button" class="btn btn-primary" data-action="refresh-status">
+          <span class="btn-label">重新整理狀態</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="btn" data-action="sync-account">
+          <span class="btn-label">同步長橋帳戶</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="btn" data-action="run-signal">
+          <span class="btn-label">重算訊號（不下單）</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="btn btn-accent" data-action="run-once">
+          <span class="btn-label">執行一次作業</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="btn" data-action="toggle-submit">
+          <span class="btn-label">切換送單開關</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="btn" data-action="load-logs">
+          <span class="btn-label">載入最新日誌</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="detail-grid">
+        <article class="panel">
+          <header class="panel-head">
+            <h2>目標與預覽</h2>
+            <p>來自 latest_signal.json</p>
+          </header>
+          <pre id="signal-view" class="code-block">尚未載入</pre>
+        </article>
+        <article class="panel">
+          <header class="panel-head">
+            <h2>即時活動</h2>
+            <p>後台每個步驟都會出現在這裡</p>
+          </header>
+          <ol id="activity" class="activity" aria-live="polite"></ol>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Longbridge paper · cron 美東 16:30</span>
+      <span id="server-clock">—</span>
+    </footer>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
