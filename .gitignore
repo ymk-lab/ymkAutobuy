@@ -142,3 +142,7 @@ examples/data/panel/
 !examples/data/emerging_rs_g1_paper/
 !examples/data/emerging_rs_g1_paper/*.json
 !examples/data/emerging_rs_g1_paper/*.csv
+
+!examples/data/emerging_rs_g1_multi_slot/
+!examples/data/emerging_rs_g1_multi_slot/*.csv
+!examples/data/emerging_rs_g1_multi_slot/*.json

@@ -1,0 +1,2 @@
+total_return,max_drawdown,sharpe,end_equity,bh_return,vs_bh_pp,beat_bh,n_buys,n_sells,max_concurrent,avg_concurrent,cost_total_usd
+0.23100590581600033,-0.07889795510589914,1.0549641377982146,61550.295290800015,0.4070107124919997,-17.60048066759994,False,252,388,10,5.4775,2092.1899999999996
