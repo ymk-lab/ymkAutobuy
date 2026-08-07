@@ -1,0 +1,11 @@
+{
+  "symbol": "PYPL",
+  "benchmark": "QQQ",
+  "strategy": "HoldHighDipScaleStrategy",
+  "capital_usd": 50000.0,
+  "window": [
+    "2025-01-01",
+    "2026-08-06"
+  ],
+  "costs": "Futu+3bps thr2% next-bar flat-start"
+}
