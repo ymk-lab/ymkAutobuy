@@ -23,3 +23,6 @@ venv/
 examples/data/panel/
 .idea/
 .vscode/
+
+!examples/data/qqq100b/
+!examples/data/qqq100b/*.csv
