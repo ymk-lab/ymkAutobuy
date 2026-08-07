@@ -67,3 +67,7 @@ examples/data/panel/
 !examples/data/qqq_l1l4_vs_s12/
 !examples/data/qqq_l1l4_vs_s12/*.csv
 !examples/data/qqq_l1l4_vs_s12/*.json
+
+!examples/data/dia_l1l4_vs_s12/
+!examples/data/dia_l1l4_vs_s12/*.csv
+!examples/data/dia_l1l4_vs_s12/*.json
