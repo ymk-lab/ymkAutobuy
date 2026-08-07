@@ -178,12 +178,88 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  /* six metrics: 2x3 on desktop */
+
   padding: 1rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
+}
+
+.holdings-wrap {
+  margin: 1.1rem 0 0.2rem;
+  animation: rise 0.95s ease both;
+}
+
+.holdings-panel {
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  padding: 0 0.4rem 0.8rem;
+}
+
+.holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.holdings-table th,
+.holdings-table td {
+  padding: 0.7rem 0.75rem;
+  text-align: right;
+  border-bottom: 1px solid rgba(20, 32, 28, 0.08);
+  white-space: nowrap;
+}
+
+.holdings-table th:first-child,
+.holdings-table td:first-child {
+  text-align: left;
+}
+
+.holdings-table th {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.holdings-table .sym {
+  font-weight: 700;
+}
+
+.holdings-table .name {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.holdings-table .empty {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 1.4rem 0.75rem;
+}
+
+.pnl-up {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.pnl-down {
+  color: var(--err);
+  font-weight: 700;
+}
+
+.pnl-flat {
+  color: var(--ink-soft);
+  font-weight: 600;
 }
 
 .metric {

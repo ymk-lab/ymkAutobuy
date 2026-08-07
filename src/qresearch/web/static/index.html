@@ -48,14 +48,51 @@
             <strong id="m-cash">—</strong>
           </div>
           <div class="metric">
-            <span class="metric-label">持倉</span>
-            <strong id="m-pos">—</strong>
+            <span class="metric-label">持倉市值</span>
+            <strong id="m-mv">—</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">未實現盈虧</span>
+            <strong id="m-upnl">—</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">今日盈虧</span>
+            <strong id="m-day">—</strong>
           </div>
           <div class="metric">
             <span class="metric-label">訊號日</span>
             <strong id="m-asof">—</strong>
           </div>
         </div>
+      </section>
+
+      <section class="holdings-wrap" aria-label="持倉盈虧">
+        <article class="panel holdings-panel">
+          <header class="panel-head">
+            <h2>持倉升跌盈虧</h2>
+            <p id="holdings-sub">同步帳戶後顯示成本、現價與未實現損益</p>
+          </header>
+          <div class="table-scroll">
+            <table class="holdings-table">
+              <thead>
+                <tr>
+                  <th>標的</th>
+                  <th>股數</th>
+                  <th>成本</th>
+                  <th>現價</th>
+                  <th>市值</th>
+                  <th>未實現</th>
+                  <th>今日</th>
+                </tr>
+              </thead>
+              <tbody id="holdings-body">
+                <tr>
+                  <td colspan="7" class="empty">尚未載入持倉</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
       </section>
 
       <section class="actions" aria-label="操作">

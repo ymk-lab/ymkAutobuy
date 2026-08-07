@@ -9,6 +9,7 @@ import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+import math
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Query
@@ -82,6 +83,7 @@ def _account_snapshot() -> dict[str, Any]:
     _load_dotenv()
     sys.path.insert(0, str(ROOT / "src"))
     from qresearch.brokers.longbridge import LongbridgeBrokerAdapter, has_longbridge_credentials
+    from qresearch.brokers.longbridge.symbols import normalize_symbol
 
     if not has_longbridge_credentials():
         return {"ok": False, "error": "缺少 Longbridge 憑證"}
@@ -90,25 +92,147 @@ def _account_snapshot() -> dict[str, Any]:
         currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
         default_market="US",
     )
-    positions = broker.get_positions()
     cash = broker.get_cash()
+
+    # Rich position rows (cost basis from venue).
+    holdings: list[dict[str, Any]] = []
+    positions: dict[str, float] = {}
+    if broker.trade_ctx is not None:
+        resp = broker.trade_ctx.stock_positions()
+        for ch in getattr(resp, "channels", None) or []:
+            for pos in getattr(ch, "positions", None) or []:
+                sym = normalize_symbol(pos.symbol, default_market="US")
+                qty = float(pos.quantity)
+                if abs(qty) < 1e-12:
+                    continue
+                cost = float(getattr(pos, "cost_price", 0) or 0)
+                positions[sym] = positions.get(sym, 0.0) + qty
+                holdings.append(
+                    {
+                        "symbol": sym,
+                        "name": str(getattr(pos, "symbol_name", "") or ""),
+                        "quantity": qty,
+                        "available_quantity": float(getattr(pos, "available_quantity", qty) or qty),
+                        "currency": str(getattr(pos, "currency", "USD") or "USD"),
+                        "cost_price": cost,
+                    }
+                )
+    else:
+        positions = broker.get_positions()
+        for sym, qty in positions.items():
+            holdings.append(
+                {
+                    "symbol": sym,
+                    "name": "",
+                    "quantity": float(qty),
+                    "available_quantity": float(qty),
+                    "currency": "USD",
+                    "cost_price": None,
+                }
+            )
+
     quotes: dict[str, float] = {}
-    syms = sorted(set(positions) | {"QQQ.US", "ORLY.US"})
+    quote_meta: dict[str, dict[str, float]] = {}
+    syms = sorted(set(positions) | {"QQQ.US"})
+    quote_warning = None
     if broker.quote_ctx is not None and syms:
         try:
             for q in broker.quote_ctx.quote(syms):
+                sym = normalize_symbol(q.symbol, default_market="US")
                 last = getattr(q, "last_done", None)
+                prev = getattr(q, "prev_close", None)
+                opn = getattr(q, "open", None)
                 if last is not None and float(last) > 0:
-                    quotes[str(q.symbol)] = float(last)
+                    quotes[sym] = float(last)
+                quote_meta[sym] = {
+                    "last": float(last) if last not in (None, "") else float("nan"),
+                    "prev_close": float(prev) if prev not in (None, "") else float("nan"),
+                    "open": float(opn) if opn not in (None, "") else float("nan"),
+                }
         except Exception as exc:  # noqa: BLE001
-            return {
-                "ok": True,
-                "cash_usd": cash,
-                "positions": positions,
-                "quotes": quotes,
-                "quote_warning": str(exc),
+            quote_warning = str(exc)
+
+    enriched: list[dict[str, Any]] = []
+    total_mv = 0.0
+    total_cost = 0.0
+    total_upnl = 0.0
+    total_day = 0.0
+    for h in holdings:
+        sym = h["symbol"]
+        qty = float(h["quantity"])
+        cost = h.get("cost_price")
+        meta = quote_meta.get(sym) or {}
+        last = quotes.get(sym)
+        meta_last = meta.get("last")
+        if last is None and meta_last is not None and not math.isnan(meta_last):
+            last = meta_last
+        prev = meta.get("prev_close")
+        if prev is not None and math.isnan(prev):
+            prev = None
+        row = dict(h)
+        row["last"] = last
+        row["prev_close"] = prev
+        market_value = (last * qty) if last is not None else None
+        cost_value = (float(cost) * qty) if cost not in (None, "") else None
+        upnl = (
+            market_value - cost_value
+            if market_value is not None and cost_value is not None
+            else None
+        )
+        upnl_pct = (
+            (last / float(cost) - 1.0)
+            if last is not None and cost not in (None, "", 0, 0.0)
+            else None
+        )
+        day_pnl = (
+            (last - float(prev)) * qty
+            if last is not None and prev is not None and prev == prev
+            else None
+        )
+        day_pct = (
+            (last / float(prev) - 1.0)
+            if last is not None and prev is not None and prev == prev and float(prev) != 0
+            else None
+        )
+        row.update(
+            {
+                "market_value": market_value,
+                "cost_value": cost_value,
+                "unrealized_pnl": upnl,
+                "unrealized_pnl_pct": upnl_pct,
+                "day_pnl": day_pnl,
+                "day_pnl_pct": day_pct,
             }
-    return {"ok": True, "cash_usd": cash, "positions": positions, "quotes": quotes}
+        )
+        enriched.append(row)
+        if market_value is not None:
+            total_mv += market_value
+        if cost_value is not None:
+            total_cost += cost_value
+        if upnl is not None:
+            total_upnl += upnl
+        if day_pnl is not None:
+            total_day += day_pnl
+
+    equity = float(cash) + total_mv
+    out: dict[str, Any] = {
+        "ok": True,
+        "cash_usd": cash,
+        "positions": positions,
+        "quotes": quotes,
+        "holdings": enriched,
+        "pnl": {
+            "market_value": total_mv,
+            "cost_value": total_cost,
+            "unrealized_pnl": total_upnl,
+            "unrealized_pnl_pct": (total_upnl / total_cost) if total_cost > 1e-9 else None,
+            "day_pnl": total_day,
+            "equity_usd": equity,
+        },
+    }
+    if quote_warning:
+        out["quote_warning"] = quote_warning
+    return out
 
 
 def _account_path() -> Path:
@@ -122,6 +246,8 @@ def _save_account(snap: dict[str, Any]) -> dict[str, Any]:
         "cash_usd": snap.get("cash_usd"),
         "positions": snap.get("positions") or {},
         "quotes": snap.get("quotes") or {},
+        "holdings": snap.get("holdings") or [],
+        "pnl": snap.get("pnl") or {},
         "updated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     if snap.get("quote_warning"):

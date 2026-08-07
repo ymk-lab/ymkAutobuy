@@ -16,6 +16,69 @@
     })}`;
   }
 
+  function fmtMoney(n, digits = 2) {
+    if (n == null || Number.isNaN(Number(n))) return "—";
+    return Number(n).toLocaleString("en-US", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  }
+
+  function fmtPct(n) {
+    if (n == null || Number.isNaN(Number(n))) return "—";
+    const v = Number(n) * 100;
+    const sign = v > 0 ? "+" : "";
+    return `${sign}${v.toFixed(2)}%`;
+  }
+
+  function pnlClass(n) {
+    if (n == null || Number.isNaN(Number(n)) || Math.abs(Number(n)) < 1e-9) return "pnl-flat";
+    return Number(n) > 0 ? "pnl-up" : "pnl-down";
+  }
+
+  function fmtPnlPair(usd, pct) {
+    if (usd == null || Number.isNaN(Number(usd))) return "—";
+    const sign = Number(usd) > 0 ? "+" : "";
+    const main = `${sign}${fmtMoney(usd)}`;
+    return pct == null || Number.isNaN(Number(pct)) ? main : `${main} (${fmtPct(pct)})`;
+  }
+
+  function renderHoldings(account) {
+    const body = $("#holdings-body");
+    const sub = $("#holdings-sub");
+    const holdings = account.holdings || [];
+    const pnl = account.pnl || {};
+    if (sub) {
+      const ts = account.updated_at_utc
+        ? `更新 ${String(account.updated_at_utc).replace("T", " ").slice(0, 19)} UTC`
+        : "同步帳戶後顯示成本、現價與未實現損益";
+      sub.textContent = holdings.length
+        ? `${ts} · 合計未實現 ${fmtPnlPair(pnl.unrealized_pnl, pnl.unrealized_pnl_pct)}`
+        : ts;
+    }
+    if (!holdings.length) {
+      body.innerHTML = `<tr><td colspan="7" class="empty">目前無持倉</td></tr>`;
+      return;
+    }
+    body.innerHTML = holdings
+      .map((h) => {
+        const upnlCls = pnlClass(h.unrealized_pnl);
+        const dayCls = pnlClass(h.day_pnl);
+        return `<tr>
+          <td><span class="sym">${h.symbol || "—"}</span>${
+            h.name ? `<span class="name">${h.name}</span>` : ""
+          }</td>
+          <td>${fmtMoney(h.quantity, 0)}</td>
+          <td>${fmtMoney(h.cost_price)}</td>
+          <td>${fmtMoney(h.last)}</td>
+          <td>${fmtMoney(h.market_value)}</td>
+          <td class="${upnlCls}">${fmtPnlPair(h.unrealized_pnl, h.unrealized_pnl_pct)}</td>
+          <td class="${dayCls}">${fmtPnlPair(h.day_pnl, h.day_pnl_pct)}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   function toast(message, level = "info") {
     const el = document.createElement("div");
     el.className = `toast ${level}`;
@@ -90,21 +153,29 @@
 
     // Live account (broker) must win over stale signal.positions snapshot.
     const account = data.account || {};
+    const pnl = account.pnl || {};
     $("#m-sleeve").textContent = fmtUsd(signal.sleeve_equity_usd);
     $("#m-cash").textContent = fmtUsd(
       account.cash_usd != null ? account.cash_usd : signal.cash_usd
     );
-    const pos =
-      account.positions && Object.keys(account.positions).length
-        ? account.positions
-        : signal.positions || {};
-    const posKeys = Object.keys(pos);
-    $("#m-pos").textContent = posKeys.length
-      ? posKeys.map((k) => `${k}×${pos[k]}`).join(", ")
-      : "無持倉";
+    $("#m-mv").textContent = fmtUsd(pnl.market_value);
+    const upnlEl = $("#m-upnl");
+    upnlEl.textContent = fmtPnlPair(pnl.unrealized_pnl, pnl.unrealized_pnl_pct);
+    upnlEl.className = pnlClass(pnl.unrealized_pnl);
+    const dayEl = $("#m-day");
+    dayEl.textContent = fmtPnlPair(pnl.day_pnl, null);
+    dayEl.className = pnlClass(pnl.day_pnl);
     $("#m-asof").textContent = signal.asof || "—";
+    renderHoldings(account);
     $("#signal-view").textContent = JSON.stringify(
-      { account, target: signal.target, asof: signal.asof, gate_open: signal.gate_open, signal },
+      {
+        account_pnl: pnl,
+        holdings: account.holdings || [],
+        target: signal.target,
+        asof: signal.asof,
+        gate_open: signal.gate_open,
+        signal,
+      },
       null,
       2
     );
