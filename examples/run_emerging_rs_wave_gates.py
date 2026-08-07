@@ -38,7 +38,6 @@ UNIVERSE = sorted(
         "AMD",
         "AMGN",
         "AMZN",
-        "ANSS",
         "APP",
         "ARM",
         "ASML",
