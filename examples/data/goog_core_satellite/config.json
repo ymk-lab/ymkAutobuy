@@ -1,0 +1,22 @@
+{
+  "symbol": "GOOG",
+  "capital_usd": 50000.0,
+  "core_weight": 0.7,
+  "satellite_weight": 0.3,
+  "vol_target": 0.15,
+  "soft_vol_cadence": "W",
+  "trade_threshold": 0.02,
+  "satellite": "S12_full_no_RS",
+  "costs": "Futu US fixed + 3bps slip",
+  "start_mode": "flat_at_window_start",
+  "windows": {
+    "primary_2025_to_now": [
+      "2025-01-01",
+      "2026-08-06"
+    ],
+    "secondary_2020_to_now": [
+      "2020-01-01",
+      "2026-08-06"
+    ]
+  }
+}
