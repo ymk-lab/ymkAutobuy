@@ -1,0 +1,36 @@
+{
+  "gate": "G1",
+  "benchmark": "SOXX",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "goal": "improve G1 max drawdown while beating SOXX B&H",
+  "variants": [
+    "G1_base",
+    "G1_dd7",
+    "G1_dd5",
+    "G1_soft5_hard10",
+    "G1_soft5_hard8",
+    "G1_soft7_hard12",
+    "G1_entry80",
+    "G1_entry70",
+    "G1_entry60",
+    "G1_weaken_flat",
+    "G1_cooldown3",
+    "G1_cooldown5",
+    "G1_soft5_entry80",
+    "G1_soft5_entry70",
+    "G1_entry80_cd3",
+    "G1_soft5_entry80_cd3",
+    "G1_entry80_weakenflat"
+  ],
+  "soxx_bh": {
+    "total_return": 1.5155519281080698,
+    "max_drawdown": -0.3421346922913465,
+    "sharpe": 1.5242773753845378,
+    "end_equity": 125777.59640540348
+  },
+  "base_ret": 2.81696495311914,
+  "base_dd": -0.3509741490517341
+}
