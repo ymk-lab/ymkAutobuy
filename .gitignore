@@ -55,3 +55,7 @@ examples/data/panel/
 !examples/data/progressive_pair_mc/
 !examples/data/progressive_pair_mc/*.csv
 !examples/data/progressive_pair_mc/*.json
+
+!examples/data/qqq_etf_compare/
+!examples/data/qqq_etf_compare/*.csv
+!examples/data/qqq_etf_compare/*.json
