@@ -31,6 +31,7 @@ from qresearch.strategy.beat_bench import (
     SevereTrimFastReentryStrategy,
 )
 from qresearch.strategy.hold_high_dip import HoldHighDipScaleStrategy
+from qresearch.strategy.emerging_rs_wave import EmergingRSWaveBook, EmergingRSWaveConfig
 
 __all__ = [
     "Strategy",
@@ -45,6 +46,8 @@ __all__ = [
     "SevereTrimFastReentryStrategy",
     "OffenseTrimStrategy",
     "HoldHighDipScaleStrategy",
+    "EmergingRSWaveBook",
+    "EmergingRSWaveConfig",
     "BinaryEntryConfirm",
     "LongMAGate",
     "TimeConfirmScale",

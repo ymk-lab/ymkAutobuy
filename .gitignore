@@ -103,3 +103,7 @@ examples/data/panel/
 !examples/data/qqq_random10_hold_high_dip/
 !examples/data/qqq_random10_hold_high_dip/*.csv
 !examples/data/qqq_random10_hold_high_dip/*.json
+
+!examples/data/emerging_rs_wave_gates/
+!examples/data/emerging_rs_wave_gates/*.csv
+!examples/data/emerging_rs_wave_gates/*.json

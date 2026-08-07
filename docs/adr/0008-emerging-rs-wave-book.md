@@ -18,6 +18,14 @@
 - Staged Exit = 因素（短窗超額轉負、跌破 SMA50、閘門關閉、自高點回撤）+ 兩階（先半倉再清倉）
 - Evaluation Protocol = $50k / 2025-01-01→最新 / Futu+3bps / flat-start / next-bar / thr 2%
 
+## Settled in grill Round 3
+
+- Entry size = **100%** 單一標的；半倉不得開第二檔
+- Tie-break = 同日選 **20d excess 最高**
+- Exit table = 滿倉遇轉弱／破 SMA50→半倉；半倉再遇→清倉；回撤≥10% 或閘門關→清倉
+- Gate contest = **G1–G4**（不含 55 日新高）
+- Design confirmed → 實作與主賽
+
 ## Considered Options
 
 - 繼續單標的 HoldHighDip／BeatBench：無法表達「餘資接下波」與宇宙輪動
