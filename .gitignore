@@ -32,3 +32,6 @@ examples/data/panel/
 
 !examples/data/qqq100_3m/
 !examples/data/qqq100_3m/*.csv
+
+!examples/data/qqq100_6m/
+!examples/data/qqq100_6m/*.csv
