@@ -1,5 +1,9 @@
 from qresearch.strategy.base import Strategy
-from qresearch.strategy.examples import RegimeAwareTrendStrategy, SMACrossoverStrategy
+from qresearch.strategy.examples import (
+    RegimeAwareTrendStrategy,
+    RegimeCrossoverStrategy,
+    SMACrossoverStrategy,
+)
 from qresearch.strategy.multi import (
     CrossSectionalMomentumStrategy,
     MultiAssetStrategy,
@@ -11,6 +15,7 @@ __all__ = [
     "Strategy",
     "SMACrossoverStrategy",
     "RegimeAwareTrendStrategy",
+    "RegimeCrossoverStrategy",
     "RelativeStrengthEntryFilter",
     "MultiAssetStrategy",
     "CrossSectionalMomentumStrategy",

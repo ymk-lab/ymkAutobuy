@@ -35,13 +35,20 @@ class SMACrossoverStrategy(Strategy):
 
 @dataclass
 class RegimeAwareTrendStrategy(Strategy):
-    """Trend following that reduces/flat exposure in high-vol regimes."""
+    """regime交叉策略 (regime crossover).
+
+    Rules:
+    - Long when MA is bullish (fast > slow) AND regime is not high-vol
+    - Flat when MA turns bearish OR regime enters high-vol (or unknown warmup)
+
+    Chinese name: regime交叉策略
+    """
 
     fast: int = 10
     slow: int = 40
     high_vol_weight: float = 0.0
     detector: VolatilityRegimeDetector | None = None
-    name: str = "regime_aware_trend"
+    name: str = "regime_crossover"
 
     def __post_init__(self) -> None:
         if self.detector is None:
@@ -62,3 +69,7 @@ class RegimeAwareTrendStrategy(Strategy):
         weight = weight.where(regimes != "high_vol", other=self.high_vol_weight)
         weight = weight.where(regimes != "unknown", other=0.0)
         return weight.fillna(0.0).rename("signal")
+
+
+# Alias kept for older imports / notebooks.
+RegimeCrossoverStrategy = RegimeAwareTrendStrategy
