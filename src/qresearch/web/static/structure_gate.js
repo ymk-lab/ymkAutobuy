@@ -1,4 +1,15 @@
 (() => {
+  const API_BASE = String(window.QRESEARCH_API_BASE || "")
+    .trim()
+    .replace(/\/$/, "");
+
+  function apiUrl(path) {
+    if (!path) return API_BASE || "/";
+    if (/^https?:\/\//i.test(path)) return path;
+    const p = path.startsWith("/") ? path : `/${path}`;
+    return `${API_BASE}${p}`;
+  }
+
   const MODE_COPY = {
     cash: "空手防守：結構轉弱或不在 risk-on 時持有現金。",
     ers: "新興轉強：持有剛相對基準轉強的個股（G1 ERS）。",
@@ -174,7 +185,11 @@
     if (badge) {
       badge.textContent = `查核 ${String(st).toUpperCase()}`;
       badge.className =
-        st === "pass" ? "badge badge-on" : st === "warn" ? "badge badge-busy" : "badge badge-off";
+        st === "pass"
+          ? "badge badge-on"
+          : st === "pending" || st === "warn"
+            ? "badge badge-busy"
+            : "badge badge-off";
     }
     if (summary) {
       const src = audit.sources || {};
@@ -378,7 +393,7 @@
     const body = $("#params-body");
     if (!body) return;
     try {
-      const res = await fetch("/api/structure-gate/v8");
+      const res = await fetch(apiUrl("/api/structure-gate/v8"));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const cfg = data.config || {};
@@ -398,7 +413,7 @@
   }
 
   async function refreshStatus({ live = false } = {}) {
-    const url = live ? "/api/sg/status?live=1" : "/api/sg/status";
+    const url = live ? apiUrl("/api/sg/status?live=1") : apiUrl("/api/sg/status");
     const res = await fetch(url);
     if (!res.ok) throw new Error(`status HTTP ${res.status}`);
     const data = await res.json();
@@ -410,7 +425,7 @@
     setBusy(true, "處理中");
     pushActivity(`處理中：${actionLabel}…`, "info");
     toast(`處理中：${actionLabel}…`, "info");
-    const res = await fetch(url);
+    const res = await fetch(apiUrl(url));
     if (!res.ok || !res.body) throw new Error(`請求失敗 (${res.status})`);
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -614,7 +629,7 @@
           setBusy(true, "查核中");
           pushActivity("處理中：逐筆成交查核…", "info");
           try {
-            const res = await fetch("/api/sg/fills?refresh=1");
+            const res = await fetch(apiUrl("/api/sg/fills?refresh=1"));
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             renderFillAudit(data.audit || null);
@@ -632,6 +647,11 @@
       }
     });
   });
+
+  const apiBaseEl = $("#sg-api-base");
+  if (apiBaseEl) {
+    apiBaseEl.textContent = API_BASE ? `API: ${API_BASE}` : "API: local";
+  }
 
   setMode("cash");
   loadBtRange();

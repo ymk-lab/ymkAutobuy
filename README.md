@@ -25,7 +25,10 @@ python3 examples/run_structure_gate_v11_paper_daily.py once
 PYTHONPATH=src python3 -m uvicorn qresearch.web.paper_app:app --host 0.0.0.0 --port 8787
 ```
 
-永久網址：在 Cloudflare Zero Trust 建 **Named Tunnel**，把 hostname 指到 `http://127.0.0.1:8787`，把 token 寫入 `.env` 的 `CLOUDFLARE_TUNNEL_TOKEN`，再跑：
+永久網址（二選一）：
+
+1. **Firebase Hosting（前端）+ 隧道（API）** — 見 `deploy/firebase/README.md`
+2. **Cloudflare Named Tunnel** 直出整站：hostname → `http://127.0.0.1:8787`，token 寫入 `.env` 的 `CLOUDFLARE_TUNNEL_TOKEN`：
 
 ```bash
 bash deploy/cloudflare/run-named-tunnel.sh

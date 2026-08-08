@@ -13,7 +13,8 @@ import math
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from qresearch.paper.fill_audit import audit_from_out_dir, load_fills_ledger, write_audit
@@ -111,6 +112,25 @@ def _load_dotenv() -> None:
                 continue
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip())
+
+
+def _install_cors() -> None:
+    """Allow Firebase-hosted UI to call this API (tunnel / local)."""
+    _load_dotenv()
+    raw = os.getenv("QRESEARCH_CORS_ORIGINS", "*").strip()
+    origins = [o.strip() for o in raw.split(",") if o.strip()] or ["*"]
+    # Browsers reject Access-Control-Allow-Origin: * together with credentials.
+    creds = origins != ["*"]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=creds,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+_install_cors()
 
 
 def _account_snapshot() -> dict[str, Any]:
@@ -352,6 +372,20 @@ def _status_payload(*, live: bool = False) -> dict[str, Any]:
         "state": state,
         "server_time_utc": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@app.get("/config.js")
+def public_config_js() -> Response:
+    """Inject API base for Firebase-hosted UI; empty means same-origin/local."""
+    base = os.getenv("QRESEARCH_PUBLIC_API_BASE", "").strip().rstrip("/")
+    # Escape for JS string literal.
+    safe = base.replace("\\", "\\\\").replace('"', '\\"')
+    body = f'window.QRESEARCH_API_BASE = "{safe}";\n'
+    return Response(
+        content=body,
+        media_type="application/javascript; charset=utf-8",
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 @app.get("/")
