@@ -271,7 +271,7 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v6",
+        "rule": "structure_gate_v7_priority",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
@@ -297,11 +297,22 @@ def main() -> None:
             "modes": ["cash", "ers", "strong", "bench"],
             "locus": ["stock_led", "index_lean", "neutral"],
             "sleeves": ["sticky", "thrust", "crowded"],
-            "defense": ["mild", "harsh"],
+            "defense": ["mild", "harsh_dd", "harsh_ret"],
         },
+        "priority": [
+            "harsh_ret",
+            "thrust",
+            "sticky",
+            "harsh_dd",
+            "mild",
+            "index_lean",
+            "stock_led+crowded",
+            "ers",
+            "cash",
+        ],
         "note": (
-            "v6 unified names: modes cash/ers/strong/bench; sleeves sticky/thrust; "
-            "thrust overrides lagging dd60 harsh and forces bench while ripping."
+            "v7: explicit priority; sticky/thrust never co-exist with cash; "
+            "index_lean no longer overrides mild; harsh_ret ends sticky same day."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(

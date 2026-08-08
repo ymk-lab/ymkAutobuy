@@ -1,5 +1,5 @@
 {
-  "rule": "structure_gate_v6",
+  "rule": "structure_gate_v7_priority",
   "ticker_agnostic": true,
   "soft_max_gap_pp": 35.0,
   "both_soft_pass": false,
@@ -272,8 +272,20 @@
     ],
     "defense": [
       "mild",
-      "harsh"
+      "harsh_dd",
+      "harsh_ret"
     ]
   },
-  "note": "v6 unified names: modes cash/ers/strong/bench; sleeves sticky/thrust; thrust overrides lagging dd60 harsh and forces bench while ripping."
+  "priority": [
+    "harsh_ret",
+    "thrust",
+    "sticky",
+    "harsh_dd",
+    "mild",
+    "index_lean",
+    "stock_led+crowded",
+    "ers",
+    "cash"
+  ],
+  "note": "v7: explicit priority; sticky/thrust never co-exist with cash; index_lean no longer overrides mild; harsh_ret ends sticky same day."
 }
