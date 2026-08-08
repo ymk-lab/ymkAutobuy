@@ -175,6 +175,26 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
     dist = sw.mode.value_counts(normalize=True).sort_values(ascending=False)
     gate = soft_pass(m_sw["total_return"], m_bh["total_return"], m_ers["total_return"])
 
+    # Sticky audit (experts)
+    sticky = sw.meta["sticky_index_strong"].fillna(0) > 0.5
+    sticky_cov = float(sticky.mean()) if len(sticky) else 0.0
+    if sticky.any():
+        sticky_modes = sw.mode.loc[sticky]
+        etf_share = float((sticky_modes == "hold_bench").mean())
+        stock_leak = float(sticky_modes.isin(["ers", "hold_strong"]).mean())
+        cash_share = float((sticky_modes == "cash").mean())
+    else:
+        etf_share, stock_leak, cash_share = 0.0, 0.0, 0.0
+    audit = {
+        "sticky_coverage": sticky_cov,
+        "sticky_hold_bench_share": etf_share,
+        "sticky_stock_sleeve_leak": stock_leak,
+        "sticky_cash_share": cash_share,
+        "theme_bh_gap_ok_20pp": bool(
+            (m_bh["total_return"] - m_sw["total_return"]) * 100 <= 20.0
+        ),
+    }
+
     rows = [
         {"name": "structure_gate", **m_sw},
         {"name": "pure_ers_g1", **m_ers},
@@ -206,9 +226,11 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
         "pure_ers_g1": m_ers,
         "bench_bh": m_bh,
         "mode_distribution": dist.to_dict(),
+        "sticky_audit": audit,
         "criteria": {
             "hard": "beat bench_bh AND pure_ers_g1",
             "soft": f"beat worse baseline AND trail better by ≤{SOFT_MAX_GAP_PP:.0f}pp",
+            "theme_track": "vs bench_bh gap ≤20pp (theme book aspirational)",
         },
         **gate,
         "vs_bh_pp": (m_sw["total_return"] - m_bh["total_return"]) * 100,
@@ -219,6 +241,13 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
     print(f"\n=== STRUCTURE GATE — {book} ===")
     print(summary.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
     print("mode mix:", (dist * 100).round(1).astype(str).add("%").to_dict())
+    print(
+        "sticky audit:",
+        f"cov={audit['sticky_coverage']*100:.1f}%",
+        f"etf_in_sticky={audit['sticky_hold_bench_share']*100:.1f}%",
+        f"stock_leak={audit['sticky_stock_sleeve_leak']*100:.1f}%",
+        f"cash_in_sticky={audit['sticky_cash_share']*100:.1f}%",
+    )
     print(
         f"HARD={gate['hard_pass_beat_both']} SOFT={gate['soft_pass']} "
         f"| gap_vs_better={gate['gap_vs_better_pp']:+.1f}pp "
@@ -237,30 +266,25 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v4_sticky_index",
+        "rule": "structure_gate_v5_expert_sticky",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
         "both_hard_pass": both_hard,
         "books": {r["book"]: r for r in reports},
         "config": {
-            "top3_conc_min": cfg.top3_conc_min,
-            "crowded_overlap_min": cfg.crowded_overlap_min,
-            "strong_share_min": cfg.strong_share_min,
-            "ers_lag_trigger": cfg.ers_lag_trigger,
-            "leadership_trail_days": cfg.leadership_trail_days,
-            "stock_led_min_trail": cfg.stock_led_min_trail,
-            "index_led_max_trail": cfg.index_led_max_trail,
-            "index_regime_trail_days": cfg.index_regime_trail_days,
             "index_regime_enter_trail": cfg.index_regime_enter_trail,
             "index_regime_enter_confirm": cfg.index_regime_enter_confirm,
             "index_regime_exit_trail": cfg.index_regime_exit_trail,
+            "index_regime_exit_confirm": cfg.index_regime_exit_confirm,
+            "index_regime_exit_on_below50": cfg.index_regime_exit_on_below50,
+            "index_regime_breadth_max": cfg.index_regime_breadth_max,
+            "sticky_forbid_stock_sleeves": cfg.sticky_forbid_stock_sleeves,
             "harsh_defense_dd": cfg.harsh_defense_dd,
-            "mild_defense_dd": cfg.mild_defense_dd,
         },
         "note": (
-            "Sticky index-strong: confirmed 60d leader lag → stay long bench "
-            "ETF until leaders catch up. Else stock-led→stocks / lean→ETF."
+            "Expert sticky: earlier enter, no mild-cash/stock sleeves inside "
+            "sticky episode; audit coverage and ETF share in sticky."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(

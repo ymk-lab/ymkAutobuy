@@ -1,5 +1,5 @@
 {
-  "rule": "structure_gate_v4_sticky_index",
+  "rule": "structure_gate_v5_expert_sticky",
   "ticker_agnostic": true,
   "soft_max_gap_pp": 35.0,
   "both_soft_pass": false,
@@ -17,10 +17,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 0.6734051727220003,
+        "total_return": 0.6244142347900008,
         "max_drawdown": -0.17955362373474126,
-        "sharpe": 1.4055317290260556,
-        "end_equity": 83670.25863610001
+        "sharpe": 1.3445961022981774,
+        "end_equity": 81220.71173950004
       },
       "pure_ers_g1": {
         "total_return": 1.1920934627762931,
@@ -35,10 +35,10 @@
         "end_equity": 70350.53562459999
       },
       "mode_distribution": {
-        "hold_bench": 0.4875,
-        "ers": 0.2275,
-        "cash": 0.2,
-        "hold_strong": 0.085
+        "hold_bench": 0.5575,
+        "ers": 0.2,
+        "cash": 0.1775,
+        "hold_strong": 0.065
       },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
@@ -47,11 +47,11 @@
       "soft_pass": false,
       "beat_worse_baseline": true,
       "within_gap_of_better": false,
-      "gap_vs_better_pp": 51.86882900542928,
+      "gap_vs_better_pp": 56.767922798629236,
       "hard_pass_beat_both": false,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": 26.63944602300006,
-      "vs_ers_pp": -51.86882900542928
+      "vs_bh_pp": 21.74035222980011,
+      "vs_ers_pp": -56.767922798629236
     },
     "SMH": {
       "book": "SMH",
@@ -65,10 +65,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 0.23340039185962236,
-        "max_drawdown": -0.32711404541688893,
-        "sharpe": 0.5278306424062053,
-        "end_equity": 61670.019592981116
+        "total_return": 0.37021761399607844,
+        "max_drawdown": -0.31490135213251247,
+        "sharpe": 0.6698663728554753,
+        "end_equity": 68510.88069980392
       },
       "pure_ers_g1": {
         "total_return": 0.1946212401789671,
@@ -83,10 +83,10 @@
         "end_equity": 119464.65413700002
       },
       "mode_distribution": {
-        "hold_bench": 0.5725,
-        "cash": 0.27,
-        "hold_strong": 0.1325,
-        "ers": 0.025
+        "hold_bench": 0.62,
+        "cash": 0.2625,
+        "hold_strong": 0.1025,
+        "ers": 0.015
       },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
@@ -95,11 +95,11 @@
       "soft_pass": false,
       "beat_worse_baseline": true,
       "within_gap_of_better": false,
-      "gap_vs_better_pp": 115.58926908803781,
+      "gap_vs_better_pp": 101.90754687439221,
       "hard_pass_beat_both": false,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": -115.58926908803781,
-      "vs_ers_pp": 3.8779151680655266
+      "vs_bh_pp": -101.90754687439221,
+      "vs_ers_pp": 17.559637381711134
     },
     "SOXX": {
       "book": "SOXX",
@@ -113,10 +113,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 1.5244571388040211,
+        "total_return": 1.3460288878132687,
         "max_drawdown": -0.2779155584930356,
-        "sharpe": 1.5067681188593138,
-        "end_equity": 126222.85694020106
+        "sharpe": 1.4374720656251063,
+        "end_equity": 117301.44439066344
       },
       "pure_ers_g1": {
         "total_return": 2.816814557134621,
@@ -131,23 +131,23 @@
         "end_equity": 125600.0699522551
       },
       "mode_distribution": {
-        "hold_bench": 0.5925,
-        "cash": 0.285,
-        "hold_strong": 0.1,
-        "ers": 0.0225
+        "hold_bench": 0.6475,
+        "cash": 0.2775,
+        "hold_strong": 0.0625,
+        "ers": 0.0125
       },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
         "soft": "beat worse baseline AND trail better by \u226435pp"
       },
       "soft_pass": false,
-      "beat_worse_baseline": true,
+      "beat_worse_baseline": false,
       "within_gap_of_better": false,
-      "gap_vs_better_pp": 129.23574183306,
+      "gap_vs_better_pp": 147.07856693213523,
       "hard_pass_beat_both": false,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": 1.2455739758919115,
-      "vs_ers_pp": -129.23574183306
+      "vs_bh_pp": -16.597251123183334,
+      "vs_ers_pp": -147.07856693213523
     },
     "SPY": {
       "book": "SPY",
@@ -161,10 +161,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 0.8153407392130341,
-        "max_drawdown": -0.2993717328501767,
-        "sharpe": 0.998475775228286,
-        "end_equity": 90767.0369606517
+        "total_return": 0.8820179646275339,
+        "max_drawdown": -0.2994640193131468,
+        "sharpe": 1.0480144508619986,
+        "end_equity": 94100.89823137669
       },
       "pure_ers_g1": {
         "total_return": 0.403669262349986,
@@ -179,8 +179,8 @@
         "end_equity": 66648.781337753
       },
       "mode_distribution": {
-        "ers": 0.33,
-        "hold_bench": 0.3025,
+        "hold_bench": 0.34,
+        "ers": 0.2925,
         "cash": 0.1975,
         "hold_strong": 0.17
       },
@@ -191,27 +191,22 @@
       "soft_pass": true,
       "beat_worse_baseline": true,
       "within_gap_of_better": true,
-      "gap_vs_better_pp": -41.16714768630481,
+      "gap_vs_better_pp": -47.83487022775479,
       "hard_pass_beat_both": true,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": 48.236511245797416,
-      "vs_ers_pp": 41.16714768630481
+      "vs_bh_pp": 54.904233787247406,
+      "vs_ers_pp": 47.83487022775479
     }
   },
   "config": {
-    "top3_conc_min": 0.35,
-    "crowded_overlap_min": 0.4,
-    "strong_share_min": 0.3,
-    "ers_lag_trigger": -0.05,
-    "leadership_trail_days": 20,
-    "stock_led_min_trail": 0.02,
-    "index_led_max_trail": -0.03,
-    "index_regime_trail_days": 60,
-    "index_regime_enter_trail": -0.1,
-    "index_regime_enter_confirm": 3,
+    "index_regime_enter_trail": -0.05,
+    "index_regime_enter_confirm": 2,
     "index_regime_exit_trail": -0.02,
-    "harsh_defense_dd": 0.12,
-    "mild_defense_dd": 0.08
+    "index_regime_exit_confirm": 5,
+    "index_regime_exit_on_below50": false,
+    "index_regime_breadth_max": 0.4,
+    "sticky_forbid_stock_sleeves": true,
+    "harsh_defense_dd": 0.12
   },
-  "note": "Sticky index-strong: confirmed 60d leader lag \u2192 stay long bench ETF until leaders catch up. Else stock-led\u2192stocks / lean\u2192ETF."
+  "note": "Expert sticky: earlier enter, no mild-cash/stock sleeves inside sticky episode; audit coverage and ETF share in sticky."
 }

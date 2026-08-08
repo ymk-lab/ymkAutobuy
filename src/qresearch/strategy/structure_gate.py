@@ -36,14 +36,19 @@ class StructureGateConfig:
     index_led_max_trail: float = -0.03  # trail20 <= this → tactical index lean
     # Sticky index-strong regime (persist hold_bench inside the episode)
     index_regime_trail_days: int = 60
-    index_regime_enter_trail: float = -0.10  # leaders lag bench by this over 60d
-    index_regime_enter_confirm: int = 3
+    index_regime_enter_trail: float = -0.05  # earlier trigger (experts)
+    index_regime_enter_confirm: int = 2
     index_regime_exit_trail: float = -0.02  # leave when leaders nearly catch up
-    index_regime_exit_confirm: int = 3
+    index_regime_exit_confirm: int = 5
     index_regime_require_above50: bool = True
-    index_regime_require_ret20_pos: bool = True
-    # If True, falling below SMA50 also ends the sticky index episode.
-    index_regime_exit_on_below50: bool = True
+    index_regime_require_ret20_pos: bool = False  # don't chop on flat 20d once armed
+    # Alternate enter: weak breadth vs bench (index carrying the tape)
+    index_regime_breadth_max: float = 0.40
+    index_regime_breadth_trail: float = -0.08
+    # If True, falling below SMA50 also ends sticky (False = only trail/harsh).
+    index_regime_exit_on_below50: bool = False
+    # Inside sticky: never ERS / hold_strong / mild-cash (experts).
+    sticky_forbid_stock_sleeves: bool = True
     # Mild defense (Rotation books): G1-like
     mild_defense_dd: float = 0.08
     mild_defense_ret20: float = -0.03
@@ -82,6 +87,10 @@ def structure_features(
     px = member_closes.astype(float).reindex(bench_close.index)
     r20 = px / px.shift(20) - 1.0
     conc = top_concentration(r20, k=cfg.top_k_conc)
+    bc = bench_close.astype(float).reindex(px.index).ffill()
+    stock60 = px / px.shift(60) - 1.0
+    bench60 = bc / bc.shift(60) - 1.0
+    pct_beat60 = stock60.gt(bench60, axis=0).sum(axis=1) / px.notna().sum(axis=1).clip(lower=1)
     return pd.DataFrame(
         {
             "overlap": meta["overlap"],
@@ -91,6 +100,7 @@ def structure_features(
             "ret20": meta["ret20"],
             "dd60": meta["dd60"],
             "top3_conc20": conc,
+            "pct_beat60": pct_beat60,
         },
         index=bench_close.index,
     )
@@ -242,7 +252,11 @@ def sticky_index_strong_regime(
         features["ret20"] <= cfg.harsh_defense_ret20
     )
 
-    enter_raw = trail <= cfg.index_regime_enter_trail
+    lag_enter = trail <= cfg.index_regime_enter_trail
+    breadth_enter = (trail <= cfg.index_regime_breadth_trail) & (
+        features["pct_beat60"] <= cfg.index_regime_breadth_max
+    )
+    enter_raw = lag_enter | breadth_enter
     if cfg.index_regime_require_above50:
         enter_raw = enter_raw & above50
     if cfg.index_regime_require_ret20_pos:
@@ -311,19 +325,22 @@ def label_structure_modes(
         | (feat["ret20"] <= cfg.mild_defense_ret20)
     )
 
-    # 1) Sticky index-strong episode → stay on bench ETF (only harsh breaks it via sticky exit)
-    # 2) Else stock-led / lean / neutral sleeves
+    # Experts: inside sticky → only hold_bench (or harsh→cash). No stock sleeves / mild cash.
     mode = pd.Series("cash", index=feat.index, dtype=object)
     risk_on = ~mild & ~harsh
+    outside = ~sticky_index if cfg.sticky_forbid_stock_sleeves else pd.Series(True, index=feat.index)
 
     mode = mode.mask(sticky_index & ~harsh, "hold_bench")
-    # Outside sticky episode: tactical lean to ETF if short trail says index-strong
-    mode = mode.mask(~sticky_index & index_lean & ~harsh, "hold_bench")
-    mode = mode.mask(~sticky_index & stock_led & risk_on, "ers")
-    mode = mode.mask(~sticky_index & stock_led & crowded & risk_on, "hold_strong")
-    mode = mode.mask(~sticky_index & ~index_lean & ~stock_led & risk_on, "ers")
-    mode = mode.mask(~sticky_index & ~index_lean & mild & ~harsh, "cash")
+    # Outside sticky: tactical sleeves
+    mode = mode.mask(outside & index_lean & ~harsh, "hold_bench")
+    mode = mode.mask(outside & stock_led & risk_on, "ers")
+    mode = mode.mask(outside & stock_led & crowded & risk_on, "hold_strong")
+    mode = mode.mask(outside & ~index_lean & ~stock_led & risk_on, "ers")
+    mode = mode.mask(outside & ~index_lean & mild & ~harsh, "cash")
     mode = mode.mask(harsh.fillna(False), "cash")
+    # Final clamp: sticky days cannot be ers/strong/cash unless harsh
+    if cfg.sticky_forbid_stock_sleeves:
+        mode = mode.mask(sticky_index & ~harsh, "hold_bench")
 
     meta = feat.copy()
     meta["ers_excess60"] = excess
