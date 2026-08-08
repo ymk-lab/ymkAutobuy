@@ -38,14 +38,26 @@ class FutuUsEquityFees:
         clearance = shares * self.clearance_per_share
         return combined + clearance
 
-    def total_cost_usd(self, traded_notional: float, price: float) -> float:
+    def total_cost_usd(
+        self,
+        traded_notional: float,
+        price: float,
+        *,
+        slippage_bps: float | None = None,
+    ) -> float:
         notional = abs(float(traded_notional))
         if notional <= 0 or price <= 0:
             return 0.0
         shares = notional / float(price)
         broker = self.broker_fee_usd(shares, notional)
-        slip = notional * (self.slippage_bps / 10_000.0)
+        slip_bps = self.slippage_bps if slippage_bps is None else float(slippage_bps)
+        slip = notional * (slip_bps / 10_000.0)
         return broker + slip
+
+    def with_slippage(self, slippage_bps: float) -> "FutuUsEquityFees":
+        from dataclasses import replace
+
+        return replace(self, slippage_bps=float(slippage_bps))
 
     def cost_return_on_equity(
         self, turnover_weight: float, equity: float, price: float

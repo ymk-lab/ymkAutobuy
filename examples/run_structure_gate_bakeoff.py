@@ -250,6 +250,18 @@ def fees_for(book: str, default_fees: object) -> object:
     return default_fees
 
 
+def _split_fees(fee_model: object, cfg: StructureGateConfig) -> tuple[object, object]:
+    from qresearch.backtest.futu_costs import FutuUsEquityFees
+
+    if isinstance(fee_model, FutuUsEquityFees):
+        return (
+            fee_model.with_slippage(cfg.bench_slippage_bps),
+            fee_model.with_slippage(cfg.stock_slippage_bps),
+        )
+    # HK approx: keep single model (no split).
+    return fee_model, fee_model
+
+
 def run_book(
     book: str,
     fees: object,
@@ -260,9 +272,11 @@ def run_book(
     out_root: Path,
 ) -> dict:
     fee_model = fees_for(book, fees)
+    bench_fees, stock_fees = _split_fees(fee_model, cfg)
     bench, opens, closes, cache = load_panel(book, end=end)
     out_dir = out_root / book.lower()
     out_dir.mkdir(parents=True, exist_ok=True)
+    bench_vol = bench["volume"] if "volume" in bench.columns else None
 
     sw = simulate_structure_gate(
         opens,
@@ -273,6 +287,7 @@ def run_book(
         start=start,
         fees=fee_model,
         config=cfg,
+        bench_volume=bench_vol,
     )
     m_sw = metrics(sw.equity, CAPITAL)
 
@@ -280,12 +295,12 @@ def run_book(
     decision, _ = ers_book.generate_weights(closes, bench["close"])
     win = sw.equity.index
     eq_ers, _ = simulate_book(
-        opens.loc[win], closes.loc[win], decision.loc[win], CAPITAL, fee_model
+        opens.loc[win], closes.loc[win], decision.loc[win], CAPITAL, stock_fees
     )
     m_ers = metrics(eq_ers, CAPITAL)
 
     eq_bh = simulate_bench_bh(
-        bench["open"], bench["close"], capital=CAPITAL, start=start, fees=fee_model
+        bench["open"], bench["close"], capital=CAPITAL, start=start, fees=bench_fees
     ).reindex(win).ffill()
     m_bh = metrics(eq_bh, CAPITAL)
     m_cash = metrics(simulate_cash(capital=CAPITAL, index=win), CAPITAL)
@@ -345,6 +360,8 @@ def run_book(
         "capital_usd": CAPITAL,
         "currency": BOOKS[book].get("currency", "USD"),
         "fee_model": "futu_hk_approx" if BOOKS[book].get("fees") == "hk" else "futu_us",
+        "bench_slippage_bps": cfg.bench_slippage_bps,
+        "stock_slippage_bps": cfg.stock_slippage_bps,
         "same_rule": True,
         "structure_gate": m_sw,
         "pure_ers_g1": m_ers,
@@ -392,6 +409,12 @@ def main(argv: list[str] | None = None) -> None:
         default=str(OUT),
         help="Output directory for bakeoff artifacts",
     )
+    p.add_argument(
+        "--config",
+        choices=("v8", "v9"),
+        default="v8",
+        help="StructureGateConfig preset (default v8)",
+    )
     args = p.parse_args(argv)
 
     start = pd.Timestamp(args.start)
@@ -400,7 +423,7 @@ def main(argv: list[str] | None = None) -> None:
     out_root.mkdir(parents=True, exist_ok=True)
 
     fees = FutuUsEquityFees(slippage_bps=3.0)
-    cfg = StructureGateConfig()
+    cfg = StructureGateConfig.v9() if args.config == "v9" else StructureGateConfig.v8()
     books = [a.strip().upper() for a in args.books] or ["QQQ", "SMH"]
     reports = [
         run_book(b, fees, cfg, start=start, end=end, out_root=out_root) for b in books
@@ -409,7 +432,7 @@ def main(argv: list[str] | None = None) -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v8_universal_tune",
+        "rule": f"structure_gate_{args.config}",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "window": [str(start.date()), str(end.date())],
@@ -417,6 +440,7 @@ def main(argv: list[str] | None = None) -> None:
         "both_hard_pass": both_hard,
         "books": {r["book"]: r for r in reports},
         "config": {
+            "preset": args.config,
             "sticky_enter_trail": cfg.sticky_enter_trail,
             "sticky_enter_confirm": cfg.sticky_enter_confirm,
             "sticky_exit_trail": cfg.sticky_exit_trail,
@@ -424,6 +448,10 @@ def main(argv: list[str] | None = None) -> None:
             "sticky_exit_on_below50": cfg.sticky_exit_on_below50,
             "sticky_breadth_max": cfg.sticky_breadth_max,
             "sticky_forbid_stock_sleeves": cfg.sticky_forbid_stock_sleeves,
+            "sma50_hysteresis": cfg.sma50_hysteresis,
+            "mild_top_enabled": cfg.mild_top_enabled,
+            "bench_slippage_bps": cfg.bench_slippage_bps,
+            "stock_slippage_bps": cfg.stock_slippage_bps,
             "harsh_defense_dd": cfg.harsh_defense_dd,
             "thrust_ret5_min": cfg.thrust_ret5_min,
             "thrust_ret10_min": cfg.thrust_ret10_min,

@@ -4,11 +4,14 @@ Canonical names (code = docs):
 - Modes: cash | ers | strong | bench
 - Locus: stock_led | index_lean | neutral
 - Sleeves: sticky | thrust | crowded
-- Defense: mild | harsh_dd | harsh_ret
+- Defense: mild | harsh_dd | harsh_ret | mild_top
 
 Priority (highest wins):
   harsh_ret > thrust > sticky > harsh_dd > reentry > mild > index_lean
   > stock_led+crowded > ers > cash
+
+Defaults = v8. Use ``StructureGateConfig.v9()`` for hysteresis / mild-top /
+split-slippage variant.
 """
 
 from __future__ import annotations
@@ -69,24 +72,61 @@ class StructureGateConfig:
     mild_defense_ret20: float = -0.04
     harsh_defense_dd: float = 0.18
     harsh_defense_ret20: float = -0.12
+    # SMA50 hysteresis band (fraction). 0 = raw close vs SMA50 (v8).
+    sma50_hysteresis: float = 0.0
     # Vol-adaptive mild: widen dd/ret20 thresholds with realized bench vol.
     # Off by default (v8). When on: thr = max(fixed, k * σ * √horizon).
     mild_vol_adaptive: bool = False
     mild_vol_lookback: int = 60
     mild_vol_dd_k: float = 2.5
     mild_vol_ret20_k: float = 2.0
+    # Mild-top: high-level distribution / breadth divergence demotes sticky/thrust
+    # so Mild can flatten instead of riding ETF down. Off by default (v8).
+    mild_top_enabled: bool = False
+    mild_top_breadth_max: float = 0.30
+    mild_top_breadth_confirm: int = 3
+    mild_top_down_vol_k: float = 1.0
+    mild_top_down_confirm: int = 3
+    mild_top_volume_ratio: float = 1.5
     # Fast re-entry after mild dips (V-recovery). Forces bench even below SMA50.
     # Off by default (v8). Priority: between harsh_dd and mild.
     reentry_force_bench: bool = False
     reentry_ret5_min: float = 0.03
     reentry_ret10_min: float = 0.05
     reentry_bounce20_min: float = 0.05
+    # Split slippage (research). Used by simulate when fee model supports replace.
+    bench_slippage_bps: float = 3.0
+    stock_slippage_bps: float = 3.0
     # Book-level peak equity hard stop (None = disabled).
     # When equity / peak - 1 <= -book_peak_dd_stop → flatten & halt
     # until non-cash signal confirms for book_dd_reentry_confirm days.
     book_peak_dd_stop: float | None = None
     book_dd_reentry_confirm: int = 3
     ers_config: EmergingRSWaveConfig | None = None
+
+    @classmethod
+    def v8(cls) -> "StructureGateConfig":
+        """Canonical v8 defaults (same as ``StructureGateConfig()``)."""
+        return cls()
+
+    @classmethod
+    def v9(cls) -> "StructureGateConfig":
+        """v9: sticky/SMA hysteresis, mild-top demote, split ETF/stock slip."""
+        return cls(
+            sticky_enter_trail=-0.065,
+            sticky_exit_trail=-0.045,
+            sticky_enter_confirm=2,
+            sticky_exit_confirm=6,
+            sma50_hysteresis=0.005,
+            mild_top_enabled=True,
+            mild_top_breadth_max=0.30,
+            mild_top_breadth_confirm=3,
+            mild_top_down_vol_k=1.0,
+            mild_top_down_confirm=3,
+            mild_top_volume_ratio=1.5,
+            bench_slippage_bps=3.0,
+            stock_slippage_bps=8.0,
+        )
 
 
 def top_concentration(ret_panel: pd.DataFrame, k: int = 3) -> pd.Series:
@@ -419,20 +459,120 @@ def reentry_mask(
     return raw.fillna(False).rename("reentry")
 
 
+def above50_hysteresis(
+    bench_close: pd.Series,
+    *,
+    hysteresis: float = 0.0,
+    window: int = 50,
+) -> pd.Series:
+    """SMA50 membership with optional band to avoid boundary flip-flops.
+
+    hysterisis=0 → close > SMA50. Otherwise: drop below SMA*(1-h) to leave
+    above-zone; reclaim SMA*(1+h) to re-enter.
+    """
+    bc = bench_close.astype(float)
+    sma = bc.rolling(window, min_periods=max(20, window // 2)).mean()
+    h = max(0.0, float(hysteresis))
+    if h <= 0:
+        return (bc > sma).fillna(False).rename("above50")
+
+    enter_above = bc > sma * (1.0 + h)
+    leave_above = bc < sma * (1.0 - h)
+    on: list[bool] = []
+    above = False
+    for ent, leave, valid in zip(
+        enter_above.fillna(False).tolist(),
+        leave_above.fillna(False).tolist(),
+        sma.notna().tolist(),
+    ):
+        if not valid:
+            on.append(False)
+            continue
+        if above:
+            if leave:
+                above = False
+        else:
+            if ent:
+                above = True
+        on.append(above)
+    return pd.Series(on, index=bc.index, dtype=bool, name="above50")
+
+
+def _confirm_streak(raw: pd.Series, need: int) -> pd.Series:
+    need = max(1, int(need))
+    out: list[bool] = []
+    streak = 0
+    for flag in raw.fillna(False).tolist():
+        if flag:
+            streak += 1
+        else:
+            streak = 0
+        out.append(streak >= need)
+    return pd.Series(out, index=raw.index, dtype=bool)
+
+
+def mild_topping_mask(
+    features: pd.DataFrame,
+    bench_close: pd.Series,
+    *,
+    bench_volume: pd.Series | None = None,
+    config: StructureGateConfig | None = None,
+) -> pd.Series:
+    """High-level distribution / breadth divergence (mild-top).
+
+    Triggers when breadth stays weak while still above SMA50, or when
+    consecutive large down days (optionally on above-average volume) print
+    without yet hitting harsh_ret.
+    """
+    cfg = config or StructureGateConfig()
+    idx = features.index
+    if not cfg.mild_top_enabled:
+        return pd.Series(False, index=idx, dtype=bool, name="mild_top")
+
+    above50 = features["above50"] > 0.5
+    breadth_raw = (features["breadth"] <= cfg.mild_top_breadth_max) & above50
+    breadth_hit = _confirm_streak(breadth_raw, cfg.mild_top_breadth_confirm)
+
+    bc = bench_close.astype(float).reindex(idx).ffill()
+    bret = bc.pct_change()
+    vol = bret.rolling(20, min_periods=5).std().clip(lower=1e-4)
+    heavy_down = (bret <= -cfg.mild_top_down_vol_k * vol).fillna(False)
+    if bench_volume is not None:
+        volu = bench_volume.astype(float).reindex(idx)
+        avg = volu.rolling(20, min_periods=5).mean()
+        climax = (volu >= cfg.mild_top_volume_ratio * avg).fillna(False)
+        heavy_down = heavy_down & climax
+    down_hit = _confirm_streak(heavy_down, cfg.mild_top_down_confirm)
+
+    # Still not a freefall (harsh_ret owns that).
+    not_freefall = features["ret20"] > cfg.harsh_defense_ret20
+    return ((breadth_hit | down_hit) & not_freefall.fillna(False)).rename("mild_top")
+
+
 def label_structure_modes(
     bench_close: pd.Series,
     member_closes: pd.DataFrame,
     *,
     config: StructureGateConfig | None = None,
+    bench_volume: pd.Series | None = None,
 ) -> tuple[pd.Series, pd.DataFrame]:
     """Return daily mode series + feature frame (incl. helpers).
 
     Priority (highest wins):
       harsh_ret > thrust > sticky > harsh_dd > reentry > mild > index_lean
       > stock_led+crowded > stock_led/neutral ers > cash
+
+    When ``mild_top`` is on and Mild is active, sticky/thrust lose their
+    ability to override Mild (demote lock → allow cash).
     """
     cfg = config or StructureGateConfig()
     feat = structure_features(bench_close, member_closes, config=cfg)
+    # Replace raw above50 with hysteretic band when configured (v9).
+    if cfg.sma50_hysteresis and cfg.sma50_hysteresis > 0:
+        feat = feat.copy()
+        feat["above50"] = above50_hysteresis(
+            bench_close, hysteresis=cfg.sma50_hysteresis
+        ).astype(float)
     excess = trailing_ers_excess(bench_close, member_closes, config=cfg)
     strong_w = strong_leader_weights(member_closes, bench_close, config=cfg)
     lead_trail20 = leader_vs_bench_trail(
@@ -446,6 +586,9 @@ def label_structure_modes(
     sticky = sticky_regime(feat, lead_trail60, config=cfg)
     thrust = thrust_mask(feat, config=cfg)
     reentry = reentry_mask(feat, config=cfg)
+    mild_top = mild_topping_mask(
+        feat, bench_close, bench_volume=bench_volume, config=cfg
+    )
     stock_led = lead_trail20 >= cfg.stock_led_min_trail
     index_lean = lead_trail20 <= cfg.index_lean_max_trail
     harsh_dd = (feat["dd60"] <= -cfg.harsh_defense_dd).fillna(False)
@@ -458,14 +601,16 @@ def label_structure_modes(
     ).fillna(False)
 
     # Sticky/thrust/reentry lock bench through lagging dd60; only harsh_ret breaks them.
-    sticky_lock = sticky & ~harsh_ret
+    # mild_top + mild → demote locks so Mild cash can fire (avoid riding ETF down).
+    demote = mild_top & mild
+    sticky_lock = sticky & ~harsh_ret & ~demote
     if cfg.thrust_force_bench:
-        thrust_lock = thrust & ~harsh_ret
+        thrust_lock = thrust & ~harsh_ret & ~demote
         if not cfg.thrust_overrides_dd_harsh:
             thrust_lock = thrust_lock & ~harsh_dd
     else:
         thrust_lock = pd.Series(False, index=feat.index)
-    reentry_lock = reentry & ~harsh_ret & ~harsh_dd
+    reentry_lock = reentry & ~harsh_ret & ~harsh_dd & ~demote
     # Outside locks: stock sleeves need clear risk-on (not mild, not either harsh).
     risk_on = ~mild & ~harsh_dd & ~harsh_ret
     locked = sticky_lock | thrust_lock | reentry_lock
@@ -487,9 +632,15 @@ def label_structure_modes(
     meta["ers_excess60"] = excess
     meta["leader_vs_bench_trail"] = lead_trail20
     meta["leader_vs_bench_trail60"] = lead_trail60
-    meta["sticky"] = sticky.astype(float)
-    meta["thrust"] = thrust.astype(float)
+    # sticky/thrust columns = effective locks (post demote) so audits never
+    # show sticky-ON + cash from mild-top override.
+    meta["sticky_raw"] = sticky.astype(float)
+    meta["thrust_raw"] = thrust.astype(float)
+    meta["sticky"] = sticky_lock.astype(float)
+    meta["thrust"] = thrust_lock.astype(float)
     meta["reentry"] = reentry.astype(float)
+    meta["mild_top"] = mild_top.astype(float)
+    meta["lock_demote"] = demote.astype(float)
     meta["mild_dd_thr"] = dd_thr
     meta["mild_ret20_thr"] = ret_thr
     meta["stock_led"] = stock_led.astype(float)
@@ -511,6 +662,18 @@ class StructureSimResult:
     trades: pd.DataFrame
 
 
+def _split_fee_models(fees: object, cfg: StructureGateConfig) -> tuple[object, object]:
+    """Return (bench_fees, stock_fees) honoring v9 split slippage when possible."""
+    from qresearch.backtest.futu_costs import FutuUsEquityFees
+
+    if isinstance(fees, FutuUsEquityFees):
+        return (
+            fees.with_slippage(cfg.bench_slippage_bps),
+            fees.with_slippage(cfg.stock_slippage_bps),
+        )
+    return fees, fees
+
+
 def simulate_structure_gate(
     opens: pd.DataFrame,
     closes: pd.DataFrame,
@@ -521,13 +684,17 @@ def simulate_structure_gate(
     start: pd.Timestamp | None = None,
     fees: object | None = None,
     config: StructureGateConfig | None = None,
+    bench_volume: pd.Series | None = None,
 ) -> StructureSimResult:
     """Next-open: cash / ers / strong leaders / bench ETF."""
     from qresearch.backtest.futu_costs import FutuUsEquityFees
 
     cfg = config or StructureGateConfig()
     fee_model = fees if fees is not None else FutuUsEquityFees(slippage_bps=3.0)
-    mode, meta = label_structure_modes(bench_close, closes, config=cfg)
+    bench_fees, stock_fees = _split_fee_models(fee_model, cfg)
+    mode, meta = label_structure_modes(
+        bench_close, closes, config=cfg, bench_volume=bench_volume
+    )
     book = EmergingRSWaveBook(gate="G1", config=cfg.ers_config or EmergingRSWaveConfig())
     ers_w, _ = book.generate_weights(closes, bench_close)
     strong_w = strong_leader_weights(closes, bench_close, config=cfg)
@@ -582,18 +749,22 @@ def simulate_structure_gate(
             return cash + pos_shares * float(qc.at[dt])
         return cash + pos_shares * float(px.at[dt, pos_sym])
 
+    def _fees_for_kind(kind: str) -> object:
+        return bench_fees if kind == "bench" else stock_fees
+
     def _sell_all(dt: pd.Timestamp, reason: str) -> None:
         nonlocal cash, pos_sym, pos_shares, pos_kind
         if pos_sym is None or pos_shares <= 0:
             return
-        if pos_kind == "bench":
+        kind = pos_kind
+        if kind == "bench":
             px_o = float(qo.at[dt])
         else:
             px_o = float(op.at[dt, pos_sym])
         if not np.isfinite(px_o) or px_o <= 0:
             return
         notional = pos_shares * px_o
-        cost = float(fee_model.total_cost_usd(notional, px_o))
+        cost = float(_fees_for_kind(kind).total_cost_usd(notional, px_o))
         cash += notional - cost
         trades.append(
             {
@@ -618,13 +789,13 @@ def simulate_structure_gate(
         if shares < 1:
             return
         notional = shares * px_o
-        cost = float(fee_model.total_cost_usd(notional, px_o))
+        cost = float(stock_fees.total_cost_usd(notional, px_o))
         if notional + cost > cash:
             shares = float(np.floor((cash * 0.999) / px_o))
             if shares < 1:
                 return
             notional = shares * px_o
-            cost = float(fee_model.total_cost_usd(notional, px_o))
+            cost = float(stock_fees.total_cost_usd(notional, px_o))
         cash -= notional + cost
         pos_sym, pos_shares, pos_kind = sym, shares, kind
         trades.append(
@@ -649,13 +820,13 @@ def simulate_structure_gate(
         if shares < 1:
             return
         notional = shares * px_o
-        cost = float(fee_model.total_cost_usd(notional, px_o))
+        cost = float(bench_fees.total_cost_usd(notional, px_o))
         if notional + cost > cash:
             shares = float(np.floor((cash * 0.999) / px_o))
             if shares < 1:
                 return
             notional = shares * px_o
-            cost = float(fee_model.total_cost_usd(notional, px_o))
+            cost = float(bench_fees.total_cost_usd(notional, px_o))
         cash -= notional + cost
         pos_sym, pos_shares, pos_kind = "BENCH", shares, "bench"
         trades.append(
