@@ -61,11 +61,11 @@ _Avoid_: 只看指數漲得快就當 CrowdedTrend
 _Avoid_: 只贏其中一個就上線、只看單一形勢片段、沒有對照組就宣稱較優
 
 **Structure Gate**:
-與代號無關的日頻模式閘門：用領導集中度（Top3 占比）、overlap、以及 ERS 相對基準的落後超額，在 cash／Emerging RS／持有強勢股／持有基準 ETF 之間切換。Crowded 時再依「領導股近 20 日相對指數超額」判斷個股強→持最強 already-strong 個股，指數強→持 bench。同一規則套用所有宇宙（不因 QQQ／SMH 名稱分支）。
-_Avoid_: 為每個 ETF 代號寫死不同閾值、Crowded 時不做個股強／指數強分流、把 Structure Gate 當成只服務某一主題
+與代號無關的日頻主路由：先比「個股強還是指數強」（領導股近 20 日相對基準超額）。指數強→偏向買大盤 ETF；個股強→偏向買個股（Crowded 用 already-strong 領導股，否則 Emerging RS）。重度防守才現金；指數強時淺回撤不急著空手。同一規則套用所有宇宙。
+_Avoid_: 為每個 ETF 代號寫死不同閾值、只在 Crowded 才看指數／個股強弱、把 Structure Gate 當成只服務某一主題
 
 **Stock-Led / Index-Led**:
-Crowded 內部的領導位置：Stock-Led＝強勢個股組合近期持續贏過基準；Index-Led＝基準更強、領導股相對落後。用來決定 hold_strong 或 hold_bench。
+領導位置：Stock-Led＝強勢個股組合近期持續贏過基準→偏買個股；Index-Led＝基準更強、領導股相對落後→偏買大盤 ETF。
 _Avoid_: 用未來報酬標註當天、只看指數漲幅不看相對領導股
 
 **Structure Soft Pass**:

@@ -237,7 +237,7 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v2_leadership_split",
+        "rule": "structure_gate_v3_locus_primary",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
@@ -250,12 +250,13 @@ def main() -> None:
             "ers_lag_trigger": cfg.ers_lag_trigger,
             "leadership_trail_days": cfg.leadership_trail_days,
             "stock_led_min_trail": cfg.stock_led_min_trail,
+            "index_led_max_trail": cfg.index_led_max_trail,
             "harsh_defense_dd": cfg.harsh_defense_dd,
             "mild_defense_dd": cfg.mild_defense_dd,
         },
         "note": (
-            "Crowded splits by leader-vs-bench trail: stock-led→hold_strong, "
-            "index-led→hold_bench. Soft pass may trail book oracle by ≤35pp."
+            "Primary locus: index-led→hold_bench ETF; stock-led→stocks "
+            "(hold_strong if crowded else ERS). Soft pass ≤35pp vs oracle."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(

@@ -32,7 +32,9 @@ class StructureGateConfig:
     strong_lookback: int = 60
     # Index-led vs stock-led: trailing leader-sleeve minus bench
     leadership_trail_days: int = 20
-    stock_led_min_trail: float = 0.0  # trail >= this → stock-led
+    stock_led_min_trail: float = 0.02  # trail >= this → clearly stock-led
+    index_led_max_trail: float = -0.03  # trail <= this → clearly index-led
+    # Between the two thresholds: neutral → prefer ERS (not forced into ETF).
     # Mild defense (Rotation books): G1-like
     mild_defense_dd: float = 0.08
     mild_defense_ret20: float = -0.03
@@ -227,6 +229,8 @@ def label_structure_modes(
     )
     crowded = crowded_structure_mask(feat, excess, config=cfg)
     stock_led = lead_trail >= cfg.stock_led_min_trail
+    index_led = lead_trail <= cfg.index_led_max_trail
+    # Neutral band between thresholds → neither forced locus
     harsh = (feat["dd60"] <= -cfg.harsh_defense_dd) | (feat["ret20"] <= cfg.harsh_defense_ret20)
     mild = (
         (feat["above50"] < 0.5)
@@ -234,17 +238,25 @@ def label_structure_modes(
         | (feat["ret20"] <= cfg.mild_defense_ret20)
     )
 
-    # Default risk-on → ERS; Crowded splits by leadership locus; Defense split.
-    mode = pd.Series("ers", index=feat.index, dtype=object)
-    mode = mode.mask(crowded & stock_led & ~harsh, "hold_strong")
-    mode = mode.mask(crowded & ~stock_led & ~harsh, "hold_bench")
-    mode = mode.mask(~crowded & mild, "cash")
+    # User rule with bias bands:
+    # - clearly index-led → prefer benchmark ETF (hold through mild dips)
+    # - clearly stock-led → prefer stocks (strong leaders if crowded, else ERS)
+    # - neutral → ERS when risk-on
+    # Harsh washout always cash.
+    mode = pd.Series("cash", index=feat.index, dtype=object)
+    risk_on = ~mild & ~harsh
+    mode = mode.mask(index_led & ~harsh, "hold_bench")
+    mode = mode.mask(stock_led & risk_on, "ers")
+    mode = mode.mask(stock_led & crowded & risk_on, "hold_strong")
+    mode = mode.mask(~index_led & ~stock_led & risk_on, "ers")  # neutral
+    mode = mode.mask(~index_led & mild & ~harsh, "cash")
     mode = mode.mask(harsh.fillna(False), "cash")
 
     meta = feat.copy()
     meta["ers_excess60"] = excess
     meta["leader_vs_bench_trail"] = lead_trail
     meta["stock_led"] = stock_led.astype(float)
+    meta["index_led"] = index_led.astype(float)
     meta["crowded_structure"] = crowded.astype(float)
     meta["mode"] = mode
     return mode.rename("mode"), meta
