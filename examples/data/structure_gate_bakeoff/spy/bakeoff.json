@@ -33,9 +33,17 @@
     "cash": 0.1975,
     "hold_strong": 0.17
   },
+  "sticky_audit": {
+    "sticky_coverage": 0.21,
+    "sticky_hold_bench_share": 1.0,
+    "sticky_stock_sleeve_leak": 0.0,
+    "sticky_cash_share": 0.0,
+    "theme_bh_gap_ok_20pp": true
+  },
   "criteria": {
     "hard": "beat bench_bh AND pure_ers_g1",
-    "soft": "beat worse baseline AND trail better by \u226435pp"
+    "soft": "beat worse baseline AND trail better by \u226435pp",
+    "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
   },
   "soft_pass": true,
   "beat_worse_baseline": true,

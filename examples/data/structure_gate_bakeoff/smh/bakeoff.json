@@ -33,9 +33,17 @@
     "hold_strong": 0.1025,
     "ers": 0.015
   },
+  "sticky_audit": {
+    "sticky_coverage": 0.5875,
+    "sticky_hold_bench_share": 0.9531914893617022,
+    "sticky_stock_sleeve_leak": 0.0,
+    "sticky_cash_share": 0.04680851063829787,
+    "theme_bh_gap_ok_20pp": false
+  },
   "criteria": {
     "hard": "beat bench_bh AND pure_ers_g1",
-    "soft": "beat worse baseline AND trail better by \u226435pp"
+    "soft": "beat worse baseline AND trail better by \u226435pp",
+    "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
   },
   "soft_pass": false,
   "beat_worse_baseline": true,

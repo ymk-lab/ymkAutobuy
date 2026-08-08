@@ -40,9 +40,17 @@
         "cash": 0.1775,
         "hold_strong": 0.065
       },
+      "sticky_audit": {
+        "sticky_coverage": 0.415,
+        "sticky_hold_bench_share": 0.9939759036144579,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.006024096385542169,
+        "theme_bh_gap_ok_20pp": true
+      },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
-        "soft": "beat worse baseline AND trail better by \u226435pp"
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
       },
       "soft_pass": false,
       "beat_worse_baseline": true,
@@ -88,9 +96,17 @@
         "hold_strong": 0.1025,
         "ers": 0.015
       },
+      "sticky_audit": {
+        "sticky_coverage": 0.5875,
+        "sticky_hold_bench_share": 0.9531914893617022,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.04680851063829787,
+        "theme_bh_gap_ok_20pp": false
+      },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
-        "soft": "beat worse baseline AND trail better by \u226435pp"
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
       },
       "soft_pass": false,
       "beat_worse_baseline": true,
@@ -136,9 +152,17 @@
         "hold_strong": 0.0625,
         "ers": 0.0125
       },
+      "sticky_audit": {
+        "sticky_coverage": 0.605,
+        "sticky_hold_bench_share": 0.9504132231404959,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.049586776859504134,
+        "theme_bh_gap_ok_20pp": true
+      },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
-        "soft": "beat worse baseline AND trail better by \u226435pp"
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
       },
       "soft_pass": false,
       "beat_worse_baseline": false,
@@ -184,9 +208,17 @@
         "cash": 0.1975,
         "hold_strong": 0.17
       },
+      "sticky_audit": {
+        "sticky_coverage": 0.21,
+        "sticky_hold_bench_share": 1.0,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.0,
+        "theme_bh_gap_ok_20pp": true
+      },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
-        "soft": "beat worse baseline AND trail better by \u226435pp"
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
       },
       "soft_pass": true,
       "beat_worse_baseline": true,
