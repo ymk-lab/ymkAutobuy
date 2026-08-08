@@ -4,7 +4,11 @@ Canonical names (code = docs):
 - Modes: cash | ers | strong | bench
 - Locus: stock_led | index_lean | neutral
 - Sleeves: sticky | thrust | crowded
-- Defense: mild | harsh
+- Defense: mild | harsh_dd | harsh_ret
+
+Priority (highest wins):
+  harsh_ret > thrust > sticky > harsh_dd > mild > index_lean
+  > stock_led+crowded > ers > cash
 """
 
 from __future__ import annotations

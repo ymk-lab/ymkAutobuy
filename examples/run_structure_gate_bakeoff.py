@@ -68,6 +68,18 @@ BOOKS = {
             ROOT / "examples" / "data" / "emerging_rs_wave_spy" / "cache_ohlcv",
         ],
     },
+    "DIA": {
+        "bench": "DIA",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_dia"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_dia" / "cache_ohlcv",
+        ],
+    },
 }
 
 
