@@ -127,6 +127,7 @@ if (-not $NoTunnel) {
   if ($cmd) { $cfPath = $cmd.Source }
   if (-not $cfPath) {
     $candidates = @(
+      (Join-Path $Root "deploy\local\bin\cloudflared.exe"),
       (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\cloudflared.exe"),
       (Join-Path $env:ProgramFiles "cloudflared\cloudflared.exe"),
       (Join-Path $env:USERPROFILE "cloudflared.exe"),
@@ -138,25 +139,45 @@ if (-not $NoTunnel) {
   }
 
   if (-not $cfPath) {
-    Write-Warn "cloudflared not found. Install: winget install Cloudflare.cloudflared"
+    Write-Step "Downloading cloudflared.exe (one-time)"
+    $binDir = Join-Path $Root "deploy\local\bin"
+    New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+    $cfPath = Join-Path $binDir "cloudflared.exe"
+    $url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+    try {
+      Invoke-WebRequest -Uri $url -OutFile $cfPath -UseBasicParsing
+      Write-Ok ("Saved " + $cfPath)
+    } catch {
+      Write-Warn ("Download failed: " + $_.Exception.Message)
+      Write-Warn "Install manually: winget install --id Cloudflare.cloudflared"
+      $cfPath = $null
+    }
+  }
+
+  if (-not $cfPath) {
+    Write-Warn "cloudflared not available - open http://127.0.0.1:$Port only"
   } else {
     Write-Step "Start Cloudflare quick tunnel"
-    if (Test-Path $tunnelLog) { Remove-Item $tunnelLog -Force }
+    foreach ($f in @($tunnelOutLog, $tunnelErrLog)) {
+      if (Test-Path $f) { Remove-Item $f -Force }
+    }
     $cfProc = Start-Process -FilePath $cfPath `
       -ArgumentList @("tunnel", "--url", ("http://127.0.0.1:{0}" -f $Port)) `
-      -RedirectStandardOutput $tunnelLog `
-      -RedirectStandardError $tunnelLog `
+      -RedirectStandardOutput $tunnelOutLog `
+      -RedirectStandardError $tunnelErrLog `
       -PassThru -WindowStyle Minimized
 
     for ($i = 0; $i -lt 60; $i++) {
       Start-Sleep -Milliseconds 500
-      if (Test-Path $tunnelLog) {
-        $text = Get-Content $tunnelLog -Raw -ErrorAction SilentlyContinue
+      foreach ($f in @($tunnelErrLog, $tunnelOutLog)) {
+        if (-not (Test-Path $f)) { continue }
+        $text = Get-Content $f -Raw -ErrorAction SilentlyContinue
         if ($text -and ($text -match "https://[a-z0-9-]+\.trycloudflare\.com")) {
           $tunnelUrl = $Matches[0]
           break
         }
       }
+      if ($tunnelUrl) { break }
       if ($cfProc.HasExited) { break }
     }
 
@@ -166,7 +187,7 @@ if (-not $NoTunnel) {
       Write-Ok ("Tunnel " + $tunnelUrl + " (copied to clipboard)")
       Write-Ok ("Saved " + $tunnelUrlFile)
     } else {
-      Write-Warn ("Tunnel URL not parsed yet - see " + $tunnelLog)
+      Write-Warn ("Tunnel URL not parsed yet - see " + $tunnelErrLog)
     }
   }
 }
