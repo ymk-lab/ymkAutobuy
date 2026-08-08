@@ -562,6 +562,8 @@ async def api_sg_run(
     submit: int = Query(0, ge=0, le=1),
     refresh: int = Query(1, ge=0, le=1),
     book: str = Query("V11"),
+    start: str | None = Query(None, description="Backtest start YYYY-MM-DD"),
+    end: str | None = Query(None, description="Backtest end YYYY-MM-DD"),
 ) -> StreamingResponse:
     async def gen() -> AsyncIterator[str]:
         yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v11…", "level": "info"})
@@ -634,9 +636,36 @@ async def api_sg_run(
             )
 
             if mode == "backtest":
-                bt_start = os.getenv("QRESEARCH_SG_BT_START", "2025-08-07")
-                bt_end = os.getenv("QRESEARCH_SG_BT_END", "2026-08-07")
-                cmd = [_python(), str(SG_BLEND), bt_start, bt_end]
+                bt_start = (start or os.getenv("QRESEARCH_SG_BT_START") or "2025-08-07").strip()
+                bt_end = (end or os.getenv("QRESEARCH_SG_BT_END") or "2026-08-07").strip()
+                # Basic guard so bad UI input fails early with a clear message.
+                try:
+                    from datetime import date as _date
+
+                    d0 = _date.fromisoformat(bt_start[:10])
+                    d1 = _date.fromisoformat(bt_end[:10])
+                    if d1 < d0:
+                        raise ValueError("end before start")
+                except Exception as exc:  # noqa: BLE001
+                    yield _sse(
+                        {
+                            "phase": "error",
+                            "message": f"回測日期無效：start={bt_start} end={bt_end} ({exc})",
+                            "level": "error",
+                        }
+                    )
+                    yield _sse({"phase": "done", "ok": False})
+                    return
+                env["QRESEARCH_SG_BT_START"] = bt_start[:10]
+                env["QRESEARCH_SG_BT_END"] = bt_end[:10]
+                yield _sse(
+                    {
+                        "phase": "progress",
+                        "message": f"回測區間 {bt_start[:10]} → {bt_end[:10]}",
+                        "level": "info",
+                    }
+                )
+                cmd = [_python(), str(SG_BLEND), bt_start[:10], bt_end[:10]]
             else:
                 cmd = [_python(), str(SG_DAILY), mode]
 

@@ -324,12 +324,60 @@
   color: var(--ink-soft);
 }
 
+.sg-bt-range-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.sg-date-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.sg-date-field input[type="date"] {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sg-bt-presets {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.btn-ghost:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
 .sg-backtest-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.85rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
+  padding-top: 0.25rem;
 }
 
 .sg-mode-rail {

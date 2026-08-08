@@ -391,8 +391,77 @@
     return "V11";
   }
 
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function btRange() {
+    const startEl = $("#sg-bt-start");
+    const endEl = $("#sg-bt-end");
+    const start = (startEl && startEl.value) || "2025-08-07";
+    const end = (endEl && endEl.value) || "2026-08-07";
+    return { start, end };
+  }
+
+  function saveBtRange() {
+    try {
+      const { start, end } = btRange();
+      localStorage.setItem("sg_bt_start", start);
+      localStorage.setItem("sg_bt_end", end);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function loadBtRange() {
+    const startEl = $("#sg-bt-start");
+    const endEl = $("#sg-bt-end");
+    if (!startEl || !endEl) return;
+    try {
+      const s = localStorage.getItem("sg_bt_start");
+      const e = localStorage.getItem("sg_bt_end");
+      if (s) startEl.value = s;
+      if (e) endEl.value = e;
+    } catch {
+      /* ignore */
+    }
+    // If backtest summary already has a range, prefer showing that once status loads.
+  }
+
+  function applyBtPreset(kind) {
+    const end = new Date();
+    let start = new Date(end);
+    if (kind === "3m") {
+      start.setMonth(start.getMonth() - 3);
+    } else if (kind === "1y") {
+      start.setFullYear(start.getFullYear() - 1);
+    } else if (kind === "ytd") {
+      start = new Date(end.getFullYear(), 0, 1);
+    } else if (kind === "2021") {
+      start = new Date(2021, 5, 1); // 2021-06-01
+    } else {
+      return;
+    }
+    const startEl = $("#sg-bt-start");
+    const endEl = $("#sg-bt-end");
+    if (startEl) startEl.value = isoDate(start);
+    if (endEl) endEl.value = isoDate(end);
+    saveBtRange();
+  }
+
   document.querySelectorAll(".sg-mode").forEach((btn) => {
     btn.addEventListener("click", () => setMode(btn.dataset.mode));
+  });
+
+  document.querySelectorAll("[data-bt-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => applyBtPreset(btn.dataset.btPreset));
+  });
+  ["sg-bt-start", "sg-bt-end"].forEach((id) => {
+    const el = $("#" + id);
+    if (el) el.addEventListener("change", saveBtRange);
   });
 
   document.querySelectorAll("[data-sg-action]").forEach((btn) => {
@@ -425,10 +494,20 @@
           )
         );
       } else if (action === "backtest") {
+        const { start, end } = btRange();
+        if (!start || !end) {
+          toast("請先設定回測起迄日", "error");
+          return;
+        }
+        if (end < start) {
+          toast("結束日不可早於開始日", "error");
+          return;
+        }
+        saveBtRange();
         withAction(() =>
           consumeSSE(
-            `/api/sg/run?mode=backtest&submit=0&refresh=1&book=${bookParam()}`,
-            "v11 blend 回測"
+            `/api/sg/run?mode=backtest&submit=0&refresh=0&book=${bookParam()}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+            `v11 blend 回測 ${start}→${end}`
           )
         );
       } else if (action === "toggle-submit") {
@@ -444,8 +523,18 @@
   });
 
   setMode("cash");
+  loadBtRange();
   loadParams();
   refreshStatus({ live: false })
-    .then(() => refreshStatus({ live: true }).catch(() => null))
+    .then((data) => {
+      const bt = (data && data.backtest) || {};
+      if (bt.start && $("#sg-bt-start") && !localStorage.getItem("sg_bt_start")) {
+        $("#sg-bt-start").value = String(bt.start).slice(0, 10);
+      }
+      if (bt.end && $("#sg-bt-end") && !localStorage.getItem("sg_bt_end")) {
+        $("#sg-bt-end").value = String(bt.end).slice(0, 10);
+      }
+      return refreshStatus({ live: true }).catch(() => null);
+    })
     .catch((err) => pushActivity(`狀態載入失敗：${err.message}`, "error"));
 })();

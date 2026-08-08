@@ -164,7 +164,25 @@
           </div>
           <div class="sg-action">
             <button type="button" class="btn" data-sg-action="backtest">v11 回測</button>
-            <p class="sg-btn-hint">呼叫 blend 回測腳本（有費），更新下方摘要。</p>
+            <p class="sg-btn-hint">用下方日期區間跑 blend 回測（有費），更新摘要。</p>
+          </div>
+        </div>
+
+        <div class="sg-bt-range-row" aria-label="回測日期設定">
+          <span class="sg-book-label">回測區間</span>
+          <label class="sg-date-field">
+            <span>起</span>
+            <input type="date" id="sg-bt-start" value="2025-08-07" />
+          </label>
+          <label class="sg-date-field">
+            <span>迄</span>
+            <input type="date" id="sg-bt-end" value="2026-08-07" />
+          </label>
+          <div class="sg-bt-presets" role="group" aria-label="快速區間">
+            <button type="button" class="btn btn-ghost" data-bt-preset="3m">近3月</button>
+            <button type="button" class="btn btn-ghost" data-bt-preset="1y">近1年</button>
+            <button type="button" class="btn btn-ghost" data-bt-preset="ytd">YTD</button>
+            <button type="button" class="btn btn-ghost" data-bt-preset="2021">2021→今</button>
           </div>
         </div>
 
