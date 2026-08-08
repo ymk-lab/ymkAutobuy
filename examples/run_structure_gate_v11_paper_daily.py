@@ -210,11 +210,25 @@ def bootstrap_via_yfinance(symbols: list[str], cache: Path) -> int:
     return n_ok
 
 
+def _skip_path(cache: Path, symbol: str) -> Path:
+    return cache / f"{symbol}.skip"
+
+
 def ensure_market_data(cache: Path, *, refresh: bool) -> None:
     """Guarantee SPY/QQQ/SMH (+ light members) exist for first local run."""
     benches = ["SPY", "QQQ", "SMH"]
     light = sorted(set(benches) | set(book_members("QQQ")) | set(book_members("SMH")))
-    missing = [s for s in light if load_cache(cache, s) is None]
+    cache.mkdir(parents=True, exist_ok=True)
+
+    def _needed(sym: str) -> bool:
+        if load_cache(cache, sym) is not None:
+            return False
+        # Permanent bad ticks (e.g. HIMX bad OHLC) — don't retry every run.
+        if _skip_path(cache, sym).is_file() and sym not in benches:
+            return False
+        return True
+
+    missing = [s for s in light if _needed(s)]
     missing_benches = [s for s in benches if s in missing]
     force = _env_bool("QRESEARCH_FORCE_REFRESH", False)
 
@@ -229,10 +243,16 @@ def ensure_market_data(cache: Path, *, refresh: bool) -> None:
         n_futu = refresh_via_futu(want_futu, cache)
         log(f"futu refreshed ok={n_futu}")
 
-    still = [s for s in light if load_cache(cache, s) is None]
+    still = [s for s in light if _needed(s)]
     if still:
         log(f"bootstrap yfinance n={len(still)}")
         log(f"yfinance ok={bootstrap_via_yfinance(still, cache)}")
+    # Mark leftover non-bench misses so later runs stay warm.
+    for sym in light:
+        if sym in benches:
+            continue
+        if load_cache(cache, sym) is None and not _skip_path(cache, sym).is_file():
+            _skip_path(cache, sym).write_text("skip\n", encoding="utf-8")
 
 
 def build_book_panel(
