@@ -330,8 +330,17 @@
   align-items: center;
   gap: 0.55rem 0.85rem;
   margin: 0 0 1rem;
-  padding: 0.85rem 0;
-  border-top: 1px solid var(--line);
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.sg-bt-range-title {
+  flex: 1 0 100%;
+  font-family: var(--font-display, inherit);
+  font-size: 1.05rem;
+  color: var(--ink);
 }
 
 .sg-date-field {
