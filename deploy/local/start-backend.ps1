@@ -195,25 +195,15 @@ if (-not $NoTunnel) {
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host (" Local UI : http://127.0.0.1:" + $Port)
-Write-Host " Firebase : https://ymk-autobuy.web.app"
 if ($tunnelUrl) {
-  Write-Host (" API base : " + $tunnelUrl)
-  Write-Host ""
-  Write-Host " Open Firebase, click footer API, paste the tunnel URL."
-  Write-Host (" Or open: https://ymk-autobuy.web.app/?api=" + $tunnelUrl)
-} else {
-  Write-Host " (no tunnel) open local UI only"
+  Write-Host (" Tunnel  : " + $tunnelUrl + " (optional remote)")
 }
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "To stop: deploy\local\stop-backend.ps1"
 Write-Host ""
 
 if (-not $NoBrowser) {
-  if ($tunnelUrl) {
-    Start-Process ("https://ymk-autobuy.web.app/?api=" + $tunnelUrl)
-  } else {
-    Start-Process ("http://127.0.0.1:" + $Port)
-  }
+  Start-Process ("http://127.0.0.1:" + $Port)
 }
 
 Write-Host "Press Ctrl+C to exit this launcher (servers keep running)."
