@@ -194,21 +194,23 @@ if (-not $NoTunnel) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
-Write-Host (" Local  : http://127.0.0.1:" + $Port)
+Write-Host (" Local UI : http://127.0.0.1:" + $Port)
+Write-Host " Firebase : https://ymk-autobuy.web.app"
 if ($tunnelUrl) {
-  Write-Host (" Remote : " + $tunnelUrl)
-  Write-Host " Open the Remote URL (UI+API same origin). No paste needed."
+  Write-Host (" API base : " + $tunnelUrl)
+  Write-Host ""
+  Write-Host " Open Firebase, click footer API, paste the tunnel URL."
+  Write-Host (" Or open: https://ymk-autobuy.web.app/?api=" + $tunnelUrl)
 } else {
-  Write-Host " Remote : (no tunnel) use Local only"
+  Write-Host " (no tunnel) open local UI only"
 }
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "To stop: deploy\local\stop-backend.ps1"
 Write-Host ""
 
 if (-not $NoBrowser) {
-  # Prefer same-origin remote tunnel page; else local.
   if ($tunnelUrl) {
-    Start-Process $tunnelUrl
+    Start-Process ("https://ymk-autobuy.web.app/?api=" + $tunnelUrl)
   } else {
     Start-Process ("http://127.0.0.1:" + $Port)
   }
