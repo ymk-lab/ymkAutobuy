@@ -100,24 +100,28 @@ FUTU_OPEND_LOGIN_PWD=...
 
 （密碼寫進 `.env` 有風險；優先用官方 XML 密文配置。）
 
-**建議固定網址（否則 quick tunnel 每次重開網址都變）：**
+### 為什麼 Firebase 一直要貼隧道網址？
 
-1. Cloudflare Zero Trust → Named Tunnel → Public hostname → `http://127.0.0.1:8787`
-2. `.env`：
+`*.trycloudflare.com` **quick tunnel 每次重開都換網址**。瀏覽器／Firebase 記住舊的就會 Failed to fetch。
 
-```env
-CLOUDFLARE_TUNNEL_TOKEN=eyJ...
-CLOUDFLARE_PUBLIC_URL=https://你的固定域名
+### 一次設定、以後不用再貼（Named Tunnel）
+
+雙擊或執行：
+
+```text
+deploy\local\setup-stable-url.bat
 ```
 
-3. Firebase 部署一次寫死 API：
+依提示貼上：
 
-```powershell
-cd deploy\firebase
-.\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://你的固定域名
-```
+1. Cloudflare Zero Trust → Tunnels → Create → Public hostname → `http://127.0.0.1:8787`
+2. Tunnel **token**
+3. 固定公開網址（你的域名，例如 `https://sg-api.yourdomain.com`）
 
-開機前請先讓 **OpenD 也開機啟動／登入**（富途模擬盤），否則同步帳戶會失敗。
+腳本會寫入 `.env`、重啟後端、並把 Firebase `ApiBase` 寫死成固定網址。  
+之後只要開 https://ymk-autobuy.web.app 即可（可先開一次 `?api=clear` 清掉舊隧道）。
+
+開機請確保 OpenD 已登入模擬盤（`install-local-vps.bat` 會自動拉起）。
 
 ### Linux / macOS
 
