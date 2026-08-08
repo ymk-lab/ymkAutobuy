@@ -1,0 +1,35 @@
+{
+  "total_return": 0.3804143649539993,
+  "max_drawdown": -0.1229191705388899,
+  "sharpe": 1.1081106463967407,
+  "end_equity": 69020.71824769996,
+  "gate": "G1",
+  "max_names": 3,
+  "max_notional_usd": 17000.0,
+  "capital_usd": 50000.0,
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "universe_n_used": 97,
+  "bh_return": 0.4070107124919997,
+  "bh_max_drawdown": -0.22564909140363387,
+  "vs_bh_pp": -2.659634753800044,
+  "beat_bh": false,
+  "n_trades": 232,
+  "n_buys": 91,
+  "n_sells": 141,
+  "max_concurrent": 3,
+  "avg_concurrent": 1.9075,
+  "avg_invested_frac": 0.49228216355582416,
+  "max_invested_frac": 0.9995896225194665,
+  "cost_total_usd": 1498.58,
+  "avg_buy_notional": 16771.35736263736,
+  "max_buy_notional": 16999.0,
+  "final_positions": {
+    "ORLY": 183.0,
+    "GOOG": 22.0,
+    "GOOGL": 22.0
+  },
+  "final_cash": 36313.288247699966
+}
