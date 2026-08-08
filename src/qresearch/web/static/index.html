@@ -3,26 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>qresearch · Structure Gate Paper</title>
+    <title>Structure Gate · v11 Paper</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=bt-range-1" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=bt-range-1" />
+    <link rel="stylesheet" href="/static/styles.css?v=design-3" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=design-3" />
   </head>
   <body class="sg-page sg-monitor">
     <div class="atmosphere" aria-hidden="true"></div>
+    <div class="grid-overlay" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
     <div id="toast-root" class="toast-root" aria-live="polite"></div>
 
-    <header class="topbar">
-      <div class="brand-block">
-        <p class="brand">Structure Gate</p>
-        <p class="brand-sub">qresearch · v11 · 富途模擬盤</p>
-      </div>
+    <header class="topbar topbar-slim">
       <nav class="top-meta" aria-label="狀態">
         <span id="sg-badge-submit" class="badge badge-off">PAPER …</span>
         <span id="sg-badge-busy" class="badge badge-idle">待命</span>
@@ -31,140 +28,130 @@
     </header>
 
     <main class="shell sg-shell">
-      <!-- 1. Live monitor (first viewport) -->
-      <section class="sg-monitor-hero" aria-label="Paper trade 即時監控">
-        <div class="sg-monitor-head">
-          <p class="sg-kicker">Live paper · Futu SIMULATE · SPY40 / QQQ30 / SMH30</p>
-          <h1 class="sg-monitor-title">
-            <span id="sg-mode-hero">—</span>
-            <span class="sg-monitor-target" id="sg-target-hero">讀取中…</span>
-          </h1>
-          <p class="sg-monitor-sub" id="sg-monitor-sub">
-            同步富途 OpenD 模擬盤後，顯示本金、合併目標與掛單狀態。
-          </p>
-        </div>
-
-        <div class="sg-kpi-rail" aria-label="本金與盈虧">
-          <div class="sg-kpi">
-            <span class="sg-kpi-label">本金／袖口</span>
-            <strong id="m-sleeve">—</strong>
-          </div>
-          <div class="sg-kpi">
-            <span class="sg-kpi-label">帳戶現金</span>
-            <strong id="m-cash">—</strong>
-          </div>
-          <div class="sg-kpi">
-            <span class="sg-kpi-label">總權益</span>
-            <strong id="m-equity">—</strong>
-          </div>
-          <div class="sg-kpi">
-            <span class="sg-kpi-label">未實現盈虧</span>
-            <strong id="m-upnl">—</strong>
-          </div>
-          <div class="sg-kpi">
-            <span class="sg-kpi-label">今日盈虧</span>
-            <strong id="m-day">—</strong>
-          </div>
-          <div class="sg-kpi">
-            <span class="sg-kpi-label">訊號日</span>
-            <strong id="m-asof">—</strong>
-          </div>
-        </div>
-
-        <div class="sg-monitor-grid">
-          <div class="sg-pane" aria-labelledby="target-title">
-            <h2 id="target-title">目標標的</h2>
-            <p class="sg-pane-support">Structure Gate 今日 mode 對應的目標權重。</p>
-            <dl class="sg-kv" id="target-kv">
-              <div><dt>Book</dt><dd id="sg-book">—</dd></div>
-              <div><dt>Mode</dt><dd id="sg-mode">—</dd></div>
-              <div><dt>Target</dt><dd id="sg-target">—</dd></div>
-              <div><dt>Flags</dt><dd id="sg-flags">—</dd></div>
-            </dl>
-          </div>
-
-          <div class="sg-pane" aria-labelledby="orders-title">
-            <h2 id="orders-title">掛單情況</h2>
-            <p class="sg-pane-support">預覽單（尚未送出）與最近一次實際成交。</p>
-            <h3 class="sg-mini">預覽／計畫</h3>
-            <ul class="sg-order-list" id="preview-list">
-              <li class="empty">尚無預覽單</li>
-            </ul>
-            <h3 class="sg-mini">最近成交</h3>
-            <ul class="sg-order-list" id="fill-list">
-              <li class="empty">尚無成交紀錄</li>
-            </ul>
-            <p class="sg-state-line" id="state-line">state：—</p>
-          </div>
-
-          <div class="sg-pane sg-pane-wide" aria-labelledby="holdings-title">
-            <h2 id="holdings-title">持倉與即時盈虧</h2>
-            <p class="sg-pane-support">來自富途 OpenD 模擬盤報價；按「同步帳戶」更新。</p>
-            <div class="table-scroll">
-              <table class="sg-table holdings-table">
-                <thead>
-                  <tr>
-                    <th>標的</th>
-                    <th>股數</th>
-                    <th>成本</th>
-                    <th>現價</th>
-                    <th>市值</th>
-                    <th>未實現</th>
-                    <th>今日</th>
-                  </tr>
-                </thead>
-                <tbody id="holdings-body">
-                  <tr>
-                    <td colspan="7" class="empty">尚未同步帳戶</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="sg-pane sg-pane-wide" aria-labelledby="analysis-title">
-            <h2 id="analysis-title">分析過程</h2>
-            <p class="sg-pane-support">後台抓數、算 mode、預覽／送單的即時日誌。</p>
-            <div class="sg-activity" id="sg-activity" aria-live="polite"></div>
-          </div>
+      <!-- First viewport: brand + one signal line + CTA -->
+      <section class="sg-hero" aria-label="即時訊號">
+        <p class="brand">Structure Gate</p>
+        <p class="brand-sub">v11 paper · Futu SIMULATE · SPY 40 / QQQ 30 / SMH 30</p>
+        <h1 class="sg-hero-title">
+          <span class="sg-hero-mode" id="sg-mode-hero">—</span>
+          <span class="sg-hero-target" id="sg-target-hero">讀取中…</span>
+        </h1>
+        <p class="sg-hero-sub" id="sg-monitor-sub">
+          同步富途模擬盤後，顯示合併目標與掛單狀態。
+        </p>
+        <div class="sg-hero-cta">
+          <button type="button" class="btn btn-primary" data-sg-action="sync">同步帳戶</button>
+          <button type="button" class="btn btn-accent" data-sg-action="once">執行一次</button>
+          <button type="button" class="btn" data-sg-action="signal">重算訊號</button>
         </div>
       </section>
 
-      <!-- 2. Controls -->
+      <section class="sg-kpi-rail" aria-label="本金與盈虧">
+        <div class="sg-kpi">
+          <span class="sg-kpi-label">袖口</span>
+          <strong id="m-sleeve">—</strong>
+        </div>
+        <div class="sg-kpi">
+          <span class="sg-kpi-label">現金</span>
+          <strong id="m-cash">—</strong>
+        </div>
+        <div class="sg-kpi">
+          <span class="sg-kpi-label">權益</span>
+          <strong id="m-equity">—</strong>
+        </div>
+        <div class="sg-kpi">
+          <span class="sg-kpi-label">未實現</span>
+          <strong id="m-upnl">—</strong>
+        </div>
+        <div class="sg-kpi">
+          <span class="sg-kpi-label">今日</span>
+          <strong id="m-day">—</strong>
+        </div>
+        <div class="sg-kpi">
+          <span class="sg-kpi-label">訊號日</span>
+          <strong id="m-asof">—</strong>
+        </div>
+      </section>
+
+      <section class="sg-monitor-grid" aria-label="監控面板">
+        <div class="sg-pane" aria-labelledby="target-title">
+          <h2 id="target-title">目標</h2>
+          <p class="sg-pane-support">今日 mode 與合併權重。</p>
+          <dl class="sg-kv" id="target-kv">
+            <div><dt>Book</dt><dd id="sg-book">—</dd></div>
+            <div><dt>Mode</dt><dd id="sg-mode">—</dd></div>
+            <div><dt>Target</dt><dd id="sg-target">—</dd></div>
+            <div><dt>Flags</dt><dd id="sg-flags">—</dd></div>
+          </dl>
+        </div>
+
+        <div class="sg-pane" aria-labelledby="orders-title">
+          <h2 id="orders-title">掛單</h2>
+          <p class="sg-pane-support">預覽與最近成交。</p>
+          <h3 class="sg-mini">預覽／計畫</h3>
+          <ul class="sg-order-list" id="preview-list">
+            <li class="empty">尚無預覽單</li>
+          </ul>
+          <h3 class="sg-mini">最近成交</h3>
+          <ul class="sg-order-list" id="fill-list">
+            <li class="empty">尚無成交紀錄</li>
+          </ul>
+          <p class="sg-state-line" id="state-line">state：—</p>
+        </div>
+
+        <div class="sg-pane sg-pane-wide" aria-labelledby="holdings-title">
+          <h2 id="holdings-title">持倉</h2>
+          <p class="sg-pane-support">富途 OpenD 模擬盤；按「同步帳戶」更新。</p>
+          <div class="table-scroll">
+            <table class="sg-table holdings-table">
+              <thead>
+                <tr>
+                  <th>標的</th>
+                  <th>股數</th>
+                  <th>成本</th>
+                  <th>現價</th>
+                  <th>市值</th>
+                  <th>未實現</th>
+                  <th>今日</th>
+                </tr>
+              </thead>
+              <tbody id="holdings-body">
+                <tr>
+                  <td colspan="7" class="empty">尚未同步帳戶</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="sg-pane sg-pane-wide" aria-labelledby="analysis-title">
+          <h2 id="analysis-title">過程</h2>
+          <p class="sg-pane-support">抓數、算 mode、送單日誌。</p>
+          <div class="sg-activity" id="sg-activity" aria-live="polite"></div>
+        </div>
+      </section>
+
       <section class="sg-section sg-tools" id="tools" aria-labelledby="tools-title">
         <h2 id="tools-title">操作</h2>
-        <p class="sg-support">先同步與重算訊號；確認目標後再開送單。每日自動掛單仍建議用 cron。</p>
+        <p class="sg-support">確認目標後再開送單。配置固定為 v11 三袖口。</p>
 
         <div class="sg-tool-row">
           <span class="sg-book-label">配置</span>
           <strong id="sg-config-label">v11 · SPY 40% / QQQ 30% / SMH 30%</strong>
-          <p class="sg-btn-hint">三袖口獨立算訊號後合併權重，送富途模擬盤。</p>
         </div>
 
         <div class="sg-actions">
           <div class="sg-action">
-            <button type="button" class="btn btn-primary" data-sg-action="sync">同步帳戶</button>
-            <p class="sg-btn-hint">經 OpenD 讀取富途模擬盤現金、持倉、報價。</p>
-          </div>
-          <div class="sg-action">
             <button type="button" class="btn" data-sg-action="refresh">重新整理</button>
-            <p class="sg-btn-hint">只重讀已存訊號／帳戶檔，不重算、不下單。</p>
-          </div>
-          <div class="sg-action">
-            <button type="button" class="btn" data-sg-action="signal">重算訊號</button>
-            <p class="sg-btn-hint">跑 v11 三袖口合併目標；不下單。</p>
-          </div>
-          <div class="sg-action">
-            <button type="button" class="btn btn-accent" data-sg-action="once">執行一次</button>
-            <p class="sg-btn-hint">OFF 只計畫；ON 對富途 SIMULATE 市價調倉。</p>
+            <p class="sg-btn-hint">重讀已存狀態，不重算。</p>
           </div>
           <div class="sg-action">
             <button type="button" class="btn" data-sg-action="toggle-submit">切換送單</button>
-            <p class="sg-btn-hint">開關 QRESEARCH_SG_PAPER_SUBMIT（僅模擬盤）。</p>
+            <p class="sg-btn-hint">開關模擬盤送單。</p>
           </div>
           <div class="sg-action">
             <button type="button" class="btn" data-sg-action="backtest">v11 回測</button>
-            <p class="sg-btn-hint">用下方日期區間跑 blend 回測（有費），更新摘要。</p>
+            <p class="sg-btn-hint">用下方區間跑 blend。</p>
           </div>
         </div>
 
@@ -172,11 +159,11 @@
           <strong class="sg-bt-range-title">設定回測時間</strong>
           <label class="sg-date-field">
             <span>開始</span>
-            <input type="date" id="sg-bt-start" value="2025-08-07" />
+            <input type="date" id="sg-bt-start" value="2025-01-01" />
           </label>
           <label class="sg-date-field">
             <span>結束</span>
-            <input type="date" id="sg-bt-end" value="2026-08-07" />
+            <input type="date" id="sg-bt-end" value="2026-08-09" />
           </label>
           <div class="sg-bt-presets" role="group" aria-label="快速區間">
             <button type="button" class="btn btn-ghost" data-bt-preset="3m">近3月</button>
@@ -184,33 +171,31 @@
             <button type="button" class="btn btn-ghost" data-bt-preset="ytd">YTD</button>
             <button type="button" class="btn btn-ghost" data-bt-preset="2021">2021→今</button>
           </div>
-          <p class="sg-btn-hint">選好日期後再按「v11 回測」。</p>
         </div>
 
         <div class="sg-backtest-strip" aria-label="回測摘要">
           <div class="sg-kpi">
-            <span class="sg-kpi-label">回測區間</span>
+            <span class="sg-kpi-label">區間</span>
             <strong id="sg-bt-range">—</strong>
           </div>
           <div class="sg-kpi">
-            <span class="sg-kpi-label">回測 SG</span>
+            <span class="sg-kpi-label">SG</span>
             <strong id="sg-bt-sg">—</strong>
           </div>
           <div class="sg-kpi">
-            <span class="sg-kpi-label">回測 BH</span>
+            <span class="sg-kpi-label">SPY BH</span>
             <strong id="sg-bt-bh">—</strong>
           </div>
           <div class="sg-kpi">
-            <span class="sg-kpi-label">Soft / Hard</span>
+            <span class="sg-kpi-label">Gate</span>
             <strong id="sg-bt-gate">—</strong>
           </div>
         </div>
       </section>
 
-      <!-- 3. Rules (secondary) -->
       <section class="sg-section" id="modes" aria-labelledby="modes-title">
         <h2 id="modes-title">四種 Mode</h2>
-        <p class="sg-support">每天只輸出一個持倉模式；研究假設為次日開盤成交。</p>
+        <p class="sg-support">每天一個持倉模式；次日開盤成交假設。</p>
         <div class="sg-mode-rail" role="list">
           <button type="button" class="sg-mode is-active" data-mode="cash" role="listitem">
             <span class="sg-mode-code">cash</span>
@@ -234,7 +219,7 @@
 
       <section class="sg-section" id="priority" aria-labelledby="priority-title">
         <h2 id="priority-title">裁決優先序</h2>
-        <p class="sg-support">由高到低；高優先級覆蓋低優先級。</p>
+        <p class="sg-support">由高到低；高優先覆蓋低優先。</p>
         <ol class="sg-priority">
           <li><strong>harsh_ret</strong><span>急跌 → 空手</span></li>
           <li><strong>thrust</strong><span>指數衝刺 → 抱 ETF</span></li>
@@ -249,8 +234,8 @@
       </section>
 
       <section class="sg-section" id="params" aria-labelledby="params-title">
-        <h2 id="params-title">v11 預設參數</h2>
-        <p class="sg-support">來自 <code>StructureGateConfig.v11()</code>（knobs 同 v8；三袖口獨立）。</p>
+        <h2 id="params-title">v11 參數</h2>
+        <p class="sg-support">來自 <code>StructureGateConfig.v11()</code>。</p>
         <div class="table-scroll">
           <table class="sg-table" id="params-table">
             <thead>
@@ -272,9 +257,9 @@
 
     <footer class="footer">
       <span>Structure Gate v11 · Futu OpenD SIMULATE</span>
-      <span>自動每日掛單：deploy/vps-cron/run-sg.sh</span>
+      <span>deploy/vps-cron/run-sg.sh</span>
     </footer>
 
-    <script src="/static/structure_gate.js?v=bt-range-1" defer></script>
+    <script src="/static/structure_gate.js?v=design-3" defer></script>
   </body>
 </html>
