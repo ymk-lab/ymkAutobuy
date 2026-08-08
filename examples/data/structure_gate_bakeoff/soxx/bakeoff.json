@@ -10,10 +10,10 @@
   "capital_usd": 50000.0,
   "same_rule": true,
   "structure_gate": {
-    "total_return": 1.4354494002342602,
-    "max_drawdown": -0.1991806434722807,
-    "sharpe": 1.5940853135990858,
-    "end_equity": 121772.47001171301
+    "total_return": 0.1324693621545292,
+    "max_drawdown": -0.3939738544517144,
+    "sharpe": 0.4409085512265202,
+    "end_equity": 56623.46810772646
   },
   "pure_ers_g1": {
     "total_return": 2.816814557134621,
@@ -28,7 +28,7 @@
     "end_equity": 125600.0699522551
   },
   "mode_distribution": {
-    "hold_bench": 0.4725,
+    "hold_strong": 0.4725,
     "ers": 0.29,
     "cash": 0.2375
   },
@@ -39,9 +39,9 @@
   "soft_pass": false,
   "beat_worse_baseline": false,
   "within_gap_of_better": false,
-  "gap_vs_better_pp": 138.13651569003608,
+  "gap_vs_better_pp": 268.4345194980092,
   "hard_pass_beat_both": false,
   "max_gap_pp": 35.0,
-  "vs_bh_pp": -7.655199881084185,
-  "vs_ers_pp": -138.13651569003608
+  "vs_bh_pp": -137.9532036890573,
+  "vs_ers_pp": -268.4345194980092
 }
