@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>qresearch · Structure Gate v8</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/structure_gate.css" />
+  </head>
+  <body class="sg-page">
+    <div class="atmosphere" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="brand">qresearch</p>
+        <p class="brand-sub">Structure Gate · v8</p>
+      </div>
+      <nav class="top-meta" aria-label="站內導覽">
+        <a class="badge" href="/">G1 Paper</a>
+        <a class="badge badge-on" href="/structure-gate" aria-current="page">Structure Gate</a>
+      </nav>
+    </header>
+
+    <main class="shell sg-shell">
+      <section class="sg-hero" aria-label="Structure Gate 主視覺">
+        <p class="sg-kicker">Universe-agnostic daily router</p>
+        <h1 class="sg-hero-brand">Structure Gate</h1>
+        <p class="sg-hero-line">
+          能選股就選、選不過指數就抱指數、結構壞了就空手。
+        </p>
+        <div class="sg-hero-cta">
+          <a class="btn btn-primary" href="#priority">看優先序</a>
+          <a class="btn" href="#params">看 v8 參數</a>
+        </div>
+      </section>
+
+      <section class="sg-section" id="modes" aria-labelledby="modes-title">
+        <h2 id="modes-title">四種 Mode</h2>
+        <p class="sg-support">每天只輸出一個持倉模式；次日開盤成交。</p>
+        <div class="sg-mode-rail" role="list">
+          <button type="button" class="sg-mode is-active" data-mode="cash" role="listitem">
+            <span class="sg-mode-code">cash</span>
+            <span class="sg-mode-name">空手防守</span>
+          </button>
+          <button type="button" class="sg-mode" data-mode="ers" role="listitem">
+            <span class="sg-mode-code">ers</span>
+            <span class="sg-mode-name">新興轉強</span>
+          </button>
+          <button type="button" class="sg-mode" data-mode="strong" role="listitem">
+            <span class="sg-mode-code">strong</span>
+            <span class="sg-mode-name">已強領導</span>
+          </button>
+          <button type="button" class="sg-mode" data-mode="bench" role="listitem">
+            <span class="sg-mode-code">bench</span>
+            <span class="sg-mode-name">基準滿倉</span>
+          </button>
+        </div>
+        <p id="mode-detail" class="sg-mode-detail" aria-live="polite"></p>
+      </section>
+
+      <section class="sg-section" id="priority" aria-labelledby="priority-title">
+        <h2 id="priority-title">裁決優先序</h2>
+        <p class="sg-support">由高到低；高優先級覆蓋低優先級。</p>
+        <ol class="sg-priority">
+          <li><strong>harsh_ret</strong><span>急跌 → 空手</span></li>
+          <li><strong>thrust</strong><span>指數衝刺 → 抱 ETF</span></li>
+          <li><strong>sticky</strong><span>選股黏不住 → 抱 ETF</span></li>
+          <li><strong>harsh_dd</strong><span>深回撤 → 空手</span></li>
+          <li><strong>mild</strong><span>輕度轉弱 → 空手</span></li>
+          <li><strong>index_lean</strong><span>指數偏強 → 抱 ETF</span></li>
+          <li><strong>stock_led + crowded</strong><span>集中領漲 → strong</span></li>
+          <li><strong>ers</strong><span>風險開且非指數偏強 → 選股</span></li>
+          <li><strong>cash</strong><span>其餘 → 空手</span></li>
+        </ol>
+      </section>
+
+      <section class="sg-section sg-split" aria-label="袖套與防守">
+        <div>
+          <h2>Sticky / Thrust</h2>
+          <p class="sg-support">兩條鎖指數袖套，可蓋過 Mild 與滯後深回撤。</p>
+          <ul class="sg-bullets">
+            <li>
+              <strong>Sticky</strong>：領導股 60 日相對指數落後 ≤ −6%，確認 2 日，且站上 SMA50 → 鎖
+              <code>bench</code>；追上至 −2% 並確認 6 日，或急跌，才退出。
+            </li>
+            <li>
+              <strong>Thrust</strong>：指數短線大漲／自低點強彈（ret5≥4%、ret10≥7%、bounce20≥6%、或
+              ret20≥8%），且站上 SMA50 → 鎖 <code>bench</code>。
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h2>Mild / Harsh</h2>
+          <p class="sg-support">防守層；唯有急跌能打斷 Sticky／Thrust。</p>
+          <ul class="sg-bullets">
+            <li><strong>mild</strong>：破 SMA50，或 dd60≤−6%，或 ret20≤−4% → 偏空手。</li>
+            <li><strong>harsh_dd</strong>：dd60≤−18% → 鎖外空手。</li>
+            <li><strong>harsh_ret</strong>：ret20≤−12% → 最高優先空手，當日斷 Sticky。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="sg-section" id="flow" aria-labelledby="flow-title">
+        <h2 id="flow-title">一日決策（人話）</h2>
+        <p class="sg-support">收盤算訊號，次日開盤換倉；含富途美股費用 + 3bps 滑價。</p>
+        <div class="sg-flow">
+          <div class="sg-flow-step">讀結構<br /><small>trail / 廣度 / SMA</small></div>
+          <div class="sg-flow-arrow" aria-hidden="true">→</div>
+          <div class="sg-flow-step">套優先序<br /><small>一模式勝出</small></div>
+          <div class="sg-flow-arrow" aria-hidden="true">→</div>
+          <div class="sg-flow-step">次日開盤<br /><small>cash / ETF / 個股</small></div>
+        </div>
+      </section>
+
+      <section class="sg-section" id="params" aria-labelledby="params-title">
+        <h2 id="params-title">v8 預設參數</h2>
+        <p class="sg-support">
+          來自 <code>StructureGateConfig()</code>；頁面載入時向後端同步。
+        </p>
+        <div class="table-scroll">
+          <table class="sg-table" id="params-table">
+            <thead>
+              <tr>
+                <th>參數</th>
+                <th>值</th>
+                <th>含義</th>
+              </tr>
+            </thead>
+            <tbody id="params-body">
+              <tr>
+                <td colspan="3" class="empty">載入中…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="blurb-title">
+        <h2 id="blurb-title">一整段</h2>
+        <p class="sg-blurb">
+          Structure Gate v8 是一套與股票代號無關的日頻路由器：每天只輸出一個持倉模式——cash
+          空手、bench 滿倉基準 ETF、ers 做剛相對指數轉強的個股、strong
+          做已確認的集中領導股——並在次日開盤依富途美股費用加 3bps
+          滑價成交。它先量測領導股相對指數的短窗與長窗超額軌跡，以及指數是否站上
+          SMA50、短線漲幅、回撤與廣度；若領導股長窗落後指數超過約
+          6% 且指數仍強，就進入 Sticky
+          「指數黏著」，強制抱 ETF；若指數本身短線大漲或自低點強彈（Thrust），同樣鎖抱
+          ETF。防禦上，破均線或溫和轉弱觸發 Mild、更深回撤觸發
+          harsh_dd，原則上空手，但 Sticky／Thrust 可以蓋過這些中度防守；唯有
+          ret20 急跌（harsh_ret）擁有最高優先級，當日必須空手。因此 v8
+          不是單純買進持有，也不是純輪動，而是「能選股就選、選不過指數就退回指數、結構壞了就空手」。
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>src/qresearch/strategy/structure_gate.py</span>
+      <span>preset v8 · universal tune</span>
+    </footer>
+
+    <script src="/static/structure_gate.js" defer></script>
+  </body>
+</html>

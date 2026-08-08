@@ -305,6 +305,47 @@ def index() -> FileResponse:
     return FileResponse(STATIC / "index.html")
 
 
+@app.get("/structure-gate")
+def structure_gate_page() -> FileResponse:
+    return FileResponse(STATIC / "structure_gate_v8.html")
+
+
+@app.get("/api/structure-gate/v8")
+def structure_gate_v8_config() -> JSONResponse:
+    """Expose Structure Gate v8 defaults for the rules UI."""
+    sys.path.insert(0, str(ROOT / "src"))
+    from dataclasses import asdict
+
+    from qresearch.strategy.structure_gate import StructureGateConfig
+
+    cfg = StructureGateConfig.v8()
+    payload = asdict(cfg)
+    # EmergingRSWaveConfig is nested; keep JSON-safe primitives only.
+    if payload.get("ers_config") is not None:
+        payload["ers_config"] = str(payload["ers_config"])
+    return JSONResponse(
+        {
+            "preset": "v8",
+            "rule": "structure_gate_v8_universal_tune",
+            "priority": [
+                "harsh_ret",
+                "thrust",
+                "sticky",
+                "harsh_dd",
+                "mild",
+                "index_lean",
+                "stock_led+crowded",
+                "ers",
+                "cash",
+            ],
+            "modes": ["cash", "ers", "strong", "bench"],
+            "execution": "next_open",
+            "fee_note": "Futu US equity schedule + slippage_bps on notional",
+            "config": payload,
+        }
+    )
+
+
 @app.get("/api/status")
 def api_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
     return _status_payload(live=bool(live))
