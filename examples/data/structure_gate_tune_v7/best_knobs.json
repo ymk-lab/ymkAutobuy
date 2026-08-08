@@ -1,0 +1,22 @@
+{
+  "stock_led_min_trail": 0.025,
+  "index_lean_max_trail": -0.025,
+  "sticky_enter_trail": -0.06,
+  "sticky_enter_confirm": 2,
+  "sticky_exit_trail": -0.02,
+  "sticky_exit_confirm": 6,
+  "sticky_breadth_max": 0.5,
+  "sticky_breadth_trail": -0.12,
+  "thrust_ret5_min": 0.04,
+  "thrust_ret10_min": 0.07,
+  "thrust_bounce20_min": 0.06,
+  "thrust_ret20_min": 0.08,
+  "mild_defense_dd": 0.06,
+  "mild_defense_ret20": -0.04,
+  "harsh_defense_dd": 0.18,
+  "harsh_defense_ret20": -0.12,
+  "top3_conc_min": 0.35,
+  "crowded_overlap_min": 0.45,
+  "strong_share_min": 0.35,
+  "ers_lag_trigger": -0.08
+}

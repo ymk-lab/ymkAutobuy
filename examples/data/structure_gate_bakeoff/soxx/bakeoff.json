@@ -10,10 +10,10 @@
   "capital_usd": 50000.0,
   "same_rule": true,
   "structure_gate": {
-    "total_return": 1.2995267539098694,
-    "max_drawdown": -0.22117535605378302,
-    "sharpe": 1.5879384145962536,
-    "end_equity": 114976.33769549346
+    "total_return": 1.24246786811364,
+    "max_drawdown": -0.20332650381579886,
+    "sharpe": 1.6257993462687281,
+    "end_equity": 112123.39340568201
   },
   "pure_ers_g1": {
     "total_return": 2.816814557134621,
@@ -28,17 +28,17 @@
     "end_equity": 125600.0699522551
   },
   "mode_distribution": {
-    "bench": 0.7175,
-    "cash": 0.2625,
-    "strong": 0.0175,
+    "bench": 0.74,
+    "cash": 0.255,
+    "strong": 0.0025,
     "ers": 0.0025
   },
   "sticky_audit": {
-    "sticky_coverage": 0.59,
+    "sticky_coverage": 0.6175,
     "sticky_bench_share": 1.0,
     "sticky_stock_sleeve_leak": 0.0,
     "sticky_cash_share": 0.0,
-    "thrust_coverage": 0.525,
+    "thrust_coverage": 0.5775,
     "thrust_bench_share": 1.0,
     "theme_bh_gap_ok_20pp": false
   },
@@ -50,9 +50,9 @@
   "soft_pass": false,
   "beat_worse_baseline": false,
   "within_gap_of_better": false,
-  "gap_vs_better_pp": 151.72878032247516,
+  "gap_vs_better_pp": 157.4346689020981,
   "hard_pass_beat_both": false,
   "max_gap_pp": 35.0,
-  "vs_bh_pp": -21.247464513523262,
-  "vs_ers_pp": -151.72878032247516
+  "vs_bh_pp": -26.95335309314619,
+  "vs_ers_pp": -157.4346689020981
 }

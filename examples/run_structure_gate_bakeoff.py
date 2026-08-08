@@ -343,7 +343,7 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v7_priority",
+        "rule": "structure_gate_v8_universal_tune",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
@@ -383,8 +383,8 @@ def main() -> None:
             "cash",
         ],
         "note": (
-            "v7: explicit priority; sticky/thrust never co-exist with cash; "
-            "index_lean no longer overrides mild; harsh_ret ends sticky same day."
+            "v8: v7 priority + 50-trial universal tune defaults (best soft coverage "
+            "across QQQ/SMH/SOXX/SPY/DIA/IWM/XLF/XLK/XBI/XLE; in-window exploratory)."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(

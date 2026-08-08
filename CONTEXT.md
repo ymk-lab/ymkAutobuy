@@ -68,6 +68,10 @@ _Avoid_: 為每個 ETF 代號寫死不同閾值、用未來報酬標註當天、
 Mode 裁決由高到低：`harsh_ret` → `thrust` → `sticky` → `harsh_dd` → `mild` → `index_lean` → `stock_led`+`crowded` → `stock_led`／中性 `ers` → `cash`。高優先級覆蓋低優先級。
 _Avoid_: 用舊 mask 直覺推斷、讓 `index_lean` 蓋過 Mild、Sticky ON 卻出現 `cash`
 
+**Structure Universal Tune**:
+在同一評估窗對多宇宙做參數搜尋時，以軟過關數為主、硬過關與 vs B&H 穩健統計為輔；入選預設須標明「窗內探索、非鎖定 OOS」。現行預設為 v8（50 次搜尋、軟過關 7/10）。
+_Avoid_: 窗內調參後宣稱樣本外已驗證、為單一 ETF 單獨閾值
+
 **Structure Mode**:
 四種日頻持倉模式（程式字串＝文件名）：`cash`＝空手防守；`ers`＝新興轉強；`strong`＝已強領導；`bench`＝基準滿倉。
 _Avoid_: 寫 hold_bench／hold_strong、中英混稱而不標 mode 名

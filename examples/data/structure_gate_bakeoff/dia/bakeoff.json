@@ -10,10 +10,10 @@
   "capital_usd": 50000.0,
   "same_rule": true,
   "structure_gate": {
-    "total_return": -0.08001947308979429,
-    "max_drawdown": -0.2711747143422538,
-    "sharpe": -0.15658988067534144,
-    "end_equity": 45999.02634551028
+    "total_return": 0.03267238372160741,
+    "max_drawdown": -0.25882508161998596,
+    "sharpe": 0.20138542066182863,
+    "end_equity": 51633.619186080374
   },
   "pure_ers_g1": {
     "total_return": -0.34741614309761737,
@@ -28,17 +28,17 @@
     "end_equity": 64395.964558810614
   },
   "mode_distribution": {
-    "bench": 0.495,
-    "strong": 0.24,
-    "cash": 0.145,
-    "ers": 0.12
+    "bench": 0.5775,
+    "strong": 0.2075,
+    "ers": 0.1175,
+    "cash": 0.0975
   },
   "sticky_audit": {
-    "sticky_coverage": 0.3625,
+    "sticky_coverage": 0.4175,
     "sticky_bench_share": 1.0,
     "sticky_stock_sleeve_leak": 0.0,
     "sticky_cash_share": 0.0,
-    "thrust_coverage": 0.0525,
+    "thrust_coverage": 0.11,
     "thrust_bench_share": 1.0,
     "theme_bh_gap_ok_20pp": false
   },
@@ -47,12 +47,12 @@
     "soft": "beat worse baseline AND trail better by \u226435pp",
     "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
   },
-  "soft_pass": false,
+  "soft_pass": true,
   "beat_worse_baseline": true,
-  "within_gap_of_better": false,
-  "gap_vs_better_pp": 36.79387642660066,
+  "within_gap_of_better": true,
+  "gap_vs_better_pp": 25.52469074546049,
   "hard_pass_beat_both": false,
   "max_gap_pp": 35.0,
-  "vs_bh_pp": -36.79387642660066,
-  "vs_ers_pp": 26.73966700078231
+  "vs_bh_pp": -25.52469074546049,
+  "vs_ers_pp": 38.00885268192248
 }

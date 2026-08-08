@@ -27,47 +27,48 @@ StructureMode = Literal["cash", "ers", "strong", "bench"]
 
 @dataclass
 class StructureGateConfig:
+    """Defaults = v8 universal tune (50-trial in-window best soft coverage)."""
+
     top_k_conc: int = 3
     top3_conc_min: float = 0.35
-    crowded_overlap_min: float = 0.40
-    strong_share_min: float = 0.30
+    crowded_overlap_min: float = 0.45
+    strong_share_min: float = 0.35
     strong_overlap_min: float = 0.45
     ers_lag_lookback: int = 60
-    ers_lag_trigger: float = -0.05  # ERS trailing sum excess vs bench
+    ers_lag_trigger: float = -0.08
     # Already-strong leadership for strong mode
     already_strong_cap: float = 0.10
     strong_lookback: int = 60
     # Short trail (tactical stock_led / index_lean)
     leadership_trail_days: int = 20
-    stock_led_min_trail: float = 0.02  # trail20 >= this → stock_led
-    index_lean_max_trail: float = -0.03  # trail20 <= this → index_lean
-    # Sticky sleeve: persist bench while leaders lag (long trail)
+    stock_led_min_trail: float = 0.025
+    index_lean_max_trail: float = -0.025
+    # Sticky sleeve
     sticky_trail_days: int = 60
-    sticky_enter_trail: float = -0.05
+    sticky_enter_trail: float = -0.06
     sticky_enter_confirm: int = 2
     sticky_exit_trail: float = -0.02
-    sticky_exit_confirm: int = 5
+    sticky_exit_confirm: int = 6
     sticky_require_above50: bool = True
     sticky_require_ret20_pos: bool = False
-    sticky_breadth_max: float = 0.40
-    sticky_breadth_trail: float = -0.08
+    sticky_breadth_max: float = 0.50
+    sticky_breadth_trail: float = -0.12
     sticky_exit_on_below50: bool = False
     sticky_forbid_stock_sleeves: bool = True
-    # Thrust sleeve: absolute bench melt-up / recovery
+    # Thrust sleeve
     thrust_ret5_min: float = 0.04
     thrust_ret10_min: float = 0.07
-    thrust_bounce20_min: float = 0.08  # close / 20d low - 1
-    thrust_ret20_min: float = 0.10
+    thrust_bounce20_min: float = 0.06
+    thrust_ret20_min: float = 0.08
     thrust_require_above50: bool = True
     thrust_confirm: int = 1
     thrust_overrides_dd_harsh: bool = True
     thrust_force_bench: bool = True
-    # Mild defense
-    mild_defense_dd: float = 0.08
-    mild_defense_ret20: float = -0.03
-    # Harsh defense
-    harsh_defense_dd: float = 0.12
-    harsh_defense_ret20: float = -0.08
+    # Mild / harsh defense
+    mild_defense_dd: float = 0.06
+    mild_defense_ret20: float = -0.04
+    harsh_defense_dd: float = 0.18
+    harsh_defense_ret20: float = -0.12
     ers_config: EmergingRSWaveConfig | None = None
 
 
