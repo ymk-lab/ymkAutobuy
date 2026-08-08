@@ -4,11 +4,18 @@
 param(
   [Parameter(Mandatory = $true)][string]$ProjectId,
   [Parameter(Mandatory = $true)][string]$ApiBase,
-  [string]$CorsOrigins = ""
+  [string]$CorsOrigins = "",
+  [switch]$CreateProject
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
+
+function Assert-Ok($step) {
+  if ($LASTEXITCODE -ne 0) {
+    throw "$step failed (exit $LASTEXITCODE)"
+  }
+}
 
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
   throw "npm not found. Install Node.js LTS first."
@@ -19,24 +26,41 @@ $ProjectId = $ProjectId.Trim()
 
 if ($ProjectId -match "YOUR_|PLACEHOLDER|example" -or $ProjectId.Length -lt 3) {
   throw @"
-ProjectId 還是佔位字。請先到 https://console.firebase.google.com/ 建立專案，再執行例如：
+ProjectId 還是佔位字。請先建立 Firebase 專案：
 
-  .\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://xxxx.trycloudflare.com
+  npx firebase login
+  npx firebase projects:create ymk-autobuy --display-name "ymk Autobuy"
+  # 或開 https://console.firebase.google.com/ → Add project
 "@
 }
-if ($ApiBase -notmatch "^https?://" -or $ApiBase -match "YOUR_|PLACEHOLDER|example\.com|TUNNEL_HOST") {
+
+if (
+  $ApiBase -notmatch "^https://" -or
+  $ApiBase -match "YOUR_|PLACEHOLDER|example\.com|TUNNEL_HOST" -or
+  $ApiBase -match "127\.0\.0\.1|localhost"
+) {
   throw @"
-ApiBase 必須是真實後端／隧道網址（含 https://）。
+ApiBase 必須是公開的 https 隧道網址（不能用 127.0.0.1 / localhost）。
+Firebase 頁面是 https，瀏覽器會擋掉打本機 http。
 
-1) 先開 uvicorn :8787
-2) 另開視窗跑 quick tunnel，複製印出的 https://xxxx.trycloudflare.com
-3) 再執行：
-
-  .\deploy.ps1 -ProjectId <firebase專案ID> -ApiBase https://xxxx.trycloudflare.com
+1) uvicorn 已在 :8787 即可
+2) 另開視窗：cloudflared tunnel --url http://127.0.0.1:8787
+3) 複製日誌中的 https://xxxx.trycloudflare.com
+4) .\deploy.ps1 -ProjectId <id> -ApiBase https://xxxx.trycloudflare.com
 "@
 }
 
 npm install
+Assert-Ok "npm install"
+
+if ($CreateProject) {
+  Write-Host "Creating Firebase project $ProjectId ..."
+  npx firebase projects:create $ProjectId --display-name "ymk Autobuy"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "projects:create failed — ID 可能已被占用。改跑：npx firebase projects:list"
+    throw "firebase projects:create failed"
+  }
+}
 
 $rc = @{ projects = @{ default = $ProjectId } } | ConvertTo-Json -Depth 5
 Set-Content -Path ".firebaserc" -Value $rc -Encoding UTF8
@@ -48,8 +72,25 @@ if ($CorsOrigins -eq "") {
 Write-Host "API_BASE=$env:QRESEARCH_API_BASE"
 Write-Host "Remember to set on the API host: QRESEARCH_CORS_ORIGINS=$CorsOrigins"
 
-npx firebase login
+Write-Host "Checking project access..."
+npx firebase projects:list
+Assert-Ok "firebase projects:list"
+
+npx firebase use $ProjectId
+if ($LASTEXITCODE -ne 0) {
+  throw @"
+無法選取專案 '$ProjectId'。帳號 ymk@twmlsws.edu.hk 下可能還沒有這個專案。
+
+請執行其一：
+  .\deploy.ps1 -ProjectId $ProjectId -ApiBase $ApiBase -CreateProject
+或
+  開 https://console.firebase.google.com/ 用同一 Google 帳號 Add project，
+  再到 Project settings 複製真正的 Project ID。
+"@
+}
+
 npm run deploy
+Assert-Ok "firebase deploy"
 
 Write-Host ""
 Write-Host "Live:"
