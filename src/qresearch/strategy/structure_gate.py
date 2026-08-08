@@ -69,6 +69,11 @@ class StructureGateConfig:
     mild_defense_ret20: float = -0.04
     harsh_defense_dd: float = 0.18
     harsh_defense_ret20: float = -0.12
+    # Book-level peak equity hard stop (None = disabled).
+    # When equity / peak - 1 <= -book_peak_dd_stop → flatten & halt
+    # until non-cash signal confirms for book_dd_reentry_confirm days.
+    book_peak_dd_stop: float | None = None
+    book_dd_reentry_confirm: int = 3
     ers_config: EmergingRSWaveConfig | None = None
 
 
@@ -482,6 +487,17 @@ def simulate_structure_gate(
     pending = "cash"
     target_sym: str | None = None
     target_w = 0.0
+    peak_eq = float(capital)
+    dd_halt = False
+    dd_reentry = 0
+    dd_stop = (
+        abs(float(cfg.book_peak_dd_stop))
+        if cfg.book_peak_dd_stop is not None and cfg.book_peak_dd_stop > 0
+        else None
+    )
+    reentry_need = max(1, int(cfg.book_dd_reentry_confirm))
+    mode_exec = mode.copy()
+    halt_flags: list[float] = []
 
     equity_rows: list[float] = []
     trades: list[dict] = []
@@ -592,7 +608,7 @@ def simulate_structure_gate(
     for dt in dates:
         if dt >= start:
             if pending == "cash":
-                _sell_all(dt, "to_cash")
+                _sell_all(dt, "to_cash" if not dd_halt else "book_dd_stop")
             elif pending == "bench":
                 if pos_kind != "bench":
                     _sell_all(dt, "switch_to_bench")
@@ -616,7 +632,15 @@ def simulate_structure_gate(
                         _buy_stock(dt, sym, w, enter_reason, kind)
 
             eq_index.append(dt)
-            equity_rows.append(_mark(dt))
+            marked = _mark(dt)
+            equity_rows.append(marked)
+            if marked > peak_eq:
+                peak_eq = marked
+            if dd_stop is not None and peak_eq > 0:
+                dd_now = marked / peak_eq - 1.0
+                if dd_now <= -dd_stop:
+                    dd_halt = True
+                    dd_reentry = 0
 
         m = str(mode.at[dt])
         if m == "cash":
@@ -630,14 +654,36 @@ def simulate_structure_gate(
             sym, w = _active(ers_w.loc[dt])
             pending, target_sym, target_w = "ers", sym, w
 
+        # Book DD hard stop: flatten and stay cash until non-cash signal confirms.
+        if dd_halt:
+            if m != "cash":
+                dd_reentry += 1
+            else:
+                dd_reentry = 0
+            if dd_reentry >= reentry_need:
+                dd_halt = False
+                dd_reentry = 0
+                # keep pending from signal above
+            else:
+                pending, target_sym, target_w = "cash", None, 0.0
+                mode_exec.at[dt] = "cash"
+        halt_flags.append(1.0 if dd_halt else 0.0)
+
         if dt < start:
             cash = float(capital)
             pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
+            peak_eq = float(capital)
+            dd_halt = False
+            dd_reentry = 0
 
     idx = pd.DatetimeIndex(eq_index)
+    meta = meta.copy()
+    meta["book_dd_halt"] = pd.Series(halt_flags, index=mode.index, dtype=float).reindex(meta.index)
+    meta["mode_signal"] = mode
+    meta["mode"] = mode_exec
     return StructureSimResult(
         equity=pd.Series(equity_rows, index=idx, name="equity"),
-        mode=mode.reindex(idx),
+        mode=mode_exec.reindex(idx),
         meta=meta.reindex(idx),
         trades=pd.DataFrame(trades),
     )

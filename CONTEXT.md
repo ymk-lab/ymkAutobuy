@@ -72,6 +72,10 @@ _Avoid_: 用舊 mask 直覺推斷、讓 `index_lean` 蓋過 Mild、Sticky ON 卻
 在同一評估窗對多宇宙做參數搜尋時，以軟過關數為主、硬過關與 vs B&H 穩健統計為輔；入選預設須標明「窗內探索、非鎖定 OOS」。現行預設為 v8（50 次搜尋、軟過關 7/10）。
 _Avoid_: 窗內調參後宣稱樣本外已驗證、為單一 ETF 單獨閾值
 
+**Book Peak DD Stop**:
+帳本權益相對高峰回撤觸及門檻（變體常用 12%）→ 次日開盤清倉並暫停，直到非 cash 訊號連續確認日數後才允許再進場。因 next-open 執行，實現最大回撤可能略差於門檻（隔夜缺口）。
+_Avoid_: 當成同根 K 線內保證回撤上限、與個股 peak_dd_stop 混稱
+
 **Structure Mode**:
 四種日頻持倉模式（程式字串＝文件名）：`cash`＝空手防守；`ers`＝新興轉強；`strong`＝已強領導；`bench`＝基準滿倉。
 _Avoid_: 寫 hold_bench／hold_strong、中英混稱而不標 mode 名
