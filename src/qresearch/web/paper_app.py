@@ -599,6 +599,8 @@ async def api_sg_run(
             env["QRESEARCH_SG_BOOK"] = "V11"
             env["FUTU_TRD_ENV"] = env.get("FUTU_TRD_ENV") or "SIMULATE"
             env["PYTHONUNBUFFERED"] = "1"
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["PYTHONUTF8"] = "1"
             env["PYTHONPATH"] = str(ROOT / "src") + (
                 os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
             )

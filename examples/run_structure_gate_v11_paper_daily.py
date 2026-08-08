@@ -38,6 +38,28 @@ from run_structure_gate_v8_paper_daily import (  # type: ignore
     save_cache,
 )
 
+
+def _configure_stdio() -> None:
+    """Avoid Windows cp950 crashes on Futu Chinese error strings."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+
+def _safe(text: object) -> str:
+    s = str(text)
+    enc = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        return s.encode(enc, errors="replace").decode(enc, errors="replace")
+    except Exception:
+        return s.encode("ascii", errors="replace").decode("ascii")
+
+
+def log(msg: object = "") -> None:
+    print(_safe(msg), flush=True)
+
 DEFAULT_OUT = ROOT / "examples" / "data" / "structure_gate_v11_paper"
 WEIGHTS = dict(V11_BOOK_WEIGHTS)
 CACHE_FALLBACKS = [
@@ -105,7 +127,7 @@ def load_symbol_any(cache: Path, symbol: str) -> pd.DataFrame | None:
 
 def refresh_via_futu(symbols: list[str], cache: Path) -> int:
     if not has_futu_opend():
-        print("OpenD not reachable — skip Futu history refresh")
+        log("OpenD not reachable — skip Futu history refresh")
         return 0
     from futu import KLType, AuType, RET_OK, OpenQuoteContext
 
@@ -132,12 +154,12 @@ def refresh_via_futu(symbols: list[str], cache: Path) -> int:
                         max_count=100,
                     )
                     why = data if ret != RET_OK else f"rows={0 if data is None else len(data)}"
-                    print(f"futu miss {sym} ({code}): {why}")
+                    log(f"futu miss {sym} ({code}): {why}")
                 continue
             save_cache(cache, sym, df)
             n_ok += 1
             if i == 1 or i % 40 == 0 or i == len(symbols) or sym in {"SPY", "QQQ", "SMH"}:
-                print(f"futu [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
+                log(f"futu [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
     finally:
         ctx.close()
     return n_ok
@@ -148,7 +170,7 @@ def bootstrap_via_yfinance(symbols: list[str], cache: Path) -> int:
     try:
         import yfinance as yf
     except ImportError:
-        print("yfinance not installed — pip install yfinance")
+        log("yfinance not installed — pip install yfinance")
         return 0
 
     n_ok = 0
@@ -164,7 +186,7 @@ def bootstrap_via_yfinance(symbols: list[str], cache: Path) -> int:
                 threads=False,
             )
             if raw is None or len(raw) < MIN_BARS:
-                print(f"yf miss {sym}: rows={0 if raw is None else len(raw)}")
+                log(f"yf miss {sym}: rows={0 if raw is None else len(raw)}")
                 continue
             if isinstance(raw.columns, pd.MultiIndex):
                 raw.columns = [str(c[0]).lower() for c in raw.columns]
@@ -172,7 +194,7 @@ def bootstrap_via_yfinance(symbols: list[str], cache: Path) -> int:
                 raw.columns = [str(c).lower() for c in raw.columns]
             need = ["open", "high", "low", "close", "volume"]
             if any(c not in raw.columns for c in need):
-                print(f"yf miss {sym}: bad columns {list(raw.columns)}")
+                log(f"yf miss {sym}: bad columns {list(raw.columns)}")
                 continue
             df = validate_ohlcv(raw[need].dropna())
             df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
@@ -182,9 +204,9 @@ def bootstrap_via_yfinance(symbols: list[str], cache: Path) -> int:
             save_cache(cache, sym, df)
             n_ok += 1
             if i == 1 or i % 40 == 0 or i == len(symbols) or sym in {"SPY", "QQQ", "SMH"}:
-                print(f"yf [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
+                log(f"yf [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
         except Exception as exc:  # noqa: BLE001
-            print(f"yf miss {sym}: {exc}")
+            log(f"yf miss {sym}: {exc}")
     return n_ok
 
 
@@ -192,22 +214,25 @@ def ensure_market_data(cache: Path, *, refresh: bool) -> None:
     """Guarantee SPY/QQQ/SMH (+ light members) exist for first local run."""
     benches = ["SPY", "QQQ", "SMH"]
     light = sorted(set(benches) | set(book_members("QQQ")) | set(book_members("SMH")))
-    missing_benches = [s for s in benches if load_cache(cache, s) is None]
-    want_futu = light if refresh else missing_benches
-    if want_futu:
-        print(f"refresh futu n={len(want_futu)} missing_benches={missing_benches}")
-        n_futu = refresh_via_futu(want_futu, cache)
-        print(f"futu refreshed ok={n_futu}")
+    missing = [s for s in light if load_cache(cache, s) is None]
+    missing_benches = [s for s in benches if s in missing]
+    force = _env_bool("QRESEARCH_FORCE_REFRESH", False)
 
-    # Yahoo fallback for anything still missing (benches always; members when refresh/first-run).
-    still_benches = [s for s in benches if load_cache(cache, s) is None]
-    need_yf = still_benches[:]
-    if refresh or still_benches:
-        need_yf = [s for s in light if load_cache(cache, s) is None]
-    if need_yf:
-        print(f"bootstrap yfinance n={len(need_yf)}")
-        n_yf = bootstrap_via_yfinance(need_yf, cache)
-        print(f"yfinance ok={n_yf}")
+    # Warm cache: skip Futu bulk refresh (US history often lacks rights / emits CJK errors).
+    if not missing and not force:
+        log("cache warm — skip history refresh")
+        return
+
+    want_futu = missing if missing else (light if force else [])
+    if want_futu:
+        log(f"refresh futu n={len(want_futu)} missing_benches={missing_benches}")
+        n_futu = refresh_via_futu(want_futu, cache)
+        log(f"futu refreshed ok={n_futu}")
+
+    still = [s for s in light if load_cache(cache, s) is None]
+    if still:
+        log(f"bootstrap yfinance n={len(still)}")
+        log(f"yfinance ok={bootstrap_via_yfinance(still, cache)}")
 
 
 def build_book_panel(
@@ -249,16 +274,17 @@ def already_ran_today(state_path: Path, asof: str) -> bool:
 
 
 def main() -> int:
+    _configure_stdio()
     load_dotenv_if_present(ROOT / ".env")
     mode = (sys.argv[1] if len(sys.argv) > 1 else os.getenv("QRESEARCH_SG_PAPER_MODE", "once")).lower()
     if mode not in {"signal", "once"}:
-        print("use signal|once")
+        log("use signal|once")
         return 2
 
     submit = _env_bool("QRESEARCH_SG_PAPER_SUBMIT", False)
     force = _env_bool("QRESEARCH_FORCE", False)
     if submit and not _env_bool("QRESEARCH_SG_PAPER_ONLY", True):
-        print("REFUSE: QRESEARCH_SG_PAPER_ONLY=0")
+        log("REFUSE: QRESEARCH_SG_PAPER_ONLY=0")
         return 3
 
     base = out_dir()
@@ -267,8 +293,8 @@ def main() -> int:
     ts = pd.Timestamp.now("UTC").tz_localize(None)
     cfg = StructureGateConfig.v11()
 
-    print(f"mode={mode} submit={submit} weights={WEIGHTS} broker=futu out={base}")
-    print(f"opend={has_futu_opend()} simulate=1 paper_only=1")
+    log(f"mode={mode} submit={submit} weights={WEIGHTS} broker=futu out={base}")
+    log(f"opend={has_futu_opend()} simulate=1 paper_only=1")
 
     want = sorted(
         {"SPY", "QQQ", "SMH"}
@@ -287,10 +313,10 @@ def main() -> int:
             frames[sym] = df
     for b in WEIGHTS:
         if b not in frames:
-            print(f"missing bench cache {b}")
-            print("hint: pip install yfinance  then re-run; or check OpenD US quote rights")
+            log(f"missing bench cache {b}")
+            log("hint: pip install yfinance  then re-run; or check OpenD US quote rights")
             return 1
-    print(f"frames={len(frames)} benches=OK")
+    log(f"frames={len(frames)} benches=OK")
 
     book_meta = {}
     book_targets_raw: dict[str, dict[str, float]] = {}
@@ -304,10 +330,10 @@ def main() -> int:
         book_meta[book] = meta
         asof = meta["asof"]
         tgt = ", ".join(f"{k}:{v:.0%}" for k, v in raw.items()) or "(flat)"
-        print(f"  {book}: mode={meta['mode']} target={tgt} members={len(closes.columns)}")
+        log(f"  {book}: mode={meta['mode']} target={tgt} members={len(closes.columns)}")
 
     target = merge_targets(book_targets_raw, WEIGHTS)
-    print("merged_target=", ", ".join(f"{k}:{v:.1%}" for k, v in target.items()) or "(flat)")
+    log("merged_target=", ", ".join(f"{k}:{v:.1%}" for k, v in target.items()) or "(flat)")
 
     # Broker
     broker: FutuBrokerAdapter
@@ -319,7 +345,7 @@ def main() -> int:
             simulate=True,
         )
     else:
-        print("WARN: OpenD down — dry-run local ledger only")
+        log("WARN: OpenD down — dry-run local ledger only")
         broker = FutuBrokerAdapter(dry_run=True, simulate=True, initial_cash=_env_float("QRESEARCH_SLEEVE_USD", 50_000.0) or 50_000.0)
 
     try:
@@ -335,7 +361,7 @@ def main() -> int:
             try:
                 marks.update(broker.snapshot_quotes(need_marks))
             except Exception as exc:  # noqa: BLE001
-                print(f"snapshot skipped: {exc}")
+                log(f"snapshot skipped: {exc}")
 
         cash = broker.get_cash()
         eq = broker.get_equity(marks)
@@ -386,13 +412,13 @@ def main() -> int:
 
         (base / f"signal_{asof}.json").write_text(json.dumps(plan, indent=2, default=float) + "\n")
         (base / "latest_signal.json").write_text(json.dumps(plan, indent=2, default=float) + "\n")
-        print(f"preview_orders={len(plan.get('preview_orders') or [])}")
+        log(f"preview_orders={len(plan.get('preview_orders') or [])}")
         for o in plan.get("preview_orders") or []:
-            print(f"  {o['side']} {o['quantity']:g} {o['symbol']} @~{o['price']}")
+            log(f"  {o['side']} {o['quantity']:g} {o['symbol']} @~{o['price']}")
 
         if mode == "signal" or not submit:
             if not submit:
-                print("SUBMIT=0 — plan only. Set QRESEARCH_SG_PAPER_SUBMIT=1 for Futu paper.")
+                log("SUBMIT=0 — plan only. Set QRESEARCH_SG_PAPER_SUBMIT=1 for Futu paper.")
             state_path.write_text(
                 json.dumps({"asof": asof, "submitted": False, "at": str(ts), "preset": "v11"}, indent=2)
                 + "\n"
@@ -400,11 +426,11 @@ def main() -> int:
             return 0
 
         if already_ran_today(state_path, str(asof)) and not force:
-            print(f"already submitted asof={asof}; QRESEARCH_FORCE=1 to override")
+            log(f"already submitted asof={asof}; QRESEARCH_FORCE=1 to override")
             return 0
 
         if not has_futu_opend():
-            print("REFUSE submit: OpenD not reachable")
+            log("REFUSE submit: OpenD not reachable")
             return 3
 
         live = FutuBrokerAdapter.from_opend(dry_run=False, simulate=True, default_market="US")
@@ -448,7 +474,7 @@ def main() -> int:
                 )
                 + "\n"
             )
-            print(f"futu paper fills={len(fills)} → {log_path}")
+            log(f"futu paper fills={len(fills)} → {log_path}")
         finally:
             live.close()
         return 0
