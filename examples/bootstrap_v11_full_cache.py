@@ -131,28 +131,43 @@ def main() -> int:
                 f"elapsed={elapsed/60:.1f}m last={sym}"
             )
 
-    # Quarantine corrupt CSVs that can't be loaded (prevents later TypeError).
+    # Quarantine only CSVs that error on read (not merely short history).
     n_bad = 0
     for path in sorted(OUT.glob("*.csv")):
+        if path.name.endswith(".bad.csv"):
+            continue
         sym = path.stem.upper()
-        if load_cache(OUT, sym) is None and path.stat().st_size >= 64:
+        try:
+            raw = pd.read_csv(path, index_col=0, parse_dates=True)
+            raw.columns = [str(c).lower() for c in raw.columns]
+            need = ["open", "high", "low", "close", "volume"]
+            if any(c not in raw.columns for c in need):
+                raise ValueError("missing columns")
+            validate_ohlcv(raw[need].dropna())
+        except Exception as exc:  # noqa: BLE001
             bad = OUT / f"{sym}.bad.csv"
             try:
                 path.replace(bad)
             except Exception:
-                path.unlink(missing_ok=True)  # type: ignore[arg-type]
-            (OUT / f"{sym}.skip").write_text("corrupt cache\n", encoding="utf-8")
+                path.unlink(missing_ok=True)  # type: ignore[call-arg]
+            (OUT / f"{sym}.skip").write_text(f"corrupt: {exc}\n", encoding="utf-8")
             n_bad += 1
     if n_bad:
         print(f"quarantined corrupt csv={n_bad}")
 
-    # Summary counts for benches / books
+    # Summary counts for benches / books (never crash the whole job).
     for label, members in (
         ("SPY", ["SPY"] + spy_universe()),
         ("QQQ", ["QQQ"] + [s for s in QQQ_UNIVERSE if s != "QQQ"]),
         ("SMH", ["SMH"] + [s for s in SEMI_UNIVERSE if s != "SMH"]),
     ):
-        have = sum(1 for s in members if load_cache(OUT, s) is not None)
+        have = 0
+        for s in members:
+            try:
+                if load_cache(OUT, s) is not None:
+                    have += 1
+            except Exception:
+                pass
         print(f"coverage {label}: {have}/{len(members)}")
 
     print(f"done ok={n_ok} skip={n_skip} fail={n_fail} → {OUT}")
