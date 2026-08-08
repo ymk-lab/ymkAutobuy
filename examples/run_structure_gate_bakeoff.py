@@ -25,7 +25,7 @@ from run_emerging_rs_wave_gates import (  # type: ignore
     metrics,
     simulate_book,
 )
-from run_emerging_rs_wave_soxx import UNIVERSE as SMH_UNIVERSE  # type: ignore
+from run_emerging_rs_wave_soxx import UNIVERSE as SEMI_UNIVERSE  # type: ignore
 
 OUT = ROOT / "examples" / "data" / "structure_gate_bakeoff"
 END = pd.Timestamp("2026-08-07")
@@ -45,9 +45,16 @@ BOOKS = {
     },
     "SMH": {
         "bench": "SMH",
-        "universe": SMH_UNIVERSE,
+        "universe": SEMI_UNIVERSE,
         "caches": [
             ROOT / "examples" / "data" / "emerging_rs_wave_smh" / "cache_ohlcv",
+        ],
+    },
+    "SOXX": {
+        "bench": "SOXX",
+        "universe": SEMI_UNIVERSE,
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_soxx" / "cache_ohlcv",
         ],
     },
 }

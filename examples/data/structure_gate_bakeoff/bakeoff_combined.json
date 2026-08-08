@@ -2,7 +2,7 @@
   "rule": "structure_gate_v1",
   "ticker_agnostic": true,
   "soft_max_gap_pp": 35.0,
-  "both_soft_pass": true,
+  "both_soft_pass": false,
   "both_hard_pass": false,
   "books": {
     "QQQ": {
@@ -98,6 +98,53 @@
       "max_gap_pp": 35.0,
       "vs_bh_pp": -31.6350070203006,
       "vs_ers_pp": 87.83217723580275
+    },
+    "SOXX": {
+      "book": "SOXX",
+      "benchmark": "SOXX",
+      "universe_n": 44,
+      "cache": "/agent/examples/data/emerging_rs_wave_soxx/cache_ohlcv",
+      "window": [
+        "2025-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 1.4354494002342602,
+        "max_drawdown": -0.1991806434722807,
+        "sharpe": 1.5940853135990858,
+        "end_equity": 121772.47001171301
+      },
+      "pure_ers_g1": {
+        "total_return": 2.816814557134621,
+        "max_drawdown": -0.3509741490517341,
+        "sharpe": 1.8330226724340408,
+        "end_equity": 190840.72785673104
+      },
+      "bench_bh": {
+        "total_return": 1.512001399045102,
+        "max_drawdown": -0.3417830313521575,
+        "sharpe": 1.529548782082715,
+        "end_equity": 125600.0699522551
+      },
+      "mode_distribution": {
+        "hold_bench": 0.4725,
+        "ers": 0.29,
+        "cash": 0.2375
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp"
+      },
+      "soft_pass": false,
+      "beat_worse_baseline": false,
+      "within_gap_of_better": false,
+      "gap_vs_better_pp": 138.13651569003608,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": -7.655199881084185,
+      "vs_ers_pp": -138.13651569003608
     }
   },
   "config": {
