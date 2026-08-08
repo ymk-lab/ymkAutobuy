@@ -83,8 +83,10 @@ if ($owned) {
 
 $logs = Join-Path $Root "deploy\local\logs"
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
-$uiLog = Join-Path $logs "uvicorn.log"
-$tunnelLog = Join-Path $logs "cloudflared.log"
+$uiOutLog = Join-Path $logs "uvicorn.out.log"
+$uiErrLog = Join-Path $logs "uvicorn.err.log"
+$tunnelOutLog = Join-Path $logs "cloudflared.out.log"
+$tunnelErrLog = Join-Path $logs "cloudflared.err.log"
 $tunnelUrlFile = Join-Path $logs "tunnel-url.txt"
 
 Write-Step ("Start uvicorn http://" + $HostAddress + ":" + $Port)
@@ -95,8 +97,8 @@ $uiArgs = @(
 )
 $uiProc = Start-Process -FilePath $venvPy -ArgumentList $uiArgs `
   -WorkingDirectory $Root `
-  -RedirectStandardOutput $uiLog `
-  -RedirectStandardError $uiLog `
+  -RedirectStandardOutput $uiOutLog `
+  -RedirectStandardError $uiErrLog `
   -PassThru -WindowStyle Minimized
 
 $ready = $false
@@ -109,10 +111,12 @@ for ($i = 0; $i -lt 40; $i++) {
   if ($uiProc.HasExited) { break }
 }
 if (-not $ready) {
-  if (Test-Path $uiLog) {
-    Get-Content $uiLog -ErrorAction SilentlyContinue | Select-Object -Last 30 | ForEach-Object { Write-Host $_ }
+  foreach ($f in @($uiErrLog, $uiOutLog)) {
+    if (Test-Path $f) {
+      Get-Content $f -ErrorAction SilentlyContinue | Select-Object -Last 30 | ForEach-Object { Write-Host $_ }
+    }
   }
-  throw ("uvicorn failed to bind :" + $Port + " - see " + $uiLog)
+  throw ("uvicorn failed to bind :" + $Port + " - see " + $uiErrLog)
 }
 Write-Ok ("UI PID " + $uiProc.Id + " -> http://127.0.0.1:" + $Port)
 
