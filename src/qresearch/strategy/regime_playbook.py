@@ -16,6 +16,7 @@ class RegimePlaybookConfig:
     panic_qqq_weight: float = 0.30
     ers_config: EmergingRSWaveConfig | None = None
     scorecard: RegimeScorecardConfig | None = None
+    label_method: str = "scorecard"  # or "hierarchy"
 
 
 @dataclass
@@ -54,7 +55,12 @@ def simulate_regime_switch(
     fee_model = fees if fees is not None else FutuUsEquityFees(slippage_bps=3.0)
     ers_cfg = cfg.ers_config or EmergingRSWaveConfig()
 
-    labels, scores, meta = label_regimes(qqq_close, closes, config=cfg.scorecard)
+    labels, scores, meta = label_regimes(
+        qqq_close,
+        closes,
+        config=cfg.scorecard,
+        method=cfg.label_method,
+    )
     book = EmergingRSWaveBook(gate="G1", config=ers_cfg)
     ers_w, _ers_log = book.generate_weights(closes, qqq_close)
 

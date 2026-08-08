@@ -1,0 +1,44 @@
+{
+  "passed_bakeoff": false,
+  "label_method": "hierarchy",
+  "criteria": "regime_switch must beat qqq_bh AND pure_ers_g1",
+  "beat_qqq_bh": true,
+  "beat_pure_ers": false,
+  "regime_switch": {
+    "total_return": 0.9650693350799995,
+    "max_drawdown": -0.2526407147010159,
+    "sharpe": 1.5656905587160712,
+    "end_equity": 98253.46675399998
+  },
+  "pure_ers_g1": {
+    "total_return": 1.1920934627762931,
+    "max_drawdown": -0.268470639947621,
+    "sharpe": 1.5793003176264477,
+    "end_equity": 109604.67313881466
+  },
+  "qqq_bh": {
+    "total_return": 0.4070107124919997,
+    "max_drawdown": -0.22564909140363387,
+    "sharpe": 1.0827469697435512,
+    "end_equity": 70350.53562459999
+  },
+  "always_cash": {
+    "total_return": 0.0,
+    "max_drawdown": 0.0,
+    "sharpe": 0.0,
+    "end_equity": 50000.0
+  },
+  "label_distribution": {
+    "Defense": 0.4725,
+    "Rotation": 0.3825,
+    "Range": 0.11,
+    "PanicRebound": 0.0225,
+    "CrowdedTrend": 0.0125
+  },
+  "fallback_hint": "Hierarchy underperformed pass gate \u2014 tune thresholds or revisit playbook mapping.",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0
+}

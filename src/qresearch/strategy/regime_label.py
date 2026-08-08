@@ -246,18 +246,80 @@ def apply_hysteresis(
     return pd.Series(labels, index=raw.index, name="label")
 
 
+def hierarchy_raw_labels(
+    qqq_close: pd.Series,
+    member_closes: pd.DataFrame,
+    *,
+    config: RegimeScorecardConfig | None = None,
+) -> tuple[pd.Series, pd.DataFrame]:
+    """Risk-first cascade (ADR-0009 option A): Defense → Panic → Crowded → Rotation → Range."""
+    cfg = config or RegimeScorecardConfig()
+    _scores, meta = score_regimes(qqq_close, member_closes, config=cfg)
+    above50 = meta["above_sma50"] > 0.5
+    dd = meta["dd60"]
+    ret20 = meta["ret20"]
+    overlap = meta["overlap"]
+    strong = meta["strong_share"]
+    bounce = qqq_close.astype(float) / qqq_close.astype(float).shift(cfg.panic_bounce_days) - 1.0
+    dd_min_10 = dd.rolling(10, min_periods=3).min()
+
+    raw: list[str] = []
+    for dt in meta.index:
+        a50 = bool(above50.loc[dt]) if dt in above50.index else False
+        ddv = float(dd.loc[dt]) if np.isfinite(float(dd.loc[dt])) else 0.0
+        r20 = float(ret20.loc[dt]) if np.isfinite(float(ret20.loc[dt])) else 0.0
+        ov = float(overlap.loc[dt]) if np.isfinite(float(overlap.loc[dt])) else 0.0
+        ss = float(strong.loc[dt]) if np.isfinite(float(strong.loc[dt])) else 0.0
+        bnc = float(bounce.loc[dt]) if dt in bounce.index and np.isfinite(float(bounce.loc[dt])) else 0.0
+        dmin = float(dd_min_10.loc[dt]) if dt in dd_min_10.index and np.isfinite(float(dd_min_10.loc[dt])) else 0.0
+
+        # 1) Panic override (even if below MA): recent washout + bounce
+        if dmin <= -cfg.panic_dd and bnc >= cfg.panic_bounce_min:
+            raw.append("PanicRebound")
+            continue
+        # 2) Defense
+        if (not a50) or (ddv <= -cfg.defense_dd) or (r20 <= cfg.defense_ret20):
+            raw.append("Defense")
+            continue
+        # 3) CrowdedTrend (both tests)
+        if ov >= cfg.crowded_overlap and ss >= cfg.crowded_strong_share:
+            raw.append("CrowdedTrend")
+            continue
+        # 4) Rotation vs Range
+        if ov <= cfg.rotation_overlap_max and ss <= cfg.rotation_strong_max:
+            raw.append("Rotation")
+            continue
+        if abs(r20) <= cfg.range_ret20_abs:
+            raw.append("Range")
+            continue
+        # Default risk-on without clear crowd → Rotation
+        raw.append("Rotation")
+    return pd.Series(raw, index=meta.index, name="raw_label"), meta
+
+
 def label_regimes(
     qqq_close: pd.Series,
     member_closes: pd.DataFrame,
     *,
     config: RegimeScorecardConfig | None = None,
+    method: str = "scorecard",
 ) -> tuple[pd.Series, pd.DataFrame, pd.DataFrame]:
-    """Return (hysteresis labels, scores, meta features)."""
+    """Return (hysteresis labels, scores, meta features).
+
+    ``method``: ``scorecard`` (default) or ``hierarchy`` (risk-first cascade).
+    """
     cfg = config or RegimeScorecardConfig()
     scores, meta = score_regimes(qqq_close, member_closes, config=cfg)
-    raw = raw_labels_from_scores(scores)
+    if method == "hierarchy":
+        raw, meta_h = hierarchy_raw_labels(qqq_close, member_closes, config=cfg)
+        meta = meta_h
+    elif method == "scorecard":
+        raw = raw_labels_from_scores(scores)
+    else:
+        raise ValueError(f"unknown regime method: {method}")
     labels = apply_hysteresis(raw, config=cfg)
     meta = meta.copy()
     meta["raw_label"] = raw
     meta["label"] = labels
+    meta["method"] = method
     return labels, scores, meta

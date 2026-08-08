@@ -31,7 +31,10 @@ from run_emerging_rs_wave_gates import (  # type: ignore
     simulate_book,
 )
 
-OUT = ROOT / "examples" / "data" / "regime_playbook_bakeoff"
+METHOD = (sys.argv[1] if len(sys.argv) > 1 else "hierarchy").strip().lower()
+OUT = ROOT / "examples" / "data" / (
+    "regime_playbook_bakeoff_hierarchy" if METHOD == "hierarchy" else "regime_playbook_bakeoff"
+)
 CACHE_CANDIDATES = [
     ROOT / "examples" / "data" / "emerging_rs_wave_qqq_g1_longbridge" / "cache_ohlcv",
     Path("/opt/qresearch/examples/data/emerging_rs_wave_qqq_g1_longbridge/cache_ohlcv"),
@@ -81,6 +84,7 @@ def main() -> None:
     qqq, opens, closes = load_panel()
 
     # 1) Regime switch
+    print(f"label_method={METHOD}")
     sw = simulate_regime_switch(
         opens,
         closes,
@@ -89,7 +93,7 @@ def main() -> None:
         capital=CAPITAL,
         start=START,
         fees=fees,
-        config=RegimePlaybookConfig(),
+        config=RegimePlaybookConfig(label_method=METHOD),
     )
     m_sw = metrics(sw.equity, CAPITAL)
 
@@ -151,6 +155,7 @@ def main() -> None:
 
     report = {
         "passed_bakeoff": passed,
+        "label_method": METHOD,
         "criteria": "regime_switch must beat qqq_bh AND pure_ers_g1",
         "beat_qqq_bh": beat_qqq,
         "beat_pure_ers": beat_ers,
@@ -162,7 +167,11 @@ def main() -> None:
         "fallback_hint": (
             None
             if passed
-            else "Scorecard underperformed pass gate — consider switching classifier to risk-first hierarchy (ADR-0009 option A)."
+            else (
+                "Hierarchy underperformed pass gate — tune thresholds or revisit playbook mapping."
+                if METHOD == "hierarchy"
+                else "Scorecard underperformed pass gate — consider switching classifier to risk-first hierarchy (ADR-0009 option A)."
+            )
         ),
         "window": [str(START.date()), str(win.max().date())],
         "capital_usd": CAPITAL,
