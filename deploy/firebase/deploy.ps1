@@ -36,7 +36,10 @@ ProjectId 還是佔位字。請先建立 Firebase 專案：
 "@
 }
 
-if (
+if ($UiSetsApi -or $ApiBase -eq "" -or $ApiBase -eq "none") {
+  $ApiBase = ""
+  Write-Host "ApiBase left empty — open the site and paste tunnel URL in the page footer."
+} elseif (
   $ApiBase -notmatch "^https://" -or
   $ApiBase -match "YOUR_|PLACEHOLDER|example\.com|TUNNEL_HOST" -or
   $ApiBase -match "127\.0\.0\.1|localhost" -or
@@ -52,10 +55,8 @@ ApiBase 必須是完整隧道網址，例如：
   http://127.0.0.1:8787
   https://.trycloudflare.com   ← 缺 hostname（你上次部署就是這個）
 
-1) 確認 uvicorn :8787 在跑
-2) 另開視窗：cloudflared tunnel --url http://127.0.0.1:8787
-3) 從日誌複製整段 https://xxxx.trycloudflare.com（xxxx 不能為空）
-4) .\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://xxxx.trycloudflare.com
+或先只部署 UI，稍後在網頁貼隧道：
+  .\deploy.ps1 -ProjectId ymk-autobuy -UiSetsApi
 "@
 }
 

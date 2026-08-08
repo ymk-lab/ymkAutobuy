@@ -45,7 +45,29 @@ PYTHONPATH=src python -c "from qresearch.brokers.futu import has_futu_opend; pri
 
 若 `False`：檢查 OpenD 是否聽 `127.0.0.1:11111`，或改 `.env` 的 `FUTU_OPEND_HOST`／`PORT`。
 
-## 4. 算訊號 → 開 UI
+## 4. 一鍵開後端（Windows，建議）
+
+雙擊：
+
+```text
+deploy\local\start-backend.bat
+```
+
+會自動：
+
+1. 讀 `.env`、啟動 uvicorn `:8787`
+2. 啟動 `cloudflared` quick tunnel（若已安裝）
+3. 把隧道網址複製到剪貼簿，並開 Firebase／本機頁
+
+Firebase 頁 https://ymk-autobuy.web.app → 點頁腳 **API** → 貼上隧道網址 →「同步帳戶」。
+
+停止：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\local\stop-backend.ps1
+```
+
+### Linux / macOS
 
 ```bash
 # 不下單
