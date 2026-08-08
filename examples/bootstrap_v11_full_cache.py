@@ -131,6 +131,21 @@ def main() -> int:
                 f"elapsed={elapsed/60:.1f}m last={sym}"
             )
 
+    # Quarantine corrupt CSVs that can't be loaded (prevents later TypeError).
+    n_bad = 0
+    for path in sorted(OUT.glob("*.csv")):
+        sym = path.stem.upper()
+        if load_cache(OUT, sym) is None and path.stat().st_size >= 64:
+            bad = OUT / f"{sym}.bad.csv"
+            try:
+                path.replace(bad)
+            except Exception:
+                path.unlink(missing_ok=True)  # type: ignore[arg-type]
+            (OUT / f"{sym}.skip").write_text("corrupt cache\n", encoding="utf-8")
+            n_bad += 1
+    if n_bad:
+        print(f"quarantined corrupt csv={n_bad}")
+
     # Summary counts for benches / books
     for label, members in (
         ("SPY", ["SPY"] + spy_universe()),

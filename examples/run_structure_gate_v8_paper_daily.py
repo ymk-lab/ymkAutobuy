@@ -146,20 +146,17 @@ def load_cache(cache: Path, symbol: str) -> pd.DataFrame | None:
         return None
     try:
         raw = pd.read_csv(path, index_col=0, parse_dates=True)
+        raw.columns = [str(c).lower() for c in raw.columns]
+        need = ["open", "high", "low", "close", "volume"]
+        if any(c not in raw.columns for c in need):
+            return None
+        df = validate_ohlcv(raw[need].dropna())
+        df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
+        if len(df) < MIN_BARS:
+            return None
+        return df[~df.index.duplicated(keep="last")].sort_index()
     except Exception:
         return None
-    raw.columns = [str(c).lower() for c in raw.columns]
-    need = ["open", "high", "low", "close", "volume"]
-    if any(c not in raw.columns for c in need):
-        return None
-    try:
-        df = validate_ohlcv(raw[need].dropna())
-    except ValueError:
-        return None
-    df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
-    if len(df) < MIN_BARS:
-        return None
-    return df[~df.index.duplicated(keep="last")].sort_index()
 
 
 def save_cache(cache: Path, symbol: str, df: pd.DataFrame) -> None:
