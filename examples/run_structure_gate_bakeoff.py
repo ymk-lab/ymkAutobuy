@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "examples"))
 
-from qresearch.backtest.futu_costs import FutuUsEquityFees
+from qresearch.backtest.futu_costs import FutuHkEquityFeesApprox, FutuUsEquityFees
 from qresearch.data.loader import validate_ohlcv
 from qresearch.strategy.emerging_rs_wave import EmergingRSWaveBook
 from qresearch.strategy.regime_playbook import simulate_bench_bh, simulate_cash
@@ -140,6 +140,34 @@ BOOKS = {
             ROOT / "examples" / "data" / "emerging_rs_wave_xle" / "cache_ohlcv",
         ],
     },
+    "HSI": {
+        "bench": "2800.HK",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_hsi"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_hsi" / "cache_ohlcv",
+        ],
+        "fees": "hk",
+        "currency": "HKD",
+    },
+    "HSTECH": {
+        "bench": "3067.HK",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_hstech"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_hstech" / "cache_ohlcv",
+        ],
+        "fees": "hk",
+        "currency": "HKD",
+    },
 }
 
 
@@ -212,7 +240,14 @@ def soft_pass(sw: float, bh: float, ers: float, max_gap_pp: float = SOFT_MAX_GAP
     }
 
 
-def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dict:
+def fees_for(book: str, default_fees: object) -> object:
+    if BOOKS.get(book, {}).get("fees") == "hk":
+        return FutuHkEquityFeesApprox(slippage_bps=5.0)
+    return default_fees
+
+
+def run_book(book: str, fees: object, cfg: StructureGateConfig) -> dict:
+    fee_model = fees_for(book, fees)
     bench, opens, closes, cache = load_panel(book)
     out_dir = OUT / book.lower()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -224,7 +259,7 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
         bench["close"],
         capital=CAPITAL,
         start=START,
-        fees=fees,
+        fees=fee_model,
         config=cfg,
     )
     m_sw = metrics(sw.equity, CAPITAL)
@@ -233,12 +268,12 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
     decision, _ = ers_book.generate_weights(closes, bench["close"])
     win = sw.equity.index
     eq_ers, _ = simulate_book(
-        opens.loc[win], closes.loc[win], decision.loc[win], CAPITAL, fees
+        opens.loc[win], closes.loc[win], decision.loc[win], CAPITAL, fee_model
     )
     m_ers = metrics(eq_ers, CAPITAL)
 
     eq_bh = simulate_bench_bh(
-        bench["open"], bench["close"], capital=CAPITAL, start=START, fees=fees
+        bench["open"], bench["close"], capital=CAPITAL, start=START, fees=fee_model
     ).reindex(win).ffill()
     m_bh = metrics(eq_bh, CAPITAL)
     m_cash = metrics(simulate_cash(capital=CAPITAL, index=win), CAPITAL)
@@ -296,6 +331,8 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
         "cache": str(cache),
         "window": [str(START.date()), str(win.max().date())],
         "capital_usd": CAPITAL,
+        "currency": BOOKS[book].get("currency", "USD"),
+        "fee_model": "futu_hk_approx" if BOOKS[book].get("fees") == "hk" else "futu_us",
         "same_rule": True,
         "structure_gate": m_sw,
         "pure_ers_g1": m_ers,

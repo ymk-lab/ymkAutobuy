@@ -1,0 +1,60 @@
+{
+  "book": "HSTECH",
+  "benchmark": "3067.HK",
+  "universe_n": 30,
+  "cache": "/agent/examples/data/emerging_rs_wave_hstech/cache_ohlcv",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0,
+  "currency": "HKD",
+  "fee_model": "futu_hk_approx",
+  "same_rule": true,
+  "structure_gate": {
+    "total_return": -0.24554067590859263,
+    "max_drawdown": -0.44896432690933985,
+    "sharpe": -0.4785967119688567,
+    "end_equity": 37722.966204570366
+  },
+  "pure_ers_g1": {
+    "total_return": -0.21538955043810204,
+    "max_drawdown": -0.4083320932001976,
+    "sharpe": -0.18189389064973804,
+    "end_equity": 39230.5224780949
+  },
+  "bench_bh": {
+    "total_return": 0.09716559555586946,
+    "max_drawdown": -0.36088956077858636,
+    "sharpe": 0.40896022946159755,
+    "end_equity": 54858.279777793476
+  },
+  "mode_distribution": {
+    "bench": 0.6128205128205129,
+    "cash": 0.37948717948717947,
+    "strong": 0.005128205128205128,
+    "ers": 0.002564102564102564
+  },
+  "sticky_audit": {
+    "sticky_coverage": 0.5461538461538461,
+    "sticky_bench_share": 1.0,
+    "sticky_stock_sleeve_leak": 0.0,
+    "sticky_cash_share": 0.0,
+    "thrust_coverage": 0.2846153846153846,
+    "thrust_bench_share": 1.0,
+    "theme_bh_gap_ok_20pp": false
+  },
+  "criteria": {
+    "hard": "beat bench_bh AND pure_ers_g1",
+    "soft": "beat worse baseline AND trail better by \u226435pp",
+    "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+  },
+  "soft_pass": false,
+  "beat_worse_baseline": false,
+  "within_gap_of_better": true,
+  "gap_vs_better_pp": 34.27062714644621,
+  "hard_pass_beat_both": false,
+  "max_gap_pp": 35.0,
+  "vs_bh_pp": -34.27062714644621,
+  "vs_ers_pp": -3.015112547049059
+}

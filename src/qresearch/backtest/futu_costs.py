@@ -54,3 +54,29 @@ class FutuUsEquityFees:
             return 0.0
         traded_notional = abs(float(turnover_weight)) * float(equity)
         return self.total_cost_usd(traded_notional, price) / float(equity)
+
+
+@dataclass(frozen=True)
+class FutuHkEquityFeesApprox:
+    """Approximate Futu HK SEHK cash equity/ETF costs (research proxy).
+
+    Interface mirrors ``FutuUsEquityFees.total_cost_usd`` but amounts are in HKD.
+    - Commission ~0.03% of notional, min HKD 3
+    - Platform / trading tariff bundled into rate (simplified)
+    - Stamp duty not modeled per-side; covered roughly via higher slip
+    - Slippage default 5 bps
+    """
+
+    commission_rate: float = 0.0003
+    commission_min_hkd: float = 3.0
+    platform_rate: float = 0.00005
+    slippage_bps: float = 5.0
+
+    def total_cost_usd(self, traded_notional: float, price: float) -> float:
+        notional = abs(float(traded_notional))
+        if notional <= 0 or price <= 0:
+            return 0.0
+        broker = max(self.commission_min_hkd, notional * self.commission_rate)
+        platform = notional * self.platform_rate
+        slip = notional * (self.slippage_bps / 10_000.0)
+        return broker + platform + slip
