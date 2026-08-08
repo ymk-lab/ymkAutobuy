@@ -67,6 +67,41 @@ Firebase 頁 https://ymk-autobuy.web.app → 點頁腳 **API** → 貼上隧道�
 powershell -ExecutionPolicy Bypass -File deploy\local\stop-backend.ps1
 ```
 
+## 4b. 開機自動掛著（Windows）
+
+雙擊一次：
+
+```text
+deploy\local\install-autostart.bat
+```
+
+會在「登入 Windows」時用工作排程器背景啟動：
+
+- uvicorn `:8787`
+- cloudflared（watchdog，掛掉會重開）
+
+日誌：`deploy/local/logs/daemon.log`  
+解除：`deploy/local/uninstall-autostart.ps1`
+
+**建議固定網址（否則 quick tunnel 每次重開網址都變）：**
+
+1. Cloudflare Zero Trust → Named Tunnel → Public hostname → `http://127.0.0.1:8787`
+2. `.env`：
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=eyJ...
+CLOUDFLARE_PUBLIC_URL=https://你的固定域名
+```
+
+3. Firebase 部署一次寫死 API：
+
+```powershell
+cd deploy\firebase
+.\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://你的固定域名
+```
+
+開機前請先讓 **OpenD 也開機啟動／登入**（富途模擬盤），否則同步帳戶會失敗。
+
 ### Linux / macOS
 
 ```bash
