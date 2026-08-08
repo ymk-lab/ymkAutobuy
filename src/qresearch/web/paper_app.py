@@ -48,7 +48,7 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.is_file():
         return None
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
 
@@ -83,6 +83,15 @@ def _python() -> str:
     return str(venv) if venv.is_file() else sys.executable
 
 
+def _read_text(path: Path) -> str:
+    """Read text as UTF-8 (Windows default cp950 breaks .env with box-drawing chars)."""
+    return path.read_text(encoding="utf-8")
+
+
+def _write_text(path: Path, text: str) -> None:
+    path.write_text(text, encoding="utf-8")
+
+
 def _load_dotenv() -> None:
     env_path = ROOT / ".env"
     if not env_path.is_file():
@@ -90,9 +99,12 @@ def _load_dotenv() -> None:
     try:
         from dotenv import load_dotenv
 
+        load_dotenv(env_path, override=False, encoding="utf-8")
+    except TypeError:
+        # older python-dotenv without encoding=
         load_dotenv(env_path, override=False)
     except ImportError:
-        for line in env_path.read_text().splitlines():
+        for line in _read_text(env_path).splitlines():
             if not line.strip() or line.strip().startswith("#") or "=" not in line:
                 continue
             k, v = line.split("=", 1)
@@ -715,7 +727,7 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
                 lines = []
                 found_submit = False
                 found_only = False
-                for line in env_path.read_text().splitlines():
+                for line in _read_text(env_path).splitlines():
                     if line.startswith("QRESEARCH_SG_PAPER_SUBMIT="):
                         lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
                         found_submit = True
@@ -728,8 +740,11 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
                     lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
                 if not found_only:
                     lines.append("QRESEARCH_SG_PAPER_ONLY=1")
-                env_path.write_text("\n".join(lines) + "\n")
-                env_path.chmod(0o600)
+                _write_text(env_path, "\n".join(lines) + "\n")
+                try:
+                    env_path.chmod(0o600)
+                except OSError:
+                    pass
                 os.environ["QRESEARCH_SG_PAPER_SUBMIT"] = str(enabled)
                 os.environ["QRESEARCH_SG_PAPER_ONLY"] = "1"
 
@@ -950,7 +965,7 @@ async def api_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingResp
             def _write() -> None:
                 lines = []
                 found = False
-                for line in env_path.read_text().splitlines():
+                for line in _read_text(env_path).splitlines():
                     if line.startswith("QRESEARCH_LB_SUBMIT="):
                         lines.append(f"QRESEARCH_LB_SUBMIT={enabled}")
                         found = True
@@ -958,8 +973,11 @@ async def api_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingResp
                         lines.append(line)
                 if not found:
                     lines.append(f"QRESEARCH_LB_SUBMIT={enabled}")
-                env_path.write_text("\n".join(lines) + "\n")
-                env_path.chmod(0o600)
+                _write_text(env_path, "\n".join(lines) + "\n")
+                try:
+                    env_path.chmod(0o600)
+                except OSError:
+                    pass
                 os.environ["QRESEARCH_LB_SUBMIT"] = str(enabled)
 
             await asyncio.to_thread(_write)
