@@ -1,0 +1,47 @@
+{
+  "book": "SMH",
+  "benchmark": "SMH",
+  "universe_n": 44,
+  "cache": "/agent/examples/data/emerging_rs_wave_smh/cache_ohlcv",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0,
+  "same_rule": true,
+  "structure_gate": {
+    "total_return": 1.0729430125369945,
+    "max_drawdown": -0.19385942653454058,
+    "sharpe": 1.4705969350444799,
+    "end_equity": 103647.15062684973
+  },
+  "pure_ers_g1": {
+    "total_return": 0.1946212401789671,
+    "max_drawdown": -0.4525290263393982,
+    "sharpe": 0.474647625809435,
+    "end_equity": 59731.06200894835
+  },
+  "bench_bh": {
+    "total_return": 1.3892930827400005,
+    "max_drawdown": -0.32639328683701796,
+    "sharpe": 1.5577831169519538,
+    "end_equity": 119464.65413700002
+  },
+  "mode_distribution": {
+    "hold_bench": 0.645,
+    "cash": 0.1875,
+    "ers": 0.1675
+  },
+  "criteria": {
+    "hard": "beat bench_bh AND pure_ers_g1",
+    "soft": "beat worse baseline AND trail better by \u226435pp"
+  },
+  "soft_pass": true,
+  "beat_worse_baseline": true,
+  "within_gap_of_better": true,
+  "gap_vs_better_pp": 31.6350070203006,
+  "hard_pass_beat_both": false,
+  "max_gap_pp": 35.0,
+  "vs_bh_pp": -31.6350070203006,
+  "vs_ers_pp": 87.83217723580275
+}

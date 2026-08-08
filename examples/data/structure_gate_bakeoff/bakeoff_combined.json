@@ -1,0 +1,112 @@
+{
+  "rule": "structure_gate_v1",
+  "ticker_agnostic": true,
+  "soft_max_gap_pp": 35.0,
+  "both_soft_pass": true,
+  "both_hard_pass": false,
+  "books": {
+    "QQQ": {
+      "book": "QQQ",
+      "benchmark": "QQQ",
+      "universe_n": 97,
+      "cache": "/agent/examples/data/emerging_rs_wave_qqq_g1_longbridge/cache_ohlcv",
+      "window": [
+        "2025-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 1.0394074033040002,
+        "max_drawdown": -0.2357301668402827,
+        "sharpe": 1.4074826886145475,
+        "end_equity": 101970.37016520002
+      },
+      "pure_ers_g1": {
+        "total_return": 1.1920934627762931,
+        "max_drawdown": -0.268470639947621,
+        "sharpe": 1.5793003176264477,
+        "end_equity": 109604.67313881466
+      },
+      "bench_bh": {
+        "total_return": 0.4070107124919997,
+        "max_drawdown": -0.22564909140363387,
+        "sharpe": 1.0827469697435512,
+        "end_equity": 70350.53562459999
+      },
+      "mode_distribution": {
+        "ers": 0.555,
+        "cash": 0.2575,
+        "hold_bench": 0.1875
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp"
+      },
+      "soft_pass": true,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": true,
+      "gap_vs_better_pp": 15.268605947229297,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": 63.23966908120005,
+      "vs_ers_pp": -15.268605947229297
+    },
+    "SMH": {
+      "book": "SMH",
+      "benchmark": "SMH",
+      "universe_n": 44,
+      "cache": "/agent/examples/data/emerging_rs_wave_smh/cache_ohlcv",
+      "window": [
+        "2025-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 1.0729430125369945,
+        "max_drawdown": -0.19385942653454058,
+        "sharpe": 1.4705969350444799,
+        "end_equity": 103647.15062684973
+      },
+      "pure_ers_g1": {
+        "total_return": 0.1946212401789671,
+        "max_drawdown": -0.4525290263393982,
+        "sharpe": 0.474647625809435,
+        "end_equity": 59731.06200894835
+      },
+      "bench_bh": {
+        "total_return": 1.3892930827400005,
+        "max_drawdown": -0.32639328683701796,
+        "sharpe": 1.5577831169519538,
+        "end_equity": 119464.65413700002
+      },
+      "mode_distribution": {
+        "hold_bench": 0.645,
+        "cash": 0.1875,
+        "ers": 0.1675
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp"
+      },
+      "soft_pass": true,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": true,
+      "gap_vs_better_pp": 31.6350070203006,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": -31.6350070203006,
+      "vs_ers_pp": 87.83217723580275
+    }
+  },
+  "config": {
+    "top3_conc_min": 0.35,
+    "crowded_overlap_min": 0.4,
+    "strong_share_min": 0.3,
+    "ers_lag_trigger": -0.05,
+    "harsh_defense_dd": 0.12,
+    "mild_defense_dd": 0.08
+  },
+  "note": "Accept soft pass: same feature rule on every book; may trail the book-specific oracle by a few dozen pp."
+}
