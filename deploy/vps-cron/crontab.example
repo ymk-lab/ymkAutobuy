@@ -1,11 +1,17 @@
-# Emerging RS G1 — Longbridge paper (small VPS)
-# Install: crontab -e  → paste (fix /opt/qresearch with your clone path)
+# Longbridge paper jobs (small VPS)
+# Install: crontab -e  → paste (replace /opt/qresearch with your clone path)
 
 SHELL=/bin/bash
 CRON_TZ=America/New_York
 
-# After US equity close: compute G1 target; submit only if QRESEARCH_LB_SUBMIT=1 in .env
+# --- Emerging RS G1 ---
+# Submit only if QRESEARCH_LB_SUBMIT=1 in .env
 30 16 * * 1-5 /opt/qresearch/deploy/vps-cron/run.sh once >> /opt/qresearch/examples/data/emerging_rs_g1_paper/logs/cron_stdout.log 2>&1
 
-# Optional: morning check / re-run before open (skips if already submitted for same asof)
-# 25 9 * * 1-5 /opt/qresearch/deploy/vps-cron/run.sh once >> /opt/qresearch/examples/data/emerging_rs_g1_paper/logs/cron_stdout.log 2>&1
+# --- Structure Gate v8 (paper only) ---
+# Submit only if QRESEARCH_SG_PAPER_SUBMIT=1 (keep QRESEARCH_SG_PAPER_ONLY=1)
+# 35 16 = after G1; uses QRESEARCH_SG_BOOK (e.g. SPY / QQQ)
+35 16 * * 1-5 /opt/qresearch/deploy/vps-cron/run-sg.sh once >> /opt/qresearch/examples/data/structure_gate_v8_paper/logs/cron_stdout.log 2>&1
+
+# Optional: morning re-run before open (skips if already submitted for same asof)
+# 25 9 * * 1-5 /opt/qresearch/deploy/vps-cron/run-sg.sh once >> /opt/qresearch/examples/data/structure_gate_v8_paper/logs/cron_stdout.log 2>&1
