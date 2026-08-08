@@ -1,13 +1,13 @@
 """Universe-agnostic Structure Gate: cash / ERS / hold-strong / hold-bench.
 
-Crowded structure is split by leadership locus:
-- stock-led → hold already-strong names
-- index-led → hold the benchmark ETF
+Leadership locus:
+- stock-led → hold already-strong names or ERS
+- sticky index-led regime → stay long the benchmark ETF until exit
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import pandas as pd
@@ -30,15 +30,24 @@ class StructureGateConfig:
     # Already-strong leadership for hold_strong mode
     already_strong_cap: float = 0.10
     strong_lookback: int = 60
-    # Index-led vs stock-led: trailing leader-sleeve minus bench
+    # Short trail (tactical stock-led bias)
     leadership_trail_days: int = 20
-    stock_led_min_trail: float = 0.02  # trail >= this → clearly stock-led
-    index_led_max_trail: float = -0.03  # trail <= this → clearly index-led
-    # Between the two thresholds: neutral → prefer ERS (not forced into ETF).
+    stock_led_min_trail: float = 0.02  # trail20 >= this → clearly stock-led
+    index_led_max_trail: float = -0.03  # trail20 <= this → tactical index lean
+    # Sticky index-strong regime (persist hold_bench inside the episode)
+    index_regime_trail_days: int = 60
+    index_regime_enter_trail: float = -0.10  # leaders lag bench by this over 60d
+    index_regime_enter_confirm: int = 3
+    index_regime_exit_trail: float = -0.02  # leave when leaders nearly catch up
+    index_regime_exit_confirm: int = 3
+    index_regime_require_above50: bool = True
+    index_regime_require_ret20_pos: bool = True
+    # If True, falling below SMA50 also ends the sticky index episode.
+    index_regime_exit_on_below50: bool = True
     # Mild defense (Rotation books): G1-like
     mild_defense_dd: float = 0.08
     mild_defense_ret20: float = -0.03
-    # Harsh defense (also breaks Crowded hold)
+    # Harsh defense (also breaks sticky index regime)
     harsh_defense_dd: float = 0.12
     harsh_defense_ret20: float = -0.08
     ers_config: EmergingRSWaveConfig | None = None
@@ -213,6 +222,65 @@ def crowded_structure_mask(
     ).fillna(False)
 
 
+def sticky_index_strong_regime(
+    features: pd.DataFrame,
+    lead_trail_long: pd.Series,
+    *,
+    config: StructureGateConfig | None = None,
+) -> pd.Series:
+    """Persistent index-strong episode: enter on confirmed lag, stay until exit.
+
+    Enter when leaders lag bench on the long trail, bench is risk-on, for
+    ``index_regime_enter_confirm`` days. Stay long-index through mild noise;
+    exit only after leaders catch up (confirmed) or harsh/below-SMA50 break.
+    """
+    cfg = config or StructureGateConfig()
+    trail = lead_trail_long.reindex(features.index)
+    above50 = features["above50"] > 0.5
+    ret20 = features["ret20"]
+    harsh = (features["dd60"] <= -cfg.harsh_defense_dd) | (
+        features["ret20"] <= cfg.harsh_defense_ret20
+    )
+
+    enter_raw = trail <= cfg.index_regime_enter_trail
+    if cfg.index_regime_require_above50:
+        enter_raw = enter_raw & above50
+    if cfg.index_regime_require_ret20_pos:
+        enter_raw = enter_raw & (ret20 > 0)
+
+    exit_raw = (trail >= cfg.index_regime_exit_trail) | harsh.fillna(False)
+    if cfg.index_regime_exit_on_below50:
+        exit_raw = exit_raw | (~above50)
+
+    active: list[bool] = []
+    on = False
+    enter_count = 0
+    exit_count = 0
+    for ent, ex in zip(enter_raw.fillna(False).tolist(), exit_raw.fillna(False).tolist()):
+        if on:
+            if ex:
+                exit_count += 1
+            else:
+                exit_count = 0
+            if exit_count >= cfg.index_regime_exit_confirm:
+                on = False
+                enter_count = 0
+                exit_count = 0
+            active.append(on)
+            continue
+
+        if ent:
+            enter_count += 1
+        else:
+            enter_count = 0
+        if enter_count >= cfg.index_regime_enter_confirm:
+            on = True
+            exit_count = 0
+        active.append(on)
+
+    return pd.Series(active, index=features.index, dtype=bool, name="sticky_index_strong")
+
+
 def label_structure_modes(
     bench_close: pd.Series,
     member_closes: pd.DataFrame,
@@ -224,13 +292,18 @@ def label_structure_modes(
     feat = structure_features(bench_close, member_closes, config=cfg)
     excess = trailing_ers_excess(bench_close, member_closes, config=cfg)
     strong_w = strong_leader_weights(member_closes, bench_close, config=cfg)
-    lead_trail = leader_vs_bench_trail(
+    lead_trail20 = leader_vs_bench_trail(
         member_closes, bench_close, config=cfg, leader_weights=strong_w
     )
+    # Long trail for sticky index regime
+    cfg_long = replace(cfg, leadership_trail_days=cfg.index_regime_trail_days)
+    lead_trail60 = leader_vs_bench_trail(
+        member_closes, bench_close, config=cfg_long, leader_weights=strong_w
+    )
     crowded = crowded_structure_mask(feat, excess, config=cfg)
-    stock_led = lead_trail >= cfg.stock_led_min_trail
-    index_led = lead_trail <= cfg.index_led_max_trail
-    # Neutral band between thresholds → neither forced locus
+    sticky_index = sticky_index_strong_regime(feat, lead_trail60, config=cfg)
+    stock_led = lead_trail20 >= cfg.stock_led_min_trail
+    index_lean = lead_trail20 <= cfg.index_led_max_trail
     harsh = (feat["dd60"] <= -cfg.harsh_defense_dd) | (feat["ret20"] <= cfg.harsh_defense_ret20)
     mild = (
         (feat["above50"] < 0.5)
@@ -238,25 +311,27 @@ def label_structure_modes(
         | (feat["ret20"] <= cfg.mild_defense_ret20)
     )
 
-    # User rule with bias bands:
-    # - clearly index-led → prefer benchmark ETF (hold through mild dips)
-    # - clearly stock-led → prefer stocks (strong leaders if crowded, else ERS)
-    # - neutral → ERS when risk-on
-    # Harsh washout always cash.
+    # 1) Sticky index-strong episode → stay on bench ETF (only harsh breaks it via sticky exit)
+    # 2) Else stock-led / lean / neutral sleeves
     mode = pd.Series("cash", index=feat.index, dtype=object)
     risk_on = ~mild & ~harsh
-    mode = mode.mask(index_led & ~harsh, "hold_bench")
-    mode = mode.mask(stock_led & risk_on, "ers")
-    mode = mode.mask(stock_led & crowded & risk_on, "hold_strong")
-    mode = mode.mask(~index_led & ~stock_led & risk_on, "ers")  # neutral
-    mode = mode.mask(~index_led & mild & ~harsh, "cash")
+
+    mode = mode.mask(sticky_index & ~harsh, "hold_bench")
+    # Outside sticky episode: tactical lean to ETF if short trail says index-strong
+    mode = mode.mask(~sticky_index & index_lean & ~harsh, "hold_bench")
+    mode = mode.mask(~sticky_index & stock_led & risk_on, "ers")
+    mode = mode.mask(~sticky_index & stock_led & crowded & risk_on, "hold_strong")
+    mode = mode.mask(~sticky_index & ~index_lean & ~stock_led & risk_on, "ers")
+    mode = mode.mask(~sticky_index & ~index_lean & mild & ~harsh, "cash")
     mode = mode.mask(harsh.fillna(False), "cash")
 
     meta = feat.copy()
     meta["ers_excess60"] = excess
-    meta["leader_vs_bench_trail"] = lead_trail
+    meta["leader_vs_bench_trail"] = lead_trail20
+    meta["leader_vs_bench_trail60"] = lead_trail60
+    meta["sticky_index_strong"] = sticky_index.astype(float)
     meta["stock_led"] = stock_led.astype(float)
-    meta["index_led"] = index_led.astype(float)
+    meta["index_led"] = (sticky_index | index_lean).astype(float)
     meta["crowded_structure"] = crowded.astype(float)
     meta["mode"] = mode
     return mode.rename("mode"), meta

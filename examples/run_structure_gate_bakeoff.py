@@ -237,7 +237,7 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v3_locus_primary",
+        "rule": "structure_gate_v4_sticky_index",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
@@ -251,12 +251,16 @@ def main() -> None:
             "leadership_trail_days": cfg.leadership_trail_days,
             "stock_led_min_trail": cfg.stock_led_min_trail,
             "index_led_max_trail": cfg.index_led_max_trail,
+            "index_regime_trail_days": cfg.index_regime_trail_days,
+            "index_regime_enter_trail": cfg.index_regime_enter_trail,
+            "index_regime_enter_confirm": cfg.index_regime_enter_confirm,
+            "index_regime_exit_trail": cfg.index_regime_exit_trail,
             "harsh_defense_dd": cfg.harsh_defense_dd,
             "mild_defense_dd": cfg.mild_defense_dd,
         },
         "note": (
-            "Primary locus: index-led→hold_bench ETF; stock-led→stocks "
-            "(hold_strong if crowded else ERS). Soft pass ≤35pp vs oracle."
+            "Sticky index-strong: confirmed 60d leader lag → stay long bench "
+            "ETF until leaders catch up. Else stock-led→stocks / lean→ETF."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(
