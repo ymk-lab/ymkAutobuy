@@ -252,14 +252,17 @@ def sticky_regime(
     *,
     config: StructureGateConfig | None = None,
 ) -> pd.Series:
-    """Persistent sticky episode: enter on confirmed lag, stay until exit."""
+    """Persistent sticky episode: enter on confirmed lag, stay until exit.
+
+    ``harsh_ret`` ends sticky the same day (mode must not say sticky+cash).
+    Trail catch-up / ``harsh_dd`` still use ``sticky_exit_confirm`` days.
+    """
     cfg = config or StructureGateConfig()
     trail = lead_trail_long.reindex(features.index)
     above50 = features["above50"] > 0.5
     ret20 = features["ret20"]
-    harsh = (features["dd60"] <= -cfg.harsh_defense_dd) | (
-        features["ret20"] <= cfg.harsh_defense_ret20
-    )
+    harsh_dd = (features["dd60"] <= -cfg.harsh_defense_dd).fillna(False)
+    harsh_ret = (features["ret20"] <= cfg.harsh_defense_ret20).fillna(False)
 
     lag_enter = trail <= cfg.sticky_enter_trail
     breadth_enter = (trail <= cfg.sticky_breadth_trail) & (
@@ -270,18 +273,30 @@ def sticky_regime(
         enter_raw = enter_raw & above50
     if cfg.sticky_require_ret20_pos:
         enter_raw = enter_raw & (ret20 > 0)
+    # Do not arm sticky on a freefall day.
+    enter_raw = enter_raw & ~harsh_ret
 
-    exit_raw = (trail >= cfg.sticky_exit_trail) | harsh.fillna(False)
+    exit_soft = (trail >= cfg.sticky_exit_trail) | harsh_dd
     if cfg.sticky_exit_on_below50:
-        exit_raw = exit_raw | (~above50)
+        exit_soft = exit_soft | (~above50)
 
     active: list[bool] = []
     on = False
     enter_count = 0
     exit_count = 0
-    for ent, ex in zip(enter_raw.fillna(False).tolist(), exit_raw.fillna(False).tolist()):
+    for ent, soft, freefall in zip(
+        enter_raw.fillna(False).tolist(),
+        exit_soft.fillna(False).tolist(),
+        harsh_ret.tolist(),
+    ):
         if on:
-            if ex:
+            if freefall:
+                on = False
+                enter_count = 0
+                exit_count = 0
+                active.append(False)
+                continue
+            if soft:
                 exit_count += 1
             else:
                 exit_count = 0
@@ -342,7 +357,12 @@ def label_structure_modes(
     *,
     config: StructureGateConfig | None = None,
 ) -> tuple[pd.Series, pd.DataFrame]:
-    """Return daily mode series + feature frame (incl. helpers)."""
+    """Return daily mode series + feature frame (incl. helpers).
+
+    Priority (highest wins):
+      harsh_ret > thrust > sticky > harsh_dd > mild > index_lean
+      > stock_led+crowded > stock_led/neutral ers > cash
+    """
     cfg = config or StructureGateConfig()
     feat = structure_features(bench_close, member_closes, config=cfg)
     excess = trailing_ers_excess(bench_close, member_closes, config=cfg)
@@ -359,34 +379,36 @@ def label_structure_modes(
     thrust = thrust_mask(feat, config=cfg)
     stock_led = lead_trail20 >= cfg.stock_led_min_trail
     index_lean = lead_trail20 <= cfg.index_lean_max_trail
-    harsh_dd = feat["dd60"] <= -cfg.harsh_defense_dd
-    harsh_ret = feat["ret20"] <= cfg.harsh_defense_ret20
-    harsh = harsh_dd | harsh_ret
-    if cfg.thrust_overrides_dd_harsh:
-        harsh_for_mode = (harsh_ret | (harsh_dd & ~thrust)).fillna(False)
-    else:
-        harsh_for_mode = harsh.fillna(False)
+    harsh_dd = (feat["dd60"] <= -cfg.harsh_defense_dd).fillna(False)
+    harsh_ret = (feat["ret20"] <= cfg.harsh_defense_ret20).fillna(False)
     mild = (
         (feat["above50"] < 0.5)
         | (feat["dd60"] <= -cfg.mild_defense_dd)
         | (feat["ret20"] <= cfg.mild_defense_ret20)
-    )
+    ).fillna(False)
 
-    mode = pd.Series("cash", index=feat.index, dtype=object)
-    risk_on = ~mild & ~harsh_for_mode
-    outside = ~sticky if cfg.sticky_forbid_stock_sleeves else pd.Series(True, index=feat.index)
-
-    mode = mode.mask(sticky & ~harsh_for_mode, "bench")
-    mode = mode.mask(outside & index_lean & ~harsh_for_mode, "bench")
-    mode = mode.mask(outside & stock_led & risk_on, "ers")
-    mode = mode.mask(outside & stock_led & crowded & risk_on, "strong")
-    mode = mode.mask(outside & ~index_lean & ~stock_led & risk_on, "ers")
-    mode = mode.mask(outside & ~index_lean & mild & ~harsh_for_mode, "cash")
-    mode = mode.mask(harsh_for_mode, "cash")
-    if cfg.sticky_forbid_stock_sleeves:
-        mode = mode.mask(sticky & ~harsh_for_mode, "bench")
+    # Sticky/thrust lock bench through lagging dd60; only harsh_ret breaks them.
+    sticky_lock = sticky & ~harsh_ret
     if cfg.thrust_force_bench:
-        mode = mode.mask(thrust & ~harsh_ret.fillna(False), "bench")
+        thrust_lock = thrust & ~harsh_ret
+        if not cfg.thrust_overrides_dd_harsh:
+            thrust_lock = thrust_lock & ~harsh_dd
+    else:
+        thrust_lock = pd.Series(False, index=feat.index)
+    # Outside locks: stock sleeves need clear risk-on (not mild, not either harsh).
+    risk_on = ~mild & ~harsh_dd & ~harsh_ret
+    outside = ~(sticky_lock | thrust_lock) if cfg.sticky_forbid_stock_sleeves else (~thrust_lock)
+
+    # Assign low → high so higher priority overwrites.
+    mode = pd.Series("cash", index=feat.index, dtype=object)
+    mode = mode.mask(outside & risk_on & ~index_lean, "ers")
+    mode = mode.mask(outside & risk_on & stock_led & crowded, "strong")
+    mode = mode.mask(outside & risk_on & index_lean, "bench")
+    mode = mode.mask(outside & mild & ~harsh_ret, "cash")
+    mode = mode.mask(outside & harsh_dd & ~harsh_ret, "cash")
+    mode = mode.mask(sticky_lock, "bench")
+    mode = mode.mask(thrust_lock, "bench")
+    mode = mode.mask(harsh_ret, "cash")
 
     meta = feat.copy()
     meta["ers_excess60"] = excess
@@ -396,8 +418,11 @@ def label_structure_modes(
     meta["thrust"] = thrust.astype(float)
     meta["stock_led"] = stock_led.astype(float)
     meta["index_lean"] = index_lean.astype(float)
-    meta["bench_bias"] = (sticky | index_lean | thrust).astype(float)
+    meta["bench_bias"] = (sticky_lock | thrust_lock | (index_lean & risk_on)).astype(float)
     meta["crowded"] = crowded.astype(float)
+    meta["mild"] = mild.astype(float)
+    meta["harsh_ret"] = harsh_ret.astype(float)
+    meta["harsh_dd"] = harsh_dd.astype(float)
     meta["mode"] = mode
     return mode.rename("mode"), meta
 

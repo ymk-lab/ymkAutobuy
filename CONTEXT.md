@@ -64,29 +64,33 @@ _Avoid_: 只贏其中一個就上線、只看單一形勢片段、沒有對照�
 與代號無關的日頻主路由。每日輸出一個 Mode，決定持倉袖套；同一規則套用所有宇宙。
 _Avoid_: 為每個 ETF 代號寫死不同閾值、用未來報酬標註當天、同一概念混用舊名（hold_bench／Index Thrust／黏著期等）
 
+**Structure Priority**:
+Mode 裁決由高到低：`harsh_ret` → `thrust` → `sticky` → `harsh_dd` → `mild` → `index_lean` → `stock_led`+`crowded` → `stock_led`／中性 `ers` → `cash`。高優先級覆蓋低優先級。
+_Avoid_: 用舊 mask 直覺推斷、讓 `index_lean` 蓋過 Mild、Sticky ON 卻出現 `cash`
+
 **Structure Mode**:
-四種日頻持倉模式（程式字串＝文件名）：`cash`＝全現金；`ers`＝Emerging RS 單一席位；`strong`＝已強領導股；`bench`＝基準 ETF 滿倉。
-_Avoid_: 寫 hold_bench／hold_strong、中英混稱「持 ETF／持強勢」而不標 mode 名
+四種日頻持倉模式（程式字串＝文件名）：`cash`＝空手防守；`ers`＝新興轉強；`strong`＝已強領導；`bench`＝基準滿倉。
+_Avoid_: 寫 hold_bench／hold_strong、中英混稱而不標 mode 名
 
 **Structure Locus**:
-領導位置（短窗 trail20）：`stock_led`＝領導股贏基準→偏 `ers`／`strong`；`index_lean`＝領導股落後→偏 `bench`；其餘為中性。
-_Avoid_: 與 Sticky／Thrust 混稱、用未來報酬標註當天
+領導位置（短窗 trail20）：`stock_led`＝個股領漲→偏 `ers`／`strong`；`index_lean`＝指數偏強→僅在非 Mild／非 Harsh 時偏 `bench`；其餘中性→risk_on 時走 `ers`。
+_Avoid_: 與 Sticky／Thrust 混稱、破線仍因 index_lean 滿倉 ETF
 
-**Sticky**:
-長窗領導股落後基準的黏著袖套（狀態機）。進場確認後期內偏 `bench`，禁 `ers`／`strong`／mild 現金，直到領導追上或 Harsh 才退出。
-_Avoid_: 稱 Sticky Index-Strong／index_regime／黏著指數強、黏著期日頻進出指數
+**Sticky**（指數黏著）:
+長窗領導股落後基準的狀態機袖套。ON 時鎖定 `bench`，忽略 Mild 與滯後 `harsh_dd`；`harsh_ret` 當日立刻結束 Sticky 並 `cash`。領導追上或 `harsh_dd` 持續確認後退出。
+_Avoid_: Sticky ON 與 `cash` 並存、稱 Sticky Index-Strong／index_regime
 
-**Thrust**:
-基準絕對大漲／復甦袖套（短窗報酬、自近低反彈、站回 SMA50），與 Sticky 正交。觸發時強制 `bench`，並可覆蓋仍滯後的 dd60 Harsh。
-_Avoid_: 稱 Index Thrust／指數推力、用推力取代 Locus、在 ret20 仍急跌時當 Thrust
+**Thrust**（指數衝刺）:
+基準絕對大漲／復甦袖套（短窗報酬、自近低反彈、站回 SMA50），與 Sticky 正交。觸發時鎖定 `bench`，可覆蓋滯後 `harsh_dd`；`harsh_ret` 仍為空手。
+_Avoid_: 用推力取代 Locus、在 ret20 仍急跌時當 Thrust
 
-**Crowded** *(Structure)*:
-Structure Gate 內的集中結構旗標（重疊／集中度／ERS 落後），在 `stock_led` 時把 mode 從 `ers` 升級為 `strong`。不同於五類標籤裡的 CrowdedTrend。
-_Avoid_: 與 CrowdedTrend Label 混稱、只看指數漲得快就當 Crowded
+**Crowded** *(Structure)*（集中領漲）:
+Structure Gate 內集中結構旗標；在 `stock_led` 且 risk_on 時把 mode 從 `ers` 升級為 `strong`。不同於五類標籤的 CrowdedTrend。
+_Avoid_: 與 CrowdedTrend Label 混稱
 
-**Mild / Harsh**:
-防守層：Mild＝破 SMA50 或溫和回撤／弱動能→非 Sticky 時偏 `cash`；Harsh＝深回撤或 ret20 急跌→`cash`（可打斷 Sticky）。Thrust 可覆蓋僅由 dd60 觸發的 Harsh。
-_Avoid_: 把 Mild／Harsh 叫成 Defense Label、Thrust 期間仍用滯後 dd60 鎖死現金
+**Mild / Harsh**（輕度／重度防守）:
+`mild`＝破 SMA50 或溫和轉弱→在 Sticky／Thrust 鎖之外偏 `cash`（也擋 `index_lean`）。`harsh_dd`＝深回撤→鎖外 `cash`；鎖內（Sticky／Thrust）可被覆蓋。`harsh_ret`＝ret20 急跌→最高優先 `cash`，並立刻打斷 Sticky。
+_Avoid_: 與五類 Defense Label 混稱、Mild 被 index_lean 靜默蓋過
 
 **Structure Soft Pass**:
 通用規則可接受略輸「該宇宙專用最優」：須打贏較差的那條基線（B&H 與純 ERS 之較差者），且落後較優基線不超過約定差距（預設 35pp）；硬過關仍是同時打贏兩者。
