@@ -80,6 +80,66 @@ BOOKS = {
             ROOT / "examples" / "data" / "emerging_rs_wave_dia" / "cache_ohlcv",
         ],
     },
+    "IWM": {
+        "bench": "IWM",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_iwm"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_iwm" / "cache_ohlcv",
+        ],
+    },
+    "XLF": {
+        "bench": "XLF",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_xlf"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_xlf" / "cache_ohlcv",
+        ],
+    },
+    "XLK": {
+        "bench": "XLK",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_xlk"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_xlk" / "cache_ohlcv",
+        ],
+    },
+    "XBI": {
+        "bench": "XBI",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_xbi"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_xbi" / "cache_ohlcv",
+        ],
+    },
+    "XLE": {
+        "bench": "XLE",
+        "universe": None,
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_xle"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_xle" / "cache_ohlcv",
+        ],
+    },
 }
 
 

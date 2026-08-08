@@ -1,0 +1,22 @@
+# XLE Energy Select Sector holdings
+APA
+BKR
+COP
+CVX
+DVN
+EOG
+EQT
+EXE
+FANG
+HAL
+KMI
+MPC
+OKE
+OXY
+PSX
+SLB
+TPL
+TRGP
+VLO
+WMB
+XOM
