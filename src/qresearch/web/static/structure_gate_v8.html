@@ -25,20 +25,72 @@
       <nav class="top-meta" aria-label="站內導覽">
         <a class="badge" href="/">G1 Paper</a>
         <a class="badge badge-on" href="/structure-gate" aria-current="page">Structure Gate</a>
+        <span id="sg-badge-submit" class="badge badge-off">PAPER …</span>
+        <span id="sg-badge-busy" class="badge badge-idle">待命</span>
       </nav>
     </header>
 
     <main class="shell sg-shell">
       <section class="sg-hero" aria-label="Structure Gate 主視覺">
-        <p class="sg-kicker">Universe-agnostic daily router</p>
+        <p class="sg-kicker">Universe-agnostic daily router · Longbridge paper</p>
         <h1 class="sg-hero-brand">Structure Gate</h1>
         <p class="sg-hero-line">
           能選股就選、選不過指數就抱指數、結構壞了就空手。
         </p>
         <div class="sg-hero-cta">
-          <a class="btn btn-primary" href="#priority">看優先序</a>
-          <a class="btn" href="#params">看 v8 參數</a>
+          <a class="btn btn-primary" href="#paper">長橋 paper</a>
+          <a class="btn" href="#priority">看優先序</a>
         </div>
+      </section>
+
+      <section class="sg-section" id="paper" aria-labelledby="paper-title">
+        <h2 id="paper-title">長橋數據 · Paper Trade</h2>
+        <p class="sg-support">
+          用長橋日 K 算 v8 訊號／回測；落單僅模擬盤（
+          <code>QRESEARCH_SG_PAPER_SUBMIT</code>）。
+        </p>
+        <div class="sg-paper-metrics" aria-label="訊號摘要">
+          <div class="sg-metric">
+            <span class="sg-metric-label">訊號日</span>
+            <strong id="sg-asof">—</strong>
+          </div>
+          <div class="sg-metric">
+            <span class="sg-metric-label">Mode</span>
+            <strong id="sg-mode">—</strong>
+          </div>
+          <div class="sg-metric">
+            <span class="sg-metric-label">目標</span>
+            <strong id="sg-target">—</strong>
+          </div>
+          <div class="sg-metric">
+            <span class="sg-metric-label">Book</span>
+            <strong id="sg-book">QQQ</strong>
+          </div>
+          <div class="sg-metric">
+            <span class="sg-metric-label">回測 SG</span>
+            <strong id="sg-bt-sg">—</strong>
+          </div>
+          <div class="sg-metric">
+            <span class="sg-metric-label">回測 BH</span>
+            <strong id="sg-bt-bh">—</strong>
+          </div>
+        </div>
+        <div class="sg-paper-controls">
+          <label class="sg-book-label" for="sg-book-select">Book</label>
+          <select id="sg-book-select" class="sg-select" aria-label="選擇 book">
+            <option value="QQQ" selected>QQQ</option>
+            <option value="SMH">SMH</option>
+            <option value="SOXX">SOXX</option>
+            <option value="SPY">SPY</option>
+            <option value="XLK">XLK</option>
+          </select>
+          <button type="button" class="btn" data-sg-action="refresh">重新整理</button>
+          <button type="button" class="btn" data-sg-action="signal">重算訊號</button>
+          <button type="button" class="btn btn-primary" data-sg-action="once">執行一次</button>
+          <button type="button" class="btn btn-accent" data-sg-action="backtest">長橋回測</button>
+          <button type="button" class="btn" data-sg-action="toggle-submit">切換送單</button>
+        </div>
+        <div class="sg-activity" id="sg-activity" aria-live="polite"></div>
       </section>
 
       <section class="sg-section" id="modes" aria-labelledby="modes-title">

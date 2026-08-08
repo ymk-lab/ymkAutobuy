@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "preset": "v8",
+  "book": "QQQ",
+  "bench": "QQQ",
+  "source": "longbridge",
+  "start": "2025-01-01",
+  "end": "2026-08-07",
+  "capital": 50000.0,
+  "structure_gate_total_return": 0.8246579879174742,
+  "bench_bh_total_return": 0.4186046070664031,
+  "pure_ers_total_return": 1.1914224529091952,
+  "mode_distribution": {
+    "bench": 0.5125,
+    "cash": 0.265,
+    "ers": 0.185,
+    "strong": 0.0375
+  },
+  "soft_pass": false,
+  "hard_pass_beat_both": false,
+  "n_trades": 83,
+  "generated_at_utc": "2026-08-08 13:11:33.903919"
+}

@@ -1,0 +1,52 @@
+{
+  "asof": "2026-08-07",
+  "preset": "v8",
+  "rule": "structure_gate_v8",
+  "mode": "bench",
+  "book": "QQQ",
+  "bench": "QQQ",
+  "target_raw": {
+    "QQQ": 1.0
+  },
+  "sticky": true,
+  "thrust": true,
+  "mild": false,
+  "harsh_ret": false,
+  "harsh_dd": false,
+  "index_lean": false,
+  "stock_led": true,
+  "crowded": false,
+  "events_today": [],
+  "job_mode": "once",
+  "submit": false,
+  "paper_only": true,
+  "positions": {
+    "ORLY.US": 529.0
+  },
+  "target": {
+    "QQQ.US": 1.0
+  },
+  "marks": {
+    "ORLY.US": 93.53,
+    "QQQ.US": 723.03
+  },
+  "sleeve_equity_usd": 1000051.33,
+  "cash_usd": 950573.96,
+  "generated_at_utc": "2026-08-08 13:11:39.730240",
+  "preview_orders": [
+    {
+      "order_id": "dry-10d02961204d",
+      "symbol": "ORLY.US",
+      "side": "sell",
+      "quantity": 529.0,
+      "price": 93.53
+    },
+    {
+      "order_id": "dry-0a6910a3ef38",
+      "symbol": "QQQ.US",
+      "side": "buy",
+      "quantity": 1369.0,
+      "price": 723.03
+    }
+  ]
+}

@@ -19,7 +19,9 @@ from fastapi.staticfiles import StaticFiles
 ROOT = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parent / "static"
 DEFAULT_OUT = ROOT / "examples" / "data" / "emerging_rs_g1_paper"
+DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v8_paper"
 DAILY = ROOT / "examples" / "run_emerging_rs_g1_paper_daily.py"
+SG_DAILY = ROOT / "examples" / "run_structure_gate_v8_paper_daily.py"
 
 app = FastAPI(title="qresearch G1 Paper", version="0.1.0")
 _lock = threading.Lock()
@@ -32,6 +34,14 @@ def _out_dir() -> Path:
     return path
 
 
+def _sg_out_dir() -> Path:
+    path = Path(os.getenv("QRESEARCH_SG_PAPER_OUT", str(DEFAULT_SG_OUT)))
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "logs").mkdir(parents=True, exist_ok=True)
+    (path / "backtest").mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.is_file():
         return None
@@ -41,13 +51,21 @@ def _read_json(path: Path) -> dict[str, Any] | None:
         return None
 
 
-def _env_submit() -> bool:
-    return os.getenv("QRESEARCH_LB_SUBMIT", "0").strip().lower() in {
+def _env_truthy(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() in {
         "1",
         "true",
         "yes",
         "on",
     }
+
+
+def _env_submit() -> bool:
+    return _env_truthy("QRESEARCH_LB_SUBMIT", "0")
+
+
+def _env_sg_submit() -> bool:
+    return _env_truthy("QRESEARCH_SG_PAPER_SUBMIT", "0")
 
 
 def _sse(payload: dict[str, Any]) -> str:
@@ -342,8 +360,248 @@ def structure_gate_v8_config() -> JSONResponse:
             "execution": "next_open",
             "fee_note": "Futu US equity schedule + slippage_bps on notional",
             "config": payload,
+            "paper": {
+                "script": str(SG_DAILY.relative_to(ROOT)),
+                "out_dir": str(_sg_out_dir()),
+                "submit_env": "QRESEARCH_SG_PAPER_SUBMIT",
+                "paper_only": True,
+            },
         }
     )
+
+
+def _sg_status_payload() -> dict[str, Any]:
+    out = _sg_out_dir()
+    signal = _read_json(out / "latest_signal.json") or {}
+    run = _read_json(out / "latest_run.json") or {}
+    state = _read_json(out / "state.json") or {}
+    backtest = _read_json(out / "latest_backtest.json") or {}
+    return {
+        "ok": True,
+        "out_dir": str(out),
+        "book": os.getenv("QRESEARCH_SG_BOOK", "QQQ"),
+        "submit_enabled": _env_sg_submit(),
+        "paper_only": _env_truthy("QRESEARCH_SG_PAPER_ONLY", "1"),
+        "sleeve_usd": os.getenv("QRESEARCH_SLEEVE_USD", ""),
+        "signal": signal,
+        "last_run": run,
+        "state": state,
+        "backtest": backtest,
+        "server_time_utc": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/sg/status")
+def api_sg_status() -> dict[str, Any]:
+    return _sg_status_payload()
+
+
+@app.get("/api/sg/logs")
+def api_sg_logs(tail: int = Query(80, ge=1, le=500)) -> dict[str, Any]:
+    log_dir = _sg_out_dir() / "logs"
+    files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+    json_runs = sorted(log_dir.glob("run_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if files:
+        path = files[0]
+        lines = path.read_text(errors="replace").splitlines()
+        return {"ok": True, "file": path.name, "lines": lines[-tail:]}
+    if json_runs:
+        path = json_runs[0]
+        text = path.read_text(errors="replace")
+        return {"ok": True, "file": path.name, "lines": text.splitlines()[-tail:]}
+    return {"ok": True, "file": None, "lines": []}
+
+
+@app.get("/api/sg/run")
+async def api_sg_run(
+    mode: str = Query("once", pattern="^(signal|once|backtest)$"),
+    submit: int = Query(0, ge=0, le=1),
+    refresh: int = Query(1, ge=0, le=1),
+    book: str = Query("QQQ"),
+) -> StreamingResponse:
+    async def gen() -> AsyncIterator[str]:
+        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v8…", "level": "info"})
+        if not _lock.acquire(blocking=False):
+            yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+            return
+        try:
+            if not SG_DAILY.is_file():
+                yield _sse({"phase": "error", "message": f"找不到腳本 {SG_DAILY}", "level": "error"})
+                yield _sse({"phase": "done", "ok": False})
+                return
+
+            # Paper-only hard gate: never allow venue submit when paper_only is off,
+            # and never escalate via G1's QRESEARCH_LB_SUBMIT.
+            want_submit = bool(submit) and mode == "once"
+            if want_submit and not _env_truthy("QRESEARCH_SG_PAPER_ONLY", "1"):
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": "拒絕：Structure Gate 僅允許 paper trade（QRESEARCH_SG_PAPER_ONLY）",
+                        "level": "error",
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False})
+                return
+
+            env = os.environ.copy()
+            env["QRESEARCH_SG_PAPER_SUBMIT"] = "1" if want_submit else "0"
+            env["QRESEARCH_SG_PAPER_ONLY"] = "1"
+            env["QRESEARCH_LB_SUBMIT"] = "0"  # never couple to G1 live submit
+            env["QRESEARCH_REFRESH_CACHE"] = "1" if refresh else "0"
+            env["QRESEARCH_SG_PAPER_OUT"] = str(_sg_out_dir())
+            env["QRESEARCH_SG_BOOK"] = (book or "QQQ").strip().upper()
+            env["PYTHONUNBUFFERED"] = "1"
+
+            if mode == "backtest":
+                label = "長橋數據回測（不下單）"
+            elif want_submit:
+                label = "送單到模擬盤（paper only）"
+            else:
+                label = "只算訊號（不下單）"
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": (
+                        f"處理中：mode={mode} book={env['QRESEARCH_SG_BOOK']}，{label}，"
+                        f"refresh={bool(refresh)}"
+                    ),
+                    "level": "info",
+                }
+            )
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": "處理中：向長橋抓取日 K / 計算 Structure Gate v8…",
+                    "level": "info",
+                }
+            )
+
+            proc = await asyncio.create_subprocess_exec(
+                _python(),
+                str(SG_DAILY),
+                mode,
+                cwd=str(ROOT),
+                env=env,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            assert proc.stdout is not None
+            while True:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                text = line.decode("utf-8", errors="replace").rstrip()
+                if not text:
+                    continue
+                if text.startswith("+---") or text.startswith("|"):
+                    continue
+                yield _sse({"phase": "log", "message": text, "level": "log"})
+
+            code = await proc.wait()
+            status = _sg_status_payload()
+            signal = status.get("signal") or {}
+            backtest = status.get("backtest") or {}
+            if code == 0:
+                if mode == "backtest":
+                    msg = (
+                        f"完成回測：book={backtest.get('book')} "
+                        f"SG={float(backtest.get('structure_gate_total_return') or 0)*100:.1f}% "
+                        f"BH={float(backtest.get('bench_bh_total_return') or 0)*100:.1f}%"
+                    )
+                else:
+                    tgt = signal.get("target") or {}
+                    tgt_s = ", ".join(f"{k} {v:.0%}" for k, v in tgt.items()) or "空手"
+                    msg = (
+                        f"完成：asof={signal.get('asof')} mode={signal.get('mode')} "
+                        f"目標={tgt_s}"
+                    )
+                yield _sse(
+                    {
+                        "phase": "progress",
+                        "message": msg,
+                        "level": "ok",
+                        "data": status,
+                    }
+                )
+                yield _sse({"phase": "done", "ok": True, "data": {**status, "exit_code": code}})
+            else:
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"失敗：行程結束碼 {code}",
+                        "level": "error",
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False, "data": {"exit_code": code}})
+        except Exception as exc:  # noqa: BLE001
+            yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+        finally:
+            _lock.release()
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@app.get("/api/sg/set-submit")
+async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingResponse:
+    async def gen() -> AsyncIterator[str]:
+        yield _sse({"phase": "start", "message": "處理中：更新 Structure Gate paper 送單開關…", "level": "info"})
+        if not _lock.acquire(blocking=False):
+            yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+            return
+        try:
+            env_path = ROOT / ".env"
+            if not env_path.is_file():
+                yield _sse({"phase": "error", "message": "找不到 .env", "level": "error"})
+                yield _sse({"phase": "done", "ok": False})
+                return
+
+            def _write() -> None:
+                lines = []
+                found_submit = False
+                found_only = False
+                for line in env_path.read_text().splitlines():
+                    if line.startswith("QRESEARCH_SG_PAPER_SUBMIT="):
+                        lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
+                        found_submit = True
+                    elif line.startswith("QRESEARCH_SG_PAPER_ONLY="):
+                        lines.append("QRESEARCH_SG_PAPER_ONLY=1")
+                        found_only = True
+                    else:
+                        lines.append(line)
+                if not found_submit:
+                    lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
+                if not found_only:
+                    lines.append("QRESEARCH_SG_PAPER_ONLY=1")
+                env_path.write_text("\n".join(lines) + "\n")
+                env_path.chmod(0o600)
+                os.environ["QRESEARCH_SG_PAPER_SUBMIT"] = str(enabled)
+                os.environ["QRESEARCH_SG_PAPER_ONLY"] = "1"
+
+            await asyncio.to_thread(_write)
+            msg = (
+                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1）"
+                if enabled
+                else "已關閉 Structure Gate 送單（只計畫）"
+            )
+            yield _sse({"phase": "progress", "message": f"完成：{msg}", "level": "ok"})
+            yield _sse(
+                {
+                    "phase": "done",
+                    "ok": True,
+                    "data": {"submit_enabled": bool(enabled), "paper_only": True},
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+        finally:
+            _lock.release()
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/api/status")
