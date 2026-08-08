@@ -354,13 +354,19 @@ def _status_payload(*, live: bool = False) -> dict[str, Any]:
 
 @app.get("/")
 def index() -> FileResponse:
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(
+        STATIC / "index.html",
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 @app.get("/structure-gate")
 def structure_gate_page() -> FileResponse:
     """Legacy path — same Structure Gate paper monitor as `/`."""
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(
+        STATIC / "index.html",
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 @app.get("/api/structure-gate/v8")

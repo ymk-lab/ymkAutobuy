@@ -168,14 +168,14 @@
           </div>
         </div>
 
-        <div class="sg-bt-range-row" aria-label="回測日期設定">
-          <span class="sg-book-label">回測區間</span>
+        <div class="sg-bt-range-row" id="bt-range-panel" aria-label="回測日期設定">
+          <strong class="sg-bt-range-title">設定回測時間</strong>
           <label class="sg-date-field">
-            <span>起</span>
+            <span>開始</span>
             <input type="date" id="sg-bt-start" value="2025-08-07" />
           </label>
           <label class="sg-date-field">
-            <span>迄</span>
+            <span>結束</span>
             <input type="date" id="sg-bt-end" value="2026-08-07" />
           </label>
           <div class="sg-bt-presets" role="group" aria-label="快速區間">
@@ -184,6 +184,7 @@
             <button type="button" class="btn btn-ghost" data-bt-preset="ytd">YTD</button>
             <button type="button" class="btn btn-ghost" data-bt-preset="2021">2021→今</button>
           </div>
+          <p class="sg-btn-hint">選好日期後再按「v11 回測」。</p>
         </div>
 
         <div class="sg-backtest-strip" aria-label="回測摘要">
@@ -274,6 +275,6 @@
       <span>自動每日掛單：deploy/vps-cron/run-sg.sh</span>
     </footer>
 
-    <script src="/static/structure_gate.js" defer></script>
+    <script src="/static/structure_gate.js?v=bt-range-1" defer></script>
   </body>
 </html>
