@@ -13,10 +13,11 @@ from qresearch.strategy.regime_label import RegimeLabel, RegimeScorecardConfig, 
 
 @dataclass
 class RegimePlaybookConfig:
-    panic_qqq_weight: float = 0.30
+    panic_qqq_weight: float = 0.30  # PanicRebound sleeve weight in bench ETF
     ers_config: EmergingRSWaveConfig | None = None
     scorecard: RegimeScorecardConfig | None = None
     label_method: str = "scorecard"  # or "hierarchy"
+    bench_symbol: str = "QQQ"  # CrowdedTrend / PanicRebound vehicle
 
 
 @dataclass
@@ -27,7 +28,7 @@ class SwitchSimResult:
     scores: pd.DataFrame
     meta: pd.DataFrame
     trades: pd.DataFrame
-    mode: pd.Series  # cash / ers / qqq_full / qqq_panic / range_down
+    mode: pd.Series  # cash / ers / bench / wind_down
 
 
 def _active_symbol(weights_row: pd.Series) -> tuple[str | None, float]:
@@ -47,13 +48,20 @@ def simulate_regime_switch(
     start: pd.Timestamp | None = None,
     fees: object | None = None,
     config: RegimePlaybookConfig | None = None,
+    bench_symbol: str | None = None,
 ) -> SwitchSimResult:
-    """Next-open execution of label→playbook switching book."""
+    """Next-open execution of label→playbook switching book.
+
+    ``qqq_open`` / ``qqq_close`` are the *benchmark* series used for labels,
+    G1 gate / RS, and CrowdedTrend / PanicRebound sleeves (historically QQQ;
+    pass SMH for semiconductor book experiments).
+    """
     from qresearch.backtest.futu_costs import FutuUsEquityFees
 
     cfg = config or RegimePlaybookConfig()
     fee_model = fees if fees is not None else FutuUsEquityFees(slippage_bps=3.0)
     ers_cfg = cfg.ers_config or EmergingRSWaveConfig()
+    bench = (bench_symbol or cfg.bench_symbol or "QQQ").upper()
 
     labels, scores, meta = label_regimes(
         qqq_close,
@@ -78,14 +86,12 @@ def simulate_regime_switch(
         start = pd.Timestamp(start)
 
     cash = float(capital)
-    # Position: either empty, or single name shares, or QQQ shares
-    pos_sym: str | None = None  # ticker or "QQQ"
+    # Position: either empty, or single name shares, or bench ETF shares
+    pos_sym: str | None = None  # ticker or bench symbol
     pos_shares = 0.0
-    pos_kind: str = "cash"  # cash|ers|qqq
-    # For ERS staged exit we follow decision weights; track peak for info only
-    mode_pending: str = "cash"
+    pos_kind: str = "cash"  # cash|ers|bench
     target_sym: str | None = None
-    target_w = 0.0  # for qqq sleeve weight; for ers use ers_w next day
+    target_w = 0.0
 
     equity_rows: list[float] = []
     mode_rows: list[str] = []
@@ -95,7 +101,7 @@ def simulate_regime_switch(
     def _mark(dt: pd.Timestamp) -> float:
         if pos_sym is None or pos_shares <= 0:
             return cash
-        if pos_sym == "QQQ":
+        if pos_sym == bench:
             return cash + pos_shares * float(qc.at[dt])
         return cash + pos_shares * float(px.at[dt, pos_sym])
 
@@ -103,7 +109,7 @@ def simulate_regime_switch(
         nonlocal cash, pos_sym, pos_shares, pos_kind
         if pos_sym is None or pos_shares <= 0:
             return
-        if pos_sym == "QQQ":
+        if pos_sym == bench:
             px_o = float(qo.at[dt])
         else:
             px_o = float(op.at[dt, pos_sym])
@@ -126,7 +132,7 @@ def simulate_regime_switch(
         )
         pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
 
-    def _buy_qqq(dt: pd.Timestamp, weight: float, reason: str) -> None:
+    def _buy_bench(dt: pd.Timestamp, weight: float, reason: str) -> None:
         nonlocal cash, pos_sym, pos_shares, pos_kind
         px_o = float(qo.at[dt])
         if not np.isfinite(px_o) or px_o <= 0:
@@ -145,12 +151,12 @@ def simulate_regime_switch(
             notional = shares * px_o
             cost = float(fee_model.total_cost_usd(notional, px_o))
         cash -= notional + cost
-        pos_sym, pos_shares, pos_kind = "QQQ", shares, "qqq"
+        pos_sym, pos_shares, pos_kind = bench, shares, "bench"
         trades.append(
             {
                 "date": dt.strftime("%Y-%m-%d"),
                 "side": "BUY",
-                "symbol": "QQQ",
+                "symbol": bench,
                 "shares": round(shares, 4),
                 "price": round(px_o, 4),
                 "notional_usd": round(notional, 2),
@@ -223,14 +229,13 @@ def simulate_regime_switch(
         if pos_shares <= 1e-9:
             pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
 
-    # Decide desired mode from label
     def desired_from_label(label: str) -> tuple[str, float]:
         if label == "Defense":
             return "cash", 0.0
         if label == "CrowdedTrend":
-            return "qqq_full", 1.0
+            return "bench_full", 1.0
         if label == "PanicRebound":
-            return "qqq_panic", cfg.panic_qqq_weight
+            return "bench_panic", cfg.panic_qqq_weight
         if label == "Rotation":
             return "ers", 1.0
         if label == "Range":
@@ -245,25 +250,25 @@ def simulate_regime_switch(
             # Execute pending from prior close
             if pending_mode == "cash":
                 _sell_all(dt, "to_cash")
-            elif pending_mode in ("qqq_full", "qqq_panic"):
-                # Rebalance QQQ sleeve
-                want_w = 1.0 if pending_mode == "qqq_full" else cfg.panic_qqq_weight
+            elif pending_mode in ("bench_full", "bench_panic", "qqq_full", "qqq_panic"):
+                want_w = (
+                    1.0
+                    if pending_mode in ("bench_full", "qqq_full")
+                    else cfg.panic_qqq_weight
+                )
                 if pos_kind == "ers":
-                    _sell_all(dt, "switch_to_qqq")
-                if pos_kind == "qqq" and pos_sym == "QQQ":
-                    # adjust size if needed (simple: rebuild if weight mismatch large)
+                    _sell_all(dt, f"switch_to_{bench.lower()}")
+                if pos_kind == "bench" and pos_sym == bench:
                     eq_now = cash + pos_shares * float(qo.at[dt])
                     cur_w = (pos_shares * float(qo.at[dt])) / eq_now if eq_now > 0 else 0
                     if abs(cur_w - want_w) > 0.15:
-                        _sell_all(dt, "rebalance_qqq")
-                        _buy_qqq(dt, want_w, pending_mode)
+                        _sell_all(dt, f"rebalance_{bench.lower()}")
+                        _buy_bench(dt, want_w, pending_mode)
                 elif pos_kind == "cash":
-                    _buy_qqq(dt, want_w, pending_mode)
+                    _buy_bench(dt, want_w, pending_mode)
             elif pending_mode == "ers":
-                if pos_kind == "qqq":
+                if pos_kind == "bench":
                     _sell_all(dt, "switch_to_ers")
-                # Follow ERS decision weights from prior close (shifted: use yesterday's decision)
-                # Here pending was set with yesterday's ers target already stored in target_*
                 sym, w = target_sym, target_w
                 if sym is None or w <= 0:
                     if pos_kind == "ers":
@@ -274,56 +279,50 @@ def simulate_regime_switch(
                     if pos_kind == "cash":
                         _buy_ers(dt, sym, w, "ers_enter")
                     elif pos_kind == "ers" and pos_sym == sym:
-                        # half vs full
                         eq_now = cash + pos_shares * float(op.at[dt, sym])
                         cur_w = (pos_shares * float(op.at[dt, sym])) / eq_now if eq_now > 0 else 0
                         if w <= 0.6 and cur_w > 0.7:
                             _trim_ers(dt, 0.5, "ers_half")
                         elif w >= 0.9 and cur_w < 0.7:
-                            # scale up to full: sell+rebuy simpler
                             _sell_all(dt, "ers_refull_sell")
                             _buy_ers(dt, sym, 1.0, "ers_refull_buy")
             elif pending_mode == "range":
-                # No new entries; wind down by playbook exits only (handled in decide)
                 pass
 
             eq_index.append(dt)
             equity_rows.append(_mark(dt))
             mode_rows.append(pos_kind if pending_mode != "range" else f"range:{pos_kind}")
 
-        # --- Decide for next open (all dates for warm labels; only apply after start) ---
+        # --- Decide for next open ---
         label = str(lab.at[dt])
         mode, wdesk = desired_from_label(label)
 
         if mode == "range":
-            # Keep existing; apply exit pressure from prior kind
             if pos_kind == "ers":
                 sym, w = _active_symbol(ers_w.loc[dt])
                 pending_mode = "ers"
                 target_sym, target_w = sym, w
-            elif pos_kind == "qqq":
-                # CrowdedTrend/Panic QQQ exits when below SMA50
+            elif pos_kind == "bench":
                 sma50 = qc.rolling(50, min_periods=50).mean()
                 if np.isfinite(float(sma50.at[dt])) and float(qc.at[dt]) < float(sma50.at[dt]):
                     pending_mode, target_sym, target_w = "cash", None, 0.0
                 else:
                     pending_mode = "range"
-                    target_sym, target_w = "QQQ", 1.0 if pos_shares > 0 else 0.0
+                    target_sym, target_w = bench, 1.0 if pos_shares > 0 else 0.0
             else:
                 pending_mode, target_sym, target_w = "cash", None, 0.0
         elif mode == "ers":
             sym, w = _active_symbol(ers_w.loc[dt])
             pending_mode = "ers"
             target_sym, target_w = sym, w
-        elif mode == "qqq_full":
-            pending_mode, target_sym, target_w = "qqq_full", "QQQ", 1.0
-        elif mode == "qqq_panic":
-            pending_mode, target_sym, target_w = "qqq_panic", "QQQ", cfg.panic_qqq_weight
+        elif mode == "bench_full":
+            pending_mode, target_sym, target_w = "bench_full", bench, 1.0
+        elif mode == "bench_panic":
+            pending_mode, target_sym, target_w = "bench_panic", bench, cfg.panic_qqq_weight
         else:
             pending_mode, target_sym, target_w = "cash", None, 0.0
 
         if dt < start:
-            # flat-start: clear any accidental state
             cash = float(capital)
             pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
 
@@ -339,9 +338,9 @@ def simulate_regime_switch(
     )
 
 
-def simulate_qqq_bh(
-    qqq_open: pd.Series,
-    qqq_close: pd.Series,
+def simulate_bench_bh(
+    bench_open: pd.Series,
+    bench_close: pd.Series,
     *,
     capital: float,
     start: pd.Timestamp,
@@ -350,9 +349,8 @@ def simulate_qqq_bh(
     from qresearch.backtest.futu_costs import FutuUsEquityFees
 
     fee_model = fees if fees is not None else FutuUsEquityFees(slippage_bps=3.0)
-    qo = qqq_open.astype(float).loc[start:]
-    qc = qqq_close.astype(float).loc[start:]
-    first = qo.index[0]
+    qo = bench_open.astype(float).loc[start:]
+    qc = bench_close.astype(float).loc[start:]
     px0 = float(qo.iloc[0])
     shares = float(np.floor(capital / px0))
     notional = shares * px0
@@ -361,6 +359,20 @@ def simulate_qqq_bh(
     eq = cash + shares * qc
     eq.name = "equity"
     return eq
+
+
+def simulate_qqq_bh(
+    qqq_open: pd.Series,
+    qqq_close: pd.Series,
+    *,
+    capital: float,
+    start: pd.Timestamp,
+    fees: object,
+) -> pd.Series:
+    """Alias for simulate_bench_bh (historical QQQ naming)."""
+    return simulate_bench_bh(
+        qqq_open, qqq_close, capital=capital, start=start, fees=fees
+    )
 
 
 def simulate_cash(*, capital: float, index: pd.DatetimeIndex) -> pd.Series:

@@ -1,0 +1,46 @@
+{
+  "passed_bakeoff": false,
+  "label_method": "hierarchy",
+  "benchmark": "SMH",
+  "universe_n": 44,
+  "criteria": "regime_switch must beat smh_bh AND pure_ers_g1",
+  "beat_smh_bh": false,
+  "beat_pure_ers": true,
+  "regime_switch": {
+    "total_return": 0.24884167539670687,
+    "max_drawdown": -0.30681464899705635,
+    "sharpe": 0.5913616921025717,
+    "end_equity": 62442.08376983534
+  },
+  "pure_ers_g1": {
+    "total_return": 0.1946212401789671,
+    "max_drawdown": -0.4525290263393982,
+    "sharpe": 0.474647625809435,
+    "end_equity": 59731.06200894835
+  },
+  "smh_bh": {
+    "total_return": 1.3892930827400005,
+    "max_drawdown": -0.32639328683701796,
+    "sharpe": 1.5577831169519538,
+    "end_equity": 119464.65413700002
+  },
+  "always_cash": {
+    "total_return": 0.0,
+    "max_drawdown": 0.0,
+    "sharpe": 0.0,
+    "end_equity": 50000.0
+  },
+  "label_distribution": {
+    "Defense": 0.5025,
+    "CrowdedTrend": 0.2425,
+    "Rotation": 0.185,
+    "PanicRebound": 0.035,
+    "Range": 0.035
+  },
+  "fallback_hint": "On SMH CrowdedTrend book, switch still trails SMH B&H and/or ERS \u2014 confirm CrowdedTrend\u2192SMH mapping / thresholds, or keep SMH as B&H-only sleeve.",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0
+}
