@@ -333,7 +333,10 @@ def main() -> int:
         log(f"  {book}: mode={meta['mode']} target={tgt} members={len(closes.columns)}")
 
     target = merge_targets(book_targets_raw, WEIGHTS)
-    log("merged_target=", ", ".join(f"{k}:{v:.1%}" for k, v in target.items()) or "(flat)")
+    log(
+        "merged_target= "
+        + (", ".join(f"{k}:{v:.1%}" for k, v in target.items()) or "(flat)")
+    )
 
     # Broker
     broker: FutuBrokerAdapter
