@@ -1,22 +1,37 @@
-# Deploy Structure Gate UI to Firebase Hosting.
-# Usage:
-#   .\deploy.ps1 -ProjectId my-firebase-id -ApiBase https://xxx.trycloudflare.com
+﻿# Deploy Structure Gate UI to Firebase Hosting.
+# Examples:
+#   .\deploy.ps1 -ProjectId ymk-autobuy
+#   .\deploy.ps1 -ProjectId ymk-autobuy -UiSetsApi
+#   .\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://abc-def-123.trycloudflare.com
 param(
   [Parameter(Mandatory = $true)][string]$ProjectId,
   [string]$ApiBase = "",
   [string]$CorsOrigins = "",
   [switch]$CreateProject,
-  # UI can set API via prompt/localStorage; use when tunnel URL not ready yet.
   [switch]$UiSetsApi
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-function Assert-Ok($step) {
+function Assert-Ok([string]$step) {
   if ($LASTEXITCODE -ne 0) {
     throw "$step failed (exit $LASTEXITCODE)"
   }
+}
+
+function Test-ValidApiBase([string]$url) {
+  if ([string]::IsNullOrWhiteSpace($url)) { return $false }
+  if ($url -notmatch '^https://') { return $false }
+  if ($url -match '127\.0\.0\.1|localhost') { return $false }
+  if ($url -match 'YOUR_|PLACEHOLDER|TUNNEL_HOST|example\.com|xxxx\.|random-words') { return $false }
+  if ($url -match '^https://\.trycloudflare\.com/?$') { return $false }
+  # Real quick-tunnel hosts look like: https://foo-bar-baz.trycloudflare.com
+  if ($url -match '^https://[a-zA-Z0-9][a-zA-Z0-9-]*\.trycloudflare\.com/?$') { return $true }
+  # Allow other https origins (named tunnel / custom domain)
+  if ($url -match '^https://[a-zA-Z0-9][a-zA-Z0-9.-]+[a-zA-Z0-9](:\d+)?/?$') { return $true }
+  return $false
 }
 
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
@@ -27,37 +42,20 @@ $ApiBase = $ApiBase.Trim().TrimEnd("/")
 $ProjectId = $ProjectId.Trim()
 
 if ($ProjectId -match "YOUR_|PLACEHOLDER|example" -or $ProjectId.Length -lt 3) {
-  throw @"
-ProjectId 還是佔位字。請先建立 Firebase 專案：
-
-  npx firebase login
-  npx firebase projects:create ymk-autobuy --display-name "ymk Autobuy"
-  # 或開 https://console.firebase.google.com/ → Add project
-"@
+  throw "Invalid ProjectId. Example: .\deploy.ps1 -ProjectId ymk-autobuy"
 }
 
-if ($UiSetsApi -or $ApiBase -eq "" -or $ApiBase -eq "none") {
+# Default: ship UI only; set API URL later in the webpage footer.
+if ($UiSetsApi -or [string]::IsNullOrWhiteSpace($ApiBase) -or $ApiBase -eq "none") {
   $ApiBase = ""
-  Write-Host "ApiBase left empty — open the site and paste tunnel URL in the page footer."
-} elseif (
-  $ApiBase -notmatch "^https://" -or
-  $ApiBase -match "YOUR_|PLACEHOLDER|example\.com|TUNNEL_HOST" -or
-  $ApiBase -match "127\.0\.0\.1|localhost" -or
-  $ApiBase -match "^https://\.trycloudflare\.com$" -or
-  $ApiBase -match "^https://trycloudflare\.com" -or
-  ($ApiBase -match "trycloudflare\.com" -and $ApiBase -notmatch "^https://[a-z0-9-]+\.trycloudflare\.com$")
-) {
-  throw @"
-ApiBase 必須是完整隧道網址，例如：
-  https://random-words-1234.trycloudflare.com
-
-不能是：
-  http://127.0.0.1:8787
-  https://.trycloudflare.com   ← 缺 hostname（你上次部署就是這個）
-
-或先只部署 UI，稍後在網頁貼隧道：
-  .\deploy.ps1 -ProjectId ymk-autobuy -UiSetsApi
-"@
+  Write-Host "API_BASE empty -> set tunnel URL in Firebase page footer after deploy."
+} elseif (-not (Test-ValidApiBase $ApiBase)) {
+  Write-Host "Invalid ApiBase: $ApiBase"
+  Write-Host "Use a real tunnel URL, for example:"
+  Write-Host "  https://abc-def-123.trycloudflare.com"
+  Write-Host "Or deploy UI only:"
+  Write-Host "  .\deploy.ps1 -ProjectId $ProjectId -UiSetsApi"
+  throw "Invalid ApiBase"
 }
 
 npm install
@@ -66,21 +64,20 @@ Assert-Ok "npm install"
 if ($CreateProject) {
   Write-Host "Creating Firebase project $ProjectId ..."
   npx firebase projects:create $ProjectId --display-name "ymk Autobuy"
-  if ($LASTEXITCODE -ne 0) {
-    Write-Host "projects:create failed — ID 可能已被占用。改跑：npx firebase projects:list"
-    throw "firebase projects:create failed"
-  }
+  Assert-Ok "firebase projects:create"
 }
 
-$rc = @{ projects = @{ default = $ProjectId } } | ConvertTo-Json -Depth 5
-Set-Content -Path ".firebaserc" -Value $rc -Encoding UTF8
+$rcObj = @{ projects = @{ default = $ProjectId } }
+$rcJson = $rcObj | ConvertTo-Json -Depth 5
+# UTF-8 no BOM for .firebaserc
+[System.IO.File]::WriteAllText((Join-Path $PWD ".firebaserc"), $rcJson + "`n")
 
 $env:QRESEARCH_API_BASE = $ApiBase
 if ($CorsOrigins -eq "") {
   $CorsOrigins = "https://$ProjectId.web.app,https://$ProjectId.firebaseapp.com"
 }
-Write-Host "API_BASE=$env:QRESEARCH_API_BASE"
-Write-Host "Remember to set on the API host: QRESEARCH_CORS_ORIGINS=$CorsOrigins"
+Write-Host "API_BASE=$($env:QRESEARCH_API_BASE)"
+Write-Host "Set on API host: QRESEARCH_CORS_ORIGINS=$CorsOrigins"
 
 Write-Host "Checking project access..."
 npx firebase projects:list
@@ -88,15 +85,7 @@ Assert-Ok "firebase projects:list"
 
 npx firebase use $ProjectId
 if ($LASTEXITCODE -ne 0) {
-  throw @"
-無法選取專案 '$ProjectId'。帳號 ymk@twmlsws.edu.hk 下可能還沒有這個專案。
-
-請執行其一：
-  .\deploy.ps1 -ProjectId $ProjectId -ApiBase $ApiBase -CreateProject
-或
-  開 https://console.firebase.google.com/ 用同一 Google 帳號 Add project，
-  再到 Project settings 複製真正的 Project ID。
-"@
+  throw "Cannot select project '$ProjectId'. Login with the Google account that owns it, then retry."
 }
 
 npm run deploy
@@ -106,3 +95,10 @@ Write-Host ""
 Write-Host "Live:"
 Write-Host "  https://$ProjectId.web.app"
 Write-Host "  https://$ProjectId.firebaseapp.com"
+if (-not $ApiBase) {
+  Write-Host ""
+  Write-Host "Next:"
+  Write-Host "  1) Run deploy\local\start-backend.bat"
+  Write-Host "  2) Open https://$ProjectId.web.app"
+  Write-Host "  3) Click footer API button and paste the tunnel URL"
+}
