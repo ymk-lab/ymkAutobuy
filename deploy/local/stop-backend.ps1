@@ -1,4 +1,4 @@
-# Stop Structure Gate uvicorn (:8787) and cloudflared quick tunnels.
+﻿# Stop Structure Gate uvicorn (:8787) and cloudflared quick tunnels.
 param([int]$Port = 8787)
 
 $ErrorActionPreference = "SilentlyContinue"

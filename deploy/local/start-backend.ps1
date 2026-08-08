@@ -1,4 +1,4 @@
-# One-click Structure Gate backend: uvicorn :8787 + Cloudflare quick tunnel.
+﻿# One-click Structure Gate backend: uvicorn :8787 + Cloudflare quick tunnel.
 # Double-click start-backend.bat, or:
 #   powershell -ExecutionPolicy Bypass -File deploy\local\start-backend.ps1
 param(
