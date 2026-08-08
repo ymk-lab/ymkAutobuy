@@ -181,3 +181,7 @@ examples/data/panel/
 !examples/data/structure_gate_v10_cross/
 !examples/data/structure_gate_v10_cross/*.json
 !examples/data/structure_gate_v10_cross/*.csv
+
+!examples/data/structure_gate_v11_blend/
+!examples/data/structure_gate_v11_blend/*.json
+!examples/data/structure_gate_v11_blend/*.csv

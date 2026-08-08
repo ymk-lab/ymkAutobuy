@@ -139,6 +139,52 @@ class StructureGateConfig:
         """
         return cls()
 
+    @classmethod
+    def v11(cls) -> "StructureGateConfig":
+        """v11 blended sleeves: same knobs as v8.
+
+        Capital is split across independent books (default SPY 40% / QQQ 30% /
+        SMH 30%); each runs ``simulate_structure_gate`` on its own universe and
+        the equities are summed. See ``blend_structure_gate_books``.
+        """
+        return cls()
+
+
+# Default v11 capital weights (must sum to 1.0).
+V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
+
+
+def blend_structure_gate_books(
+    book_results: dict[str, "StructureSimResult"],
+    weights: dict[str, float] | None = None,
+    *,
+    capital: float = 50_000.0,
+) -> tuple[pd.Series, pd.DataFrame]:
+    """Sum independent book equities into one portfolio path.
+
+    ``book_results`` maps book name → ``StructureSimResult`` already simulated
+    with ``capital * weight[book]``. Returns (blended_equity, weight_frame).
+    """
+    w = dict(weights or V11_BOOK_WEIGHTS)
+    s = float(sum(w.values()))
+    if s <= 0:
+        raise ValueError("weights must sum to a positive number")
+    w = {k: float(v) / s for k, v in w.items()}
+
+    eqs: dict[str, pd.Series] = {}
+    for book, weight in w.items():
+        if book not in book_results:
+            raise KeyError(f"missing book result for {book}")
+        eqs[book] = book_results[book].equity.astype(float)
+    panel = pd.DataFrame(eqs).sort_index().ffill()
+    # Books may start on slightly different calendars; before first value use
+    # that sleeve's starting capital so the sum stays near ``capital``.
+    for book, weight in w.items():
+        start_cap = float(capital) * weight
+        panel[book] = panel[book].fillna(start_cap)
+    blended = panel.sum(axis=1).rename("equity")
+    return blended, panel
+
 
 def top_concentration(ret_panel: pd.DataFrame, k: int = 3) -> pd.Series:
     """Share of positive cross-sectional return captured by top-k names."""
