@@ -327,6 +327,14 @@ while ($true) {
     $tu = ""
     if (Test-Path $tunnelUrlFile) { $tu = (Get-Content $tunnelUrlFile -ErrorAction SilentlyContinue | Select-Object -First 1) }
     Write-Log ("status opend=" + (Test-PortListen $opendPort) + " api=" + (Test-PortListen $Port) + " tunnelProc=" + (Test-CloudflaredRunning) + " url=" + $tu)
+
+    # Convenience: always write a one-click open helper
+    $openBat = Join-Path $logs "OPEN-UI.bat"
+    if ($tu) {
+      Set-Content -Path $openBat -Value ("@echo off`r`nstart `"`" `"$tu`"`r`n") -Encoding ASCII
+    } else {
+      Set-Content -Path $openBat -Value ("@echo off`r`nstart `"`" `"http://127.0.0.1:$Port`"`r`n") -Encoding ASCII
+    }
   } catch {
     Write-Log ("loop error: " + $_.Exception.Message)
   }
