@@ -1,13 +1,77 @@
 (() => {
-  const API_BASE = String(window.QRESEARCH_API_BASE || "")
-    .trim()
-    .replace(/\/$/, "");
+  const LS_API = "qresearch_api_base";
+
+  function normalizeApiBase(raw) {
+    let s = String(raw || "")
+      .trim()
+      .replace(/\/$/, "");
+    if (!s) return "";
+    if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
+    s = s.replace(/\/$/, "");
+    // Reject broken deploy leftovers like https://.trycloudflare.com
+    if (/^https?:\/\/\.trycloudflare\.com$/i.test(s)) return "";
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(s) && location.protocol === "https:") {
+      return "";
+    }
+    return s;
+  }
+
+  function resolveApiBase() {
+    const params = new URLSearchParams(location.search);
+    const fromQuery = normalizeApiBase(params.get("api") || params.get("api_base"));
+    if (fromQuery) {
+      try {
+        localStorage.setItem(LS_API, fromQuery);
+      } catch {
+        /* ignore */
+      }
+      return fromQuery;
+    }
+    try {
+      const fromLs = normalizeApiBase(localStorage.getItem(LS_API));
+      if (fromLs) return fromLs;
+    } catch {
+      /* ignore */
+    }
+    return normalizeApiBase(window.QRESEARCH_API_BASE);
+  }
+
+  let API_BASE = resolveApiBase();
 
   function apiUrl(path) {
     if (!path) return API_BASE || "/";
     if (/^https?:\/\//i.test(path)) return path;
     const p = path.startsWith("/") ? path : `/${path}`;
     return `${API_BASE}${p}`;
+  }
+
+  function paintApiBase() {
+    const el = $("#sg-api-base");
+    if (!el) return;
+    el.textContent = API_BASE ? `API: ${API_BASE}` : "API: 未設定（點此填隧道網址）";
+    el.title = "點擊設定／更換 API 隧道網址";
+  }
+
+  function promptApiBase(reason) {
+    const msg =
+      (reason ? `${reason}\n\n` : "") +
+      "貼上 cloudflared 印出的完整網址，例如：\nhttps://abc-def-123.trycloudflare.com";
+    const next = window.prompt(msg, API_BASE || "https://");
+    if (next == null) return false;
+    const normalized = normalizeApiBase(next);
+    if (!normalized) {
+      toast("API 網址無效（不能是 https://.trycloudflare.com）", "error");
+      return false;
+    }
+    API_BASE = normalized;
+    try {
+      localStorage.setItem(LS_API, API_BASE);
+    } catch {
+      /* ignore */
+    }
+    paintApiBase();
+    toast(`API 已設為 ${API_BASE}`, "ok");
+    return true;
   }
 
   const MODE_COPY = {
@@ -648,9 +712,24 @@
     });
   });
 
+  paintApiBase();
   const apiBaseEl = $("#sg-api-base");
   if (apiBaseEl) {
-    apiBaseEl.textContent = API_BASE ? `API: ${API_BASE}` : "API: local";
+    apiBaseEl.style.cursor = "pointer";
+    apiBaseEl.addEventListener("click", async () => {
+      if (!promptApiBase()) return;
+      try {
+        await refreshStatus({ live: true });
+        toast("完成：已連上 API", "ok");
+      } catch (err) {
+        toast(`仍無法連線：${err?.message || err}`, "error");
+        pushActivity(`狀態載入失敗：${err?.message || err}`, "error");
+      }
+    });
+  }
+
+  if (!API_BASE && location.hostname.includes("web.app")) {
+    promptApiBase("Firebase 頁面需要本機隧道 API 網址。");
   }
 
   setMode("cash");
@@ -667,5 +746,16 @@
       }
       return refreshStatus({ live: true }).catch(() => null);
     })
-    .catch((err) => pushActivity(`狀態載入失敗：${err.message}`, "error"));
+    .catch(async (err) => {
+      pushActivity(`狀態載入失敗：${err.message}`, "error");
+      if (/Failed to fetch|NetworkError|Load failed/i.test(String(err?.message || err))) {
+        if (promptApiBase("無法連到 API（Failed to fetch）。")) {
+          try {
+            await refreshStatus({ live: true });
+          } catch (e2) {
+            pushActivity(`狀態載入失敗：${e2.message}`, "error");
+          }
+        }
+      }
+    });
 })();

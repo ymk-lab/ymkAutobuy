@@ -3,9 +3,11 @@
 #   .\deploy.ps1 -ProjectId my-firebase-id -ApiBase https://xxx.trycloudflare.com
 param(
   [Parameter(Mandatory = $true)][string]$ProjectId,
-  [Parameter(Mandatory = $true)][string]$ApiBase,
+  [string]$ApiBase = "",
   [string]$CorsOrigins = "",
-  [switch]$CreateProject
+  [switch]$CreateProject,
+  # UI can set API via prompt/localStorage; use when tunnel URL not ready yet.
+  [switch]$UiSetsApi
 )
 
 $ErrorActionPreference = "Stop"
