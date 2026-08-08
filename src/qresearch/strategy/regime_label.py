@@ -58,7 +58,7 @@ class RegimeScorecardConfig:
 
 
 def crowded_trend_relaxed_config() -> RegimeScorecardConfig:
-    """Looser CrowdedTrend for single-theme / ETF-led bull legs (e.g. SMH)."""
+    """Fully looser CrowdedTrend + milder Defense (theme bull legs, e.g. SMH)."""
     return RegimeScorecardConfig(
         crowded_overlap=0.40,
         crowded_strong_share=0.15,
@@ -68,6 +68,95 @@ def crowded_trend_relaxed_config() -> RegimeScorecardConfig:
         defense_ret20=-0.05,
         leave_defense_confirm=3,
     )
+
+
+def crowded_trend_params_relaxed() -> RegimeScorecardConfig:
+    """Relax *only* CrowdedTrend leadership tests; keep Defense/hysteresis defaults."""
+    return RegimeScorecardConfig(
+        crowded_overlap=0.40,
+        crowded_strong_share=0.15,
+        crowded_require_both=False,
+    )
+
+
+def market_crowded_relaxed_mask(
+    qqq_close: pd.Series,
+    member_closes: pd.DataFrame,
+    *,
+    base_config: RegimeScorecardConfig | None = None,
+    crowded_config: RegimeScorecardConfig | None = None,
+) -> pd.Series:
+    """True when the bench still qualifies as Crowded under *relaxed* thresholds.
+
+    Used to *extend* an existing CrowdedTrend stay (not to enter). Leadership uses
+    relaxed levels but still requires **both** overlap and strong_share (AND), so
+    OR-churn cannot convert a long Rotation leg into QQQ hold.
+
+    Risk gates stay strict (``base_config`` Defense).
+    """
+    base = base_config or RegimeScorecardConfig()
+    crowd = crowded_config or crowded_trend_params_relaxed()
+    _scores, meta = score_regimes(qqq_close, member_closes, config=crowd)
+    above50 = meta["above_sma50"] > 0.5
+    # Persistence: AND at relaxed thresholds (0.40 / 0.15), ignore require_both=False
+    leadership = (meta["overlap"] >= crowd.crowded_overlap) & (
+        meta["strong_share"] >= crowd.crowded_strong_share
+    )
+    hard_defense = (
+        (~above50)
+        | (meta["dd60"] <= -base.defense_dd)
+        | (meta["ret20"] <= base.defense_ret20)
+    )
+    return (above50 & leadership & ~hard_defense).fillna(False).astype(bool)
+
+
+def apply_market_crowded_relax_gate(
+    raw_strict: pd.Series,
+    market_crowded: pd.Series,
+) -> pd.Series:
+    """Legacy upgrade: force CrowdedTrend on all attack labels while mask is true.
+
+    Prefer ``apply_crowded_relaxed_persistence`` — enter Crowded only on strict
+    labels, then stay while the relaxed 大盤 mask holds.
+    """
+    out = raw_strict.astype(str).copy()
+    crowd = market_crowded.reindex(out.index).fillna(False).astype(bool)
+    upgradable = ~out.isin(["Defense", "PanicRebound"])
+    out.loc[crowd & upgradable] = "CrowdedTrend"
+    out.name = "raw_label"
+    return out
+
+
+def apply_crowded_relaxed_persistence(
+    raw_strict: pd.Series,
+    market_crowded: pd.Series,
+) -> pd.Series:
+    """Strict CrowdedTrend *entry*; relaxed leadership only extends the stay.
+
+    - Enter CrowdedTrend only when ``raw_strict`` says so (strict tests).
+    - Once in CrowdedTrend, remain while ``market_crowded`` (relaxed leadership)
+      and not Defense/PanicRebound.
+    - Defense / PanicRebound always break the stay immediately.
+    """
+    strict = raw_strict.astype(str)
+    lead = market_crowded.reindex(strict.index).fillna(False).astype(bool)
+    out: list[str] = []
+    in_crowd = False
+    for lab, ok in zip(strict.tolist(), lead.tolist()):
+        if lab in ("Defense", "PanicRebound"):
+            in_crowd = False
+            out.append(lab)
+            continue
+        if lab == "CrowdedTrend":
+            in_crowd = True
+            out.append("CrowdedTrend")
+            continue
+        if in_crowd and ok:
+            out.append("CrowdedTrend")
+            continue
+        in_crowd = False
+        out.append(lab)
+    return pd.Series(out, index=strict.index, name="raw_label")
 
 
 def _top_set(row: pd.Series, k: int) -> set[str]:
@@ -329,10 +418,15 @@ def label_regimes(
     *,
     config: RegimeScorecardConfig | None = None,
     method: str = "scorecard",
+    market_crowded_relax: bool = False,
 ) -> tuple[pd.Series, pd.DataFrame, pd.DataFrame]:
     """Return (hysteresis labels, scores, meta features).
 
     ``method``: ``scorecard`` (default) or ``hierarchy`` (risk-first cascade).
+
+    ``market_crowded_relax``: strict CrowdedTrend entry; relaxed leadership only
+    keeps an existing CrowdedTrend (大盤已是 Crowded 時才寬鬆續持). Does not
+    convert Rotation→Crowded on its own.
     """
     cfg = config or RegimeScorecardConfig()
     scores, meta = score_regimes(qqq_close, member_closes, config=cfg)
@@ -343,9 +437,17 @@ def label_regimes(
         raw = raw_labels_from_scores(scores)
     else:
         raise ValueError(f"unknown regime method: {method}")
+    market_crowd = pd.Series(False, index=raw.index)
+    if market_crowded_relax:
+        market_crowd = market_crowded_relaxed_mask(
+            qqq_close, member_closes, base_config=cfg
+        ).reindex(raw.index).fillna(False)
+        raw = apply_crowded_relaxed_persistence(raw, market_crowd)
     labels = apply_hysteresis(raw, config=cfg)
     meta = meta.copy()
     meta["raw_label"] = raw
     meta["label"] = labels
     meta["method"] = method
+    meta["market_crowded_relax"] = bool(market_crowded_relax)
+    meta["market_crowded"] = market_crowd.astype(float)
     return labels, scores, meta

@@ -18,6 +18,8 @@ class RegimePlaybookConfig:
     scorecard: RegimeScorecardConfig | None = None
     label_method: str = "scorecard"  # or "hierarchy"
     bench_symbol: str = "QQQ"  # CrowdedTrend / PanicRebound vehicle
+    # When True: strict CrowdedTrend entry; relaxed leadership only extends stay.
+    market_crowded_relax: bool = False
 
 
 @dataclass
@@ -68,6 +70,7 @@ def simulate_regime_switch(
         closes,
         config=cfg.scorecard,
         method=cfg.label_method,
+        market_crowded_relax=cfg.market_crowded_relax,
     )
     book = EmergingRSWaveBook(gate="G1", config=ers_cfg)
     ers_w, _ers_log = book.generate_weights(closes, qqq_close)

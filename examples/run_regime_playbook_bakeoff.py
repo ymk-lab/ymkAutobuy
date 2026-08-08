@@ -40,9 +40,11 @@ PROFILE = (sys.argv[2] if len(sys.argv) > 2 else "default").strip().lower()
 _OUT_BASE = (
     "regime_playbook_bakeoff_hierarchy" if METHOD == "hierarchy" else "regime_playbook_bakeoff"
 )
-OUT = ROOT / "examples" / "data" / (
-    f"{_OUT_BASE}_relaxed" if PROFILE == "relaxed" else _OUT_BASE
-)
+_PROFILE_SUFFIX = {
+    "relaxed": "_relaxed",
+    "gated": "_gated",  # strict Crowded entry; relaxed leadership only extends stay
+}.get(PROFILE, "")
+OUT = ROOT / "examples" / "data" / f"{_OUT_BASE}{_PROFILE_SUFFIX}"
 CACHE_CANDIDATES = [
     ROOT / "examples" / "data" / "emerging_rs_wave_qqq_g1_longbridge" / "cache_ohlcv",
     Path("/opt/qresearch/examples/data/emerging_rs_wave_qqq_g1_longbridge/cache_ohlcv"),
@@ -91,11 +93,16 @@ def main() -> None:
     fees = FutuUsEquityFees(slippage_bps=3.0)
     qqq, opens, closes = load_panel()
 
-    scorecard: RegimeScorecardConfig = (
-        crowded_trend_relaxed_config()
-        if PROFILE == "relaxed"
-        else RegimeScorecardConfig()
-    )
+    if PROFILE == "relaxed":
+        scorecard: RegimeScorecardConfig = crowded_trend_relaxed_config()
+        market_crowded_relax = False
+    elif PROFILE == "gated":
+        # 嚴格進 Crowded；僅在已是 Crowded 且大盤仍過放寬 leadership 時續持
+        scorecard = RegimeScorecardConfig()
+        market_crowded_relax = True
+    else:
+        scorecard = RegimeScorecardConfig()
+        market_crowded_relax = False
     print(f"label_method={METHOD} profile={PROFILE}")
     print(
         "crowded:",
@@ -106,6 +113,7 @@ def main() -> None:
             "defense_dd": scorecard.defense_dd,
             "defense_ret20": scorecard.defense_ret20,
             "leave_defense_confirm": scorecard.leave_defense_confirm,
+            "market_crowded_relax": market_crowded_relax,
         },
     )
     sw = simulate_regime_switch(
@@ -116,7 +124,11 @@ def main() -> None:
         capital=CAPITAL,
         start=START,
         fees=fees,
-        config=RegimePlaybookConfig(label_method=METHOD, scorecard=scorecard),
+        config=RegimePlaybookConfig(
+            label_method=METHOD,
+            scorecard=scorecard,
+            market_crowded_relax=market_crowded_relax,
+        ),
     )
     m_sw = metrics(sw.equity, CAPITAL)
 
@@ -180,6 +192,7 @@ def main() -> None:
         "passed_bakeoff": passed,
         "label_method": METHOD,
         "profile": PROFILE,
+        "market_crowded_relax": market_crowded_relax,
         "scorecard": {
             "crowded_overlap": scorecard.crowded_overlap,
             "crowded_strong_share": scorecard.crowded_strong_share,
