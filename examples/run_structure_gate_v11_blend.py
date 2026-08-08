@@ -36,6 +36,8 @@ MIN_BARS = 220
 WEIGHTS = dict(V11_BOOK_WEIGHTS)  # SPY 0.4 / QQQ 0.3 / SMH 0.3
 
 CACHE_DIRS = [
+    # Local paper cache (Windows lean install usually only has this)
+    ROOT / "examples/data/structure_gate_v11_paper/cache_ohlcv",
     ROOT / "examples/data/structure_gate_v8_paper/cache_ohlcv",
     ROOT / "examples/data/emerging_rs_wave_qqq_g1_longbridge/cache_ohlcv",
     ROOT / "examples/data/emerging_rs_wave_smh/cache_ohlcv",
@@ -258,11 +260,41 @@ def main() -> int:
         | set(book_members("SMH"))
         | set(book_members("SPY"))
     )
+    present = [str(p) for p in CACHE_DIRS if p.is_dir()]
+    print(f"cache_dirs_present={len(present)}", flush=True)
+    for p in present[:6]:
+        print(f"  {p}", flush=True)
     print(f"loading {len(want)} symbols for v11…", flush=True)
     frames = load_many(want)
+    # Bootstrap benches via Yahoo if local paper cache somehow missing them.
+    for b in WEIGHTS:
+        if b in frames:
+            continue
+        try:
+            import yfinance as yf
+
+            raw = yf.download(b, start="2021-06-01", auto_adjust=True, progress=False, threads=False)
+            if raw is None or len(raw) < MIN_BARS:
+                continue
+            if isinstance(raw.columns, pd.MultiIndex):
+                raw.columns = [str(c[0]).lower() for c in raw.columns]
+            else:
+                raw.columns = [str(c).lower() for c in raw.columns]
+            df = validate_ohlcv(raw[["open", "high", "low", "close", "volume"]].dropna())
+            df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
+            frames[b] = df[~df.index.duplicated(keep="last")].sort_index()
+            paper_cache = ROOT / "examples/data/structure_gate_v11_paper/cache_ohlcv"
+            paper_cache.mkdir(parents=True, exist_ok=True)
+            frames[b].to_csv(paper_cache / f"{b}.csv")
+            print(f"yf bootstrap {b} bars={len(frames[b])}", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"yf bootstrap {b} failed: {exc}", flush=True)
     for b in WEIGHTS:
         if b not in frames:
-            raise SystemExit(f"missing {b}")
+            raise SystemExit(
+                f"missing {b} — run paper signal once to fill "
+                f"examples/data/structure_gate_v11_paper/cache_ohlcv"
+            )
 
     windows = [(start, end)]
     if mode == "both":
