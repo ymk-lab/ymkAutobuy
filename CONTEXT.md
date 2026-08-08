@@ -61,16 +61,32 @@ _Avoid_: 只看指數漲得快就當 CrowdedTrend
 _Avoid_: 只贏其中一個就上線、只看單一形勢片段、沒有對照組就宣稱較優
 
 **Structure Gate**:
-與代號無關的日頻主路由：用領導股相對基準的落後／超額判斷個股強或指數強。若出現「指數強勢期」關鍵特徵（60 日領導股明顯落後、指數在均線上且動能為正，並經確認日），則在期內持續做多基準 ETF，直到領導股追上或跌破均線／重度防守才退出。另有「指數推力」復甦套筒（見下）。非黏著期：個股強→買個股（Crowded 用 already-strong，否則 ERS）；短暫指數偏強也可持 ETF。同一規則套用所有宇宙。
-_Avoid_: 為每個 ETF 代號寫死不同閾值、指數強勢期日頻進出指數、用未來報酬標註當天
+與代號無關的日頻主路由。每日輸出一個 Mode，決定持倉袖套；同一規則套用所有宇宙。
+_Avoid_: 為每個 ETF 代號寫死不同閾值、用未來報酬標註當天、同一概念混用舊名（hold_bench／Index Thrust／黏著期等）
 
-**Index Thrust**:
-基準本身的絕對大漲／復甦訊號（短窗報酬、自近低反彈、站回 SMA50），與「領導股相對落後」的 Sticky 正交。觸發時強制 hold_bench，並可覆蓋仍滯後的 dd60 harsh，避免防守後錯過指數補漲。
-_Avoid_: 用推力取代領導位置判斷、在 ret20 仍急跌時當推力、為單一 ETF 寫死閾值
+**Structure Mode**:
+四種日頻持倉模式（程式字串＝文件名）：`cash`＝全現金；`ers`＝Emerging RS 單一席位；`strong`＝已強領導股；`bench`＝基準 ETF 滿倉。
+_Avoid_: 寫 hold_bench／hold_strong、中英混稱「持 ETF／持強勢」而不標 mode 名
 
-**Stock-Led / Index-Led**:
-領導位置：Stock-Led＝強勢個股近期贏過基準→偏買個股；Index-Led／Sticky Index-Strong＝基準更強、領導股相對落後→偏買／黏著做多大盤 ETF；Index Thrust＝基準絕對急漲時也可偏 ETF。
-_Avoid_: 用未來報酬標註當天、把「指數漲得快」誤當成 CrowdedTrend
+**Structure Locus**:
+領導位置（短窗 trail20）：`stock_led`＝領導股贏基準→偏 `ers`／`strong`；`index_lean`＝領導股落後→偏 `bench`；其餘為中性。
+_Avoid_: 與 Sticky／Thrust 混稱、用未來報酬標註當天
+
+**Sticky**:
+長窗領導股落後基準的黏著袖套（狀態機）。進場確認後期內偏 `bench`，禁 `ers`／`strong`／mild 現金，直到領導追上或 Harsh 才退出。
+_Avoid_: 稱 Sticky Index-Strong／index_regime／黏著指數強、黏著期日頻進出指數
+
+**Thrust**:
+基準絕對大漲／復甦袖套（短窗報酬、自近低反彈、站回 SMA50），與 Sticky 正交。觸發時強制 `bench`，並可覆蓋仍滯後的 dd60 Harsh。
+_Avoid_: 稱 Index Thrust／指數推力、用推力取代 Locus、在 ret20 仍急跌時當 Thrust
+
+**Crowded** *(Structure)*:
+Structure Gate 內的集中結構旗標（重疊／集中度／ERS 落後），在 `stock_led` 時把 mode 從 `ers` 升級為 `strong`。不同於五類標籤裡的 CrowdedTrend。
+_Avoid_: 與 CrowdedTrend Label 混稱、只看指數漲得快就當 Crowded
+
+**Mild / Harsh**:
+防守層：Mild＝破 SMA50 或溫和回撤／弱動能→非 Sticky 時偏 `cash`；Harsh＝深回撤或 ret20 急跌→`cash`（可打斷 Sticky）。Thrust 可覆蓋僅由 dd60 觸發的 Harsh。
+_Avoid_: 把 Mild／Harsh 叫成 Defense Label、Thrust 期間仍用滯後 dd60 鎖死現金
 
 **Structure Soft Pass**:
 通用規則可接受略輸「該宇宙專用最優」：須打贏較差的那條基線（B&H 與純 ERS 之較差者），且落後較優基線不超過約定差距（預設 35pp）；硬過關仍是同時打贏兩者。

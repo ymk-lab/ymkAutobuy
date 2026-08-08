@@ -1,5 +1,5 @@
 {
-  "rule": "structure_gate_v6_index_thrust",
+  "rule": "structure_gate_v6",
   "ticker_agnostic": true,
   "soft_max_gap_pp": 35.0,
   "both_soft_pass": false,
@@ -35,18 +35,18 @@
         "end_equity": 70350.53562459999
       },
       "mode_distribution": {
-        "hold_bench": 0.585,
+        "bench": 0.585,
         "ers": 0.18,
         "cash": 0.1775,
-        "hold_strong": 0.0575
+        "strong": 0.0575
       },
       "sticky_audit": {
         "sticky_coverage": 0.415,
-        "sticky_hold_bench_share": 0.9939759036144579,
+        "sticky_bench_share": 0.9939759036144579,
         "sticky_stock_sleeve_leak": 0.0,
         "sticky_cash_share": 0.006024096385542169,
         "thrust_coverage": 0.18,
-        "thrust_hold_bench_share": 1.0,
+        "thrust_bench_share": 1.0,
         "theme_bh_gap_ok_20pp": true
       },
       "criteria": {
@@ -93,17 +93,17 @@
         "end_equity": 119464.65413700002
       },
       "mode_distribution": {
-        "hold_bench": 0.7275,
+        "bench": 0.7275,
         "cash": 0.2475,
-        "hold_strong": 0.025
+        "strong": 0.025
       },
       "sticky_audit": {
         "sticky_coverage": 0.5875,
-        "sticky_hold_bench_share": 0.9744680851063829,
+        "sticky_bench_share": 0.9744680851063829,
         "sticky_stock_sleeve_leak": 0.0,
         "sticky_cash_share": 0.02553191489361702,
         "thrust_coverage": 0.51,
-        "thrust_hold_bench_share": 1.0,
+        "thrust_bench_share": 1.0,
         "theme_bh_gap_ok_20pp": false
       },
       "criteria": {
@@ -150,18 +150,18 @@
         "end_equity": 125600.0699522551
       },
       "mode_distribution": {
-        "hold_bench": 0.7175,
+        "bench": 0.7175,
         "cash": 0.2625,
-        "hold_strong": 0.0175,
+        "strong": 0.0175,
         "ers": 0.0025
       },
       "sticky_audit": {
         "sticky_coverage": 0.605,
-        "sticky_hold_bench_share": 0.9628099173553719,
+        "sticky_bench_share": 0.9628099173553719,
         "sticky_stock_sleeve_leak": 0.0,
         "sticky_cash_share": 0.0371900826446281,
         "thrust_coverage": 0.525,
-        "thrust_hold_bench_share": 1.0,
+        "thrust_bench_share": 1.0,
         "theme_bh_gap_ok_20pp": true
       },
       "criteria": {
@@ -208,18 +208,18 @@
         "end_equity": 66648.781337753
       },
       "mode_distribution": {
-        "hold_bench": 0.3625,
+        "bench": 0.3625,
         "ers": 0.2775,
         "cash": 0.195,
-        "hold_strong": 0.165
+        "strong": 0.165
       },
       "sticky_audit": {
         "sticky_coverage": 0.21,
-        "sticky_hold_bench_share": 1.0,
+        "sticky_bench_share": 1.0,
         "sticky_stock_sleeve_leak": 0.0,
         "sticky_cash_share": 0.0,
         "thrust_coverage": 0.0875,
-        "thrust_hold_bench_share": 1.0,
+        "thrust_bench_share": 1.0,
         "theme_bh_gap_ok_20pp": true
       },
       "criteria": {
@@ -238,12 +238,12 @@
     }
   },
   "config": {
-    "index_regime_enter_trail": -0.05,
-    "index_regime_enter_confirm": 2,
-    "index_regime_exit_trail": -0.02,
-    "index_regime_exit_confirm": 5,
-    "index_regime_exit_on_below50": false,
-    "index_regime_breadth_max": 0.4,
+    "sticky_enter_trail": -0.05,
+    "sticky_enter_confirm": 2,
+    "sticky_exit_trail": -0.02,
+    "sticky_exit_confirm": 5,
+    "sticky_exit_on_below50": false,
+    "sticky_breadth_max": 0.4,
     "sticky_forbid_stock_sleeves": true,
     "harsh_defense_dd": 0.12,
     "thrust_ret5_min": 0.04,
@@ -251,7 +251,29 @@
     "thrust_bounce20_min": 0.08,
     "thrust_ret20_min": 0.1,
     "thrust_overrides_dd_harsh": true,
-    "thrust_force_hold_bench": true
+    "thrust_force_bench": true
   },
-  "note": "v6: sticky lag sleeve + absolute index-thrust recovery sleeve; thrust overrides lagging dd60 harsh and forces hold_bench while the bench is ripping after reclaiming SMA50."
+  "naming": {
+    "modes": [
+      "cash",
+      "ers",
+      "strong",
+      "bench"
+    ],
+    "locus": [
+      "stock_led",
+      "index_lean",
+      "neutral"
+    ],
+    "sleeves": [
+      "sticky",
+      "thrust",
+      "crowded"
+    ],
+    "defense": [
+      "mild",
+      "harsh"
+    ]
+  },
+  "note": "v6 unified names: modes cash/ers/strong/bench; sleeves sticky/thrust; thrust overrides lagging dd60 harsh and forces bench while ripping."
 }

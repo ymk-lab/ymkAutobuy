@@ -28,18 +28,18 @@
     "end_equity": 70350.53562459999
   },
   "mode_distribution": {
-    "hold_bench": 0.585,
+    "bench": 0.585,
     "ers": 0.18,
     "cash": 0.1775,
-    "hold_strong": 0.0575
+    "strong": 0.0575
   },
   "sticky_audit": {
     "sticky_coverage": 0.415,
-    "sticky_hold_bench_share": 0.9939759036144579,
+    "sticky_bench_share": 0.9939759036144579,
     "sticky_stock_sleeve_leak": 0.0,
     "sticky_cash_share": 0.006024096385542169,
     "thrust_coverage": 0.18,
-    "thrust_hold_bench_share": 1.0,
+    "thrust_bench_share": 1.0,
     "theme_bh_gap_ok_20pp": true
   },
   "criteria": {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bake-Off: same Structure Gate on QQQ and SMH (ticker-agnostic)."""
+"""Bake-Off: same Structure Gate on QQQ / SMH / SOXX / SPY (ticker-agnostic)."""
 
 from __future__ import annotations
 
@@ -31,7 +31,6 @@ OUT = ROOT / "examples" / "data" / "structure_gate_bakeoff"
 END = pd.Timestamp("2026-08-07")
 MIN_BARS = 220
 # Soft pass: beat the worse baseline, and trail the better one by at most this many pp.
-# User-accepted: universal rule may trail the book oracle a bit.
 SOFT_MAX_GAP_PP = 35.0
 
 BOOKS = {
@@ -175,29 +174,25 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
     dist = sw.mode.value_counts(normalize=True).sort_values(ascending=False)
     gate = soft_pass(m_sw["total_return"], m_bh["total_return"], m_ers["total_return"])
 
-    # Sticky + thrust audit
-    sticky = sw.meta["sticky_index_strong"].fillna(0) > 0.5
+    sticky = sw.meta["sticky"].fillna(0) > 0.5
     sticky_cov = float(sticky.mean()) if len(sticky) else 0.0
     if sticky.any():
         sticky_modes = sw.mode.loc[sticky]
-        etf_share = float((sticky_modes == "hold_bench").mean())
-        stock_leak = float(sticky_modes.isin(["ers", "hold_strong"]).mean())
+        bench_share = float((sticky_modes == "bench").mean())
+        stock_leak = float(sticky_modes.isin(["ers", "strong"]).mean())
         cash_share = float((sticky_modes == "cash").mean())
     else:
-        etf_share, stock_leak, cash_share = 0.0, 0.0, 0.0
-    thrust = sw.meta["index_thrust"].fillna(0) > 0.5 if "index_thrust" in sw.meta else pd.Series(False, index=sw.mode.index)
+        bench_share, stock_leak, cash_share = 0.0, 0.0, 0.0
+    thrust = sw.meta["thrust"].fillna(0) > 0.5
     thrust_cov = float(thrust.mean()) if len(thrust) else 0.0
-    if thrust.any():
-        thrust_etf = float((sw.mode.loc[thrust] == "hold_bench").mean())
-    else:
-        thrust_etf = 0.0
+    thrust_bench = float((sw.mode.loc[thrust] == "bench").mean()) if thrust.any() else 0.0
     audit = {
         "sticky_coverage": sticky_cov,
-        "sticky_hold_bench_share": etf_share,
+        "sticky_bench_share": bench_share,
         "sticky_stock_sleeve_leak": stock_leak,
         "sticky_cash_share": cash_share,
         "thrust_coverage": thrust_cov,
-        "thrust_hold_bench_share": thrust_etf,
+        "thrust_bench_share": thrust_bench,
         "theme_bh_gap_ok_20pp": bool(
             (m_bh["total_return"] - m_sw["total_return"]) * 100 <= 20.0
         ),
@@ -250,13 +245,13 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
     print(summary.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
     print("mode mix:", (dist * 100).round(1).astype(str).add("%").to_dict())
     print(
-        "sticky audit:",
-        f"cov={audit['sticky_coverage']*100:.1f}%",
-        f"etf_in_sticky={audit['sticky_hold_bench_share']*100:.1f}%",
+        "audit:",
+        f"sticky_cov={audit['sticky_coverage']*100:.1f}%",
+        f"bench_in_sticky={audit['sticky_bench_share']*100:.1f}%",
         f"stock_leak={audit['sticky_stock_sleeve_leak']*100:.1f}%",
         f"cash_in_sticky={audit['sticky_cash_share']*100:.1f}%",
         f"| thrust_cov={audit['thrust_coverage']*100:.1f}%",
-        f"etf_in_thrust={audit['thrust_hold_bench_share']*100:.1f}%",
+        f"bench_in_thrust={audit['thrust_bench_share']*100:.1f}%",
     )
     print(
         f"HARD={gate['hard_pass_beat_both']} SOFT={gate['soft_pass']} "
@@ -276,19 +271,19 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v6_index_thrust",
+        "rule": "structure_gate_v6",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
         "both_hard_pass": both_hard,
         "books": {r["book"]: r for r in reports},
         "config": {
-            "index_regime_enter_trail": cfg.index_regime_enter_trail,
-            "index_regime_enter_confirm": cfg.index_regime_enter_confirm,
-            "index_regime_exit_trail": cfg.index_regime_exit_trail,
-            "index_regime_exit_confirm": cfg.index_regime_exit_confirm,
-            "index_regime_exit_on_below50": cfg.index_regime_exit_on_below50,
-            "index_regime_breadth_max": cfg.index_regime_breadth_max,
+            "sticky_enter_trail": cfg.sticky_enter_trail,
+            "sticky_enter_confirm": cfg.sticky_enter_confirm,
+            "sticky_exit_trail": cfg.sticky_exit_trail,
+            "sticky_exit_confirm": cfg.sticky_exit_confirm,
+            "sticky_exit_on_below50": cfg.sticky_exit_on_below50,
+            "sticky_breadth_max": cfg.sticky_breadth_max,
             "sticky_forbid_stock_sleeves": cfg.sticky_forbid_stock_sleeves,
             "harsh_defense_dd": cfg.harsh_defense_dd,
             "thrust_ret5_min": cfg.thrust_ret5_min,
@@ -296,12 +291,17 @@ def main() -> None:
             "thrust_bounce20_min": cfg.thrust_bounce20_min,
             "thrust_ret20_min": cfg.thrust_ret20_min,
             "thrust_overrides_dd_harsh": cfg.thrust_overrides_dd_harsh,
-            "thrust_force_hold_bench": cfg.thrust_force_hold_bench,
+            "thrust_force_bench": cfg.thrust_force_bench,
+        },
+        "naming": {
+            "modes": ["cash", "ers", "strong", "bench"],
+            "locus": ["stock_led", "index_lean", "neutral"],
+            "sleeves": ["sticky", "thrust", "crowded"],
+            "defense": ["mild", "harsh"],
         },
         "note": (
-            "v6: sticky lag sleeve + absolute index-thrust recovery sleeve; "
-            "thrust overrides lagging dd60 harsh and forces hold_bench while "
-            "the bench is ripping after reclaiming SMA50."
+            "v6 unified names: modes cash/ers/strong/bench; sleeves sticky/thrust; "
+            "thrust overrides lagging dd60 harsh and forces bench while ripping."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(

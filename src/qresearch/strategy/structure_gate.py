@@ -1,13 +1,16 @@
-"""Universe-agnostic Structure Gate: cash / ERS / hold-strong / hold-bench.
+"""Universe-agnostic Structure Gate: modes cash / ers / strong / bench.
 
-Leadership locus:
-- stock-led → hold already-strong names or ERS
-- sticky index-led regime → stay long the benchmark ETF until exit
+Canonical names (code = docs):
+- Modes: cash | ers | strong | bench
+- Locus: stock_led | index_lean | neutral
+- Sleeves: sticky | thrust | crowded
+- Defense: mild | harsh
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -15,7 +18,7 @@ import pandas as pd
 from qresearch.strategy.emerging_rs_wave import EmergingRSWaveBook, EmergingRSWaveConfig
 from qresearch.strategy.regime_label import RegimeScorecardConfig, score_regimes
 
-StructureMode = str  # cash | ers | hold_strong | hold_bench
+StructureMode = Literal["cash", "ers", "strong", "bench"]
 
 
 @dataclass
@@ -27,31 +30,26 @@ class StructureGateConfig:
     strong_overlap_min: float = 0.45
     ers_lag_lookback: int = 60
     ers_lag_trigger: float = -0.05  # ERS trailing sum excess vs bench
-    # Already-strong leadership for hold_strong mode
+    # Already-strong leadership for strong mode
     already_strong_cap: float = 0.10
     strong_lookback: int = 60
-    # Short trail (tactical stock-led bias)
+    # Short trail (tactical stock_led / index_lean)
     leadership_trail_days: int = 20
-    stock_led_min_trail: float = 0.02  # trail20 >= this → clearly stock-led
-    index_led_max_trail: float = -0.03  # trail20 <= this → tactical index lean
-    # Sticky index-strong regime (persist hold_bench inside the episode)
-    index_regime_trail_days: int = 60
-    index_regime_enter_trail: float = -0.05  # earlier trigger (experts)
-    index_regime_enter_confirm: int = 2
-    index_regime_exit_trail: float = -0.02  # leave when leaders nearly catch up
-    index_regime_exit_confirm: int = 5
-    index_regime_require_above50: bool = True
-    index_regime_require_ret20_pos: bool = False  # don't chop on flat 20d once armed
-    # Alternate enter: weak breadth vs bench (index carrying the tape)
-    index_regime_breadth_max: float = 0.40
-    index_regime_breadth_trail: float = -0.08
-    # If True, falling below SMA50 also ends sticky (False = only trail/harsh).
-    index_regime_exit_on_below50: bool = False
-    # Inside sticky: never ERS / hold_strong / mild-cash (experts).
+    stock_led_min_trail: float = 0.02  # trail20 >= this → stock_led
+    index_lean_max_trail: float = -0.03  # trail20 <= this → index_lean
+    # Sticky sleeve: persist bench while leaders lag (long trail)
+    sticky_trail_days: int = 60
+    sticky_enter_trail: float = -0.05
+    sticky_enter_confirm: int = 2
+    sticky_exit_trail: float = -0.02
+    sticky_exit_confirm: int = 5
+    sticky_require_above50: bool = True
+    sticky_require_ret20_pos: bool = False
+    sticky_breadth_max: float = 0.40
+    sticky_breadth_trail: float = -0.08
+    sticky_exit_on_below50: bool = False
     sticky_forbid_stock_sleeves: bool = True
-    # Index thrust: absolute bench melt-up / recovery (orthogonal to sticky lag).
-    # Fires when the index itself is ripping; used to re-enter hold_bench faster
-    # after defense and to override lagging dd60 harsh / stock-led sleeves.
+    # Thrust sleeve: absolute bench melt-up / recovery
     thrust_ret5_min: float = 0.04
     thrust_ret10_min: float = 0.07
     thrust_bounce20_min: float = 0.08  # close / 20d low - 1
@@ -59,11 +57,11 @@ class StructureGateConfig:
     thrust_require_above50: bool = True
     thrust_confirm: int = 1
     thrust_overrides_dd_harsh: bool = True
-    thrust_force_hold_bench: bool = True
-    # Mild defense (Rotation books): G1-like
+    thrust_force_bench: bool = True
+    # Mild defense
     mild_defense_dd: float = 0.08
     mild_defense_ret20: float = -0.03
-    # Harsh defense (also breaks sticky index regime)
+    # Harsh defense
     harsh_defense_dd: float = 0.12
     harsh_defense_ret20: float = -0.08
     ers_config: EmergingRSWaveConfig | None = None
@@ -197,7 +195,7 @@ def leader_vs_bench_trail(
 ) -> pd.Series:
     """Rolling sum of (prior-close leader daily ret − bench daily ret).
 
-    Positive → recent leadership is stock-led; negative → index-led.
+    Positive → stock_led; negative → index_lean / sticky lag.
     Uses prior day's leader decision (no same-bar lookahead).
     """
     cfg = config or StructureGateConfig()
@@ -230,7 +228,7 @@ def leader_vs_bench_trail(
     return excess.rolling(cfg.leadership_trail_days, min_periods=10).sum()
 
 
-def crowded_structure_mask(
+def crowded_mask(
     features: pd.DataFrame,
     ers_excess: pd.Series,
     *,
@@ -248,18 +246,13 @@ def crowded_structure_mask(
     ).fillna(False)
 
 
-def sticky_index_strong_regime(
+def sticky_regime(
     features: pd.DataFrame,
     lead_trail_long: pd.Series,
     *,
     config: StructureGateConfig | None = None,
 ) -> pd.Series:
-    """Persistent index-strong episode: enter on confirmed lag, stay until exit.
-
-    Enter when leaders lag bench on the long trail, bench is risk-on, for
-    ``index_regime_enter_confirm`` days. Stay long-index through mild noise;
-    exit only after leaders catch up (confirmed) or harsh/below-SMA50 break.
-    """
+    """Persistent sticky episode: enter on confirmed lag, stay until exit."""
     cfg = config or StructureGateConfig()
     trail = lead_trail_long.reindex(features.index)
     above50 = features["above50"] > 0.5
@@ -268,18 +261,18 @@ def sticky_index_strong_regime(
         features["ret20"] <= cfg.harsh_defense_ret20
     )
 
-    lag_enter = trail <= cfg.index_regime_enter_trail
-    breadth_enter = (trail <= cfg.index_regime_breadth_trail) & (
-        features["pct_beat60"] <= cfg.index_regime_breadth_max
+    lag_enter = trail <= cfg.sticky_enter_trail
+    breadth_enter = (trail <= cfg.sticky_breadth_trail) & (
+        features["pct_beat60"] <= cfg.sticky_breadth_max
     )
     enter_raw = lag_enter | breadth_enter
-    if cfg.index_regime_require_above50:
+    if cfg.sticky_require_above50:
         enter_raw = enter_raw & above50
-    if cfg.index_regime_require_ret20_pos:
+    if cfg.sticky_require_ret20_pos:
         enter_raw = enter_raw & (ret20 > 0)
 
-    exit_raw = (trail >= cfg.index_regime_exit_trail) | harsh.fillna(False)
-    if cfg.index_regime_exit_on_below50:
+    exit_raw = (trail >= cfg.sticky_exit_trail) | harsh.fillna(False)
+    if cfg.sticky_exit_on_below50:
         exit_raw = exit_raw | (~above50)
 
     active: list[bool] = []
@@ -292,7 +285,7 @@ def sticky_index_strong_regime(
                 exit_count += 1
             else:
                 exit_count = 0
-            if exit_count >= cfg.index_regime_exit_confirm:
+            if exit_count >= cfg.sticky_exit_confirm:
                 on = False
                 enter_count = 0
                 exit_count = 0
@@ -303,24 +296,20 @@ def sticky_index_strong_regime(
             enter_count += 1
         else:
             enter_count = 0
-        if enter_count >= cfg.index_regime_enter_confirm:
+        if enter_count >= cfg.sticky_enter_confirm:
             on = True
             exit_count = 0
         active.append(on)
 
-    return pd.Series(active, index=features.index, dtype=bool, name="sticky_index_strong")
+    return pd.Series(active, index=features.index, dtype=bool, name="sticky")
 
 
-def index_thrust_mask(
+def thrust_mask(
     features: pd.DataFrame,
     *,
     config: StructureGateConfig | None = None,
 ) -> pd.Series:
-    """Absolute bench melt-up / recovery thrust (not relative leadership).
-
-    Orthogonal to sticky lag: catches post-drawdown index rips where leaders
-    may still look stock-led, or dd60 still prints harsh while price reclaims.
-    """
+    """Absolute bench melt-up / recovery thrust (orthogonal to sticky lag)."""
     cfg = config or StructureGateConfig()
     raw = (
         (features["ret5"] >= cfg.thrust_ret5_min)
@@ -328,14 +317,13 @@ def index_thrust_mask(
         | (features["bounce20"] >= cfg.thrust_bounce20_min)
         | (features["ret20"] >= cfg.thrust_ret20_min)
     )
-    # Still plunging on 20d is not a thrust we want to ride.
     raw = raw & (features["ret20"] > cfg.harsh_defense_ret20)
     if cfg.thrust_require_above50:
         raw = raw & (features["above50"] > 0.5)
 
     confirm = max(1, int(cfg.thrust_confirm))
     if confirm <= 1:
-        return raw.fillna(False).rename("index_thrust")
+        return raw.fillna(False).rename("thrust")
 
     on: list[bool] = []
     streak = 0
@@ -345,7 +333,7 @@ def index_thrust_mask(
         else:
             streak = 0
         on.append(streak >= confirm)
-    return pd.Series(on, index=features.index, dtype=bool, name="index_thrust")
+    return pd.Series(on, index=features.index, dtype=bool, name="thrust")
 
 
 def label_structure_modes(
@@ -362,20 +350,18 @@ def label_structure_modes(
     lead_trail20 = leader_vs_bench_trail(
         member_closes, bench_close, config=cfg, leader_weights=strong_w
     )
-    # Long trail for sticky index regime
-    cfg_long = replace(cfg, leadership_trail_days=cfg.index_regime_trail_days)
+    cfg_long = replace(cfg, leadership_trail_days=cfg.sticky_trail_days)
     lead_trail60 = leader_vs_bench_trail(
         member_closes, bench_close, config=cfg_long, leader_weights=strong_w
     )
-    crowded = crowded_structure_mask(feat, excess, config=cfg)
-    sticky_index = sticky_index_strong_regime(feat, lead_trail60, config=cfg)
-    thrust = index_thrust_mask(feat, config=cfg)
+    crowded = crowded_mask(feat, excess, config=cfg)
+    sticky = sticky_regime(feat, lead_trail60, config=cfg)
+    thrust = thrust_mask(feat, config=cfg)
     stock_led = lead_trail20 >= cfg.stock_led_min_trail
-    index_lean = lead_trail20 <= cfg.index_led_max_trail
+    index_lean = lead_trail20 <= cfg.index_lean_max_trail
     harsh_dd = feat["dd60"] <= -cfg.harsh_defense_dd
     harsh_ret = feat["ret20"] <= cfg.harsh_defense_ret20
     harsh = harsh_dd | harsh_ret
-    # During index thrust, lagging drawdown alone should not pin cash.
     if cfg.thrust_overrides_dd_harsh:
         harsh_for_mode = (harsh_ret | (harsh_dd & ~thrust)).fillna(False)
     else:
@@ -386,35 +372,32 @@ def label_structure_modes(
         | (feat["ret20"] <= cfg.mild_defense_ret20)
     )
 
-    # Experts: inside sticky → only hold_bench (or harsh→cash). No stock sleeves / mild cash.
     mode = pd.Series("cash", index=feat.index, dtype=object)
     risk_on = ~mild & ~harsh_for_mode
-    outside = ~sticky_index if cfg.sticky_forbid_stock_sleeves else pd.Series(True, index=feat.index)
+    outside = ~sticky if cfg.sticky_forbid_stock_sleeves else pd.Series(True, index=feat.index)
 
-    mode = mode.mask(sticky_index & ~harsh_for_mode, "hold_bench")
-    # Outside sticky: tactical sleeves
-    mode = mode.mask(outside & index_lean & ~harsh_for_mode, "hold_bench")
+    mode = mode.mask(sticky & ~harsh_for_mode, "bench")
+    mode = mode.mask(outside & index_lean & ~harsh_for_mode, "bench")
     mode = mode.mask(outside & stock_led & risk_on, "ers")
-    mode = mode.mask(outside & stock_led & crowded & risk_on, "hold_strong")
+    mode = mode.mask(outside & stock_led & crowded & risk_on, "strong")
     mode = mode.mask(outside & ~index_lean & ~stock_led & risk_on, "ers")
     mode = mode.mask(outside & ~index_lean & mild & ~harsh_for_mode, "cash")
     mode = mode.mask(harsh_for_mode, "cash")
-    # Final clamp: sticky days cannot be ers/strong/cash unless harsh
     if cfg.sticky_forbid_stock_sleeves:
-        mode = mode.mask(sticky_index & ~harsh_for_mode, "hold_bench")
-    # Index thrust sleeve: ride the bench while it is ripping (post-defense catch-up).
-    if cfg.thrust_force_hold_bench:
-        mode = mode.mask(thrust & ~harsh_ret.fillna(False), "hold_bench")
+        mode = mode.mask(sticky & ~harsh_for_mode, "bench")
+    if cfg.thrust_force_bench:
+        mode = mode.mask(thrust & ~harsh_ret.fillna(False), "bench")
 
     meta = feat.copy()
     meta["ers_excess60"] = excess
     meta["leader_vs_bench_trail"] = lead_trail20
     meta["leader_vs_bench_trail60"] = lead_trail60
-    meta["sticky_index_strong"] = sticky_index.astype(float)
-    meta["index_thrust"] = thrust.astype(float)
+    meta["sticky"] = sticky.astype(float)
+    meta["thrust"] = thrust.astype(float)
     meta["stock_led"] = stock_led.astype(float)
-    meta["index_led"] = (sticky_index | index_lean | thrust).astype(float)
-    meta["crowded_structure"] = crowded.astype(float)
+    meta["index_lean"] = index_lean.astype(float)
+    meta["bench_bias"] = (sticky | index_lean | thrust).astype(float)
+    meta["crowded"] = crowded.astype(float)
     meta["mode"] = mode
     return mode.rename("mode"), meta
 
@@ -438,7 +421,7 @@ def simulate_structure_gate(
     fees: object | None = None,
     config: StructureGateConfig | None = None,
 ) -> StructureSimResult:
-    """Next-open: cash / ERS / hold_strong leaders / hold_bench ETF."""
+    """Next-open: cash / ers / strong leaders / bench ETF."""
     from qresearch.backtest.futu_costs import FutuUsEquityFees
 
     cfg = config or StructureGateConfig()
@@ -580,16 +563,16 @@ def simulate_structure_gate(
         if dt >= start:
             if pending == "cash":
                 _sell_all(dt, "to_cash")
-            elif pending == "hold_bench":
+            elif pending == "bench":
                 if pos_kind != "bench":
                     _sell_all(dt, "switch_to_bench")
                 if pos_kind == "cash":
-                    _buy_bench(dt, "hold_bench")
-            elif pending in ("ers", "hold_strong"):
-                kind = "ers" if pending == "ers" else "strong"
-                enter_reason = "ers_enter" if kind == "ers" else "strong_enter"
-                rotate_reason = "ers_rotate" if kind == "ers" else "strong_rotate"
-                flat_reason = "ers_flat" if kind == "ers" else "strong_flat"
+                    _buy_bench(dt, "bench")
+            elif pending in ("ers", "strong"):
+                kind = pending
+                enter_reason = f"{kind}_enter"
+                rotate_reason = f"{kind}_rotate"
+                flat_reason = f"{kind}_flat"
                 if pos_kind not in ("cash", kind):
                     _sell_all(dt, f"switch_to_{kind}")
                 sym, w = target_sym, target_w
@@ -608,11 +591,11 @@ def simulate_structure_gate(
         m = str(mode.at[dt])
         if m == "cash":
             pending, target_sym, target_w = "cash", None, 0.0
-        elif m == "hold_bench":
-            pending, target_sym, target_w = "hold_bench", "BENCH", 1.0
-        elif m == "hold_strong":
+        elif m == "bench":
+            pending, target_sym, target_w = "bench", "BENCH", 1.0
+        elif m == "strong":
             sym, w = _active(strong_w.loc[dt])
-            pending, target_sym, target_w = "hold_strong", sym, w
+            pending, target_sym, target_w = "strong", sym, w
         else:
             sym, w = _active(ers_w.loc[dt])
             pending, target_sym, target_w = "ers", sym, w
@@ -628,3 +611,9 @@ def simulate_structure_gate(
         meta=meta.reindex(idx),
         trades=pd.DataFrame(trades),
     )
+
+
+# Back-compat aliases (deprecated names)
+sticky_index_strong_regime = sticky_regime
+index_thrust_mask = thrust_mask
+crowded_structure_mask = crowded_mask
