@@ -57,6 +57,18 @@ BOOKS = {
             ROOT / "examples" / "data" / "emerging_rs_wave_soxx" / "cache_ohlcv",
         ],
     },
+    "SPY": {
+        "bench": "SPY",
+        "universe": None,  # filled from universe.txt beside cache
+        "universe_file": ROOT
+        / "examples"
+        / "data"
+        / "emerging_rs_wave_spy"
+        / "universe.txt",
+        "caches": [
+            ROOT / "examples" / "data" / "emerging_rs_wave_spy" / "cache_ohlcv",
+        ],
+    },
 }
 
 
@@ -73,6 +85,21 @@ def _load(path: Path) -> pd.DataFrame | None:
     return df[~df.index.duplicated(keep="last")].sort_index()
 
 
+def _universe_for(book: str) -> list[str]:
+    spec = BOOKS[book]
+    uni = spec.get("universe")
+    if uni:
+        return list(uni)
+    uf = spec.get("universe_file")
+    if uf is not None and Path(uf).is_file():
+        return [
+            ln.strip()
+            for ln in Path(uf).read_text().splitlines()
+            if ln.strip() and not ln.startswith("#")
+        ]
+    raise SystemExit(f"{book}: no universe")
+
+
 def load_panel(book: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Path]:
     spec = BOOKS[book]
     cache = next((p for p in spec["caches"] if p.is_dir()), None)
@@ -83,7 +110,7 @@ def load_panel(book: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Pat
     if bench is None:
         raise SystemExit(f"{bench_sym} missing in {cache}")
     frames = {}
-    for sym in spec["universe"]:
+    for sym in _universe_for(book):
         if sym == bench_sym:
             continue
         df = _load(cache / f"{sym}.csv")
