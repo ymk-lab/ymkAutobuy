@@ -1,0 +1,304 @@
+{
+  "rule": "structure_gate_v8_universal_tune",
+  "ticker_agnostic": true,
+  "soft_max_gap_pp": 35.0,
+  "window": [
+    "2023-01-01",
+    "2026-08-07"
+  ],
+  "both_soft_pass": false,
+  "both_hard_pass": false,
+  "books": {
+    "SPY": {
+      "book": "SPY",
+      "benchmark": "SPY",
+      "universe_n": 500,
+      "cache": "/agent/examples/data/emerging_rs_wave_spy/cache_ohlcv",
+      "window": [
+        "2023-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "currency": "USD",
+      "fee_model": "futu_us",
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 4.099001367210335,
+        "max_drawdown": -0.23358129734619926,
+        "sharpe": 1.599724709927315,
+        "end_equity": 254950.06836051677
+      },
+      "pure_ers_g1": {
+        "total_return": 1.1853060297750866,
+        "max_drawdown": -0.29105374659843886,
+        "sharpe": 0.9969471052614085,
+        "end_equity": 109265.30148875432
+      },
+      "bench_bh": {
+        "total_return": 1.1032419111630882,
+        "max_drawdown": -0.18755524161310444,
+        "sharpe": 1.4687274497435832,
+        "end_equity": 105162.09555815441
+      },
+      "mode_distribution": {
+        "bench": 0.4312638580931264,
+        "ers": 0.3215077605321508,
+        "cash": 0.1917960088691796,
+        "strong": 0.05543237250554324
+      },
+      "sticky_audit": {
+        "sticky_coverage": 0.29711751662971175,
+        "sticky_bench_share": 1.0,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.0,
+        "thrust_coverage": 0.13636363636363635,
+        "thrust_bench_share": 1.0,
+        "theme_bh_gap_ok_20pp": true
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+      },
+      "soft_pass": true,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": true,
+      "gap_vs_better_pp": -291.36953374352487,
+      "hard_pass_beat_both": true,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": 299.5759456047247,
+      "vs_ers_pp": 291.36953374352487
+    },
+    "QQQ": {
+      "book": "QQQ",
+      "benchmark": "QQQ",
+      "universe_n": 97,
+      "cache": "/agent/examples/data/emerging_rs_wave_qqq_g1_longbridge/cache_ohlcv",
+      "window": [
+        "2023-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "currency": "USD",
+      "fee_model": "futu_us",
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 1.5548866639174026,
+        "max_drawdown": -0.21335914872101436,
+        "sharpe": 1.2505221914361309,
+        "end_equity": 127744.33319587013
+      },
+      "pure_ers_g1": {
+        "total_return": 1.9108918304409306,
+        "max_drawdown": -0.26847828194926626,
+        "sharpe": 1.1513304625386687,
+        "end_equity": 145544.59152204654
+      },
+      "bench_bh": {
+        "total_return": 1.7278398438820006,
+        "max_drawdown": -0.22717487304237227,
+        "sharpe": 1.5088581099090295,
+        "end_equity": 136391.99219410002
+      },
+      "mode_distribution": {
+        "bench": 0.5543237250554324,
+        "cash": 0.2073170731707317,
+        "ers": 0.1951219512195122,
+        "strong": 0.043237250554323724
+      },
+      "sticky_audit": {
+        "sticky_coverage": 0.30155210643015523,
+        "sticky_bench_share": 1.0,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.0,
+        "thrust_coverage": 0.3181818181818182,
+        "thrust_bench_share": 1.0,
+        "theme_bh_gap_ok_20pp": true
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+      },
+      "soft_pass": false,
+      "beat_worse_baseline": false,
+      "within_gap_of_better": false,
+      "gap_vs_better_pp": 35.600516652352795,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": -17.2953179964598,
+      "vs_ers_pp": -35.600516652352795
+    },
+    "SMH": {
+      "book": "SMH",
+      "benchmark": "SMH",
+      "universe_n": 44,
+      "cache": "/agent/examples/data/emerging_rs_wave_smh/cache_ohlcv",
+      "window": [
+        "2023-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "currency": "USD",
+      "fee_model": "futu_us",
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 2.160896771349567,
+        "max_drawdown": -0.3277470186314825,
+        "sharpe": 1.1329549007412179,
+        "end_equity": 158044.83856747835
+      },
+      "pure_ers_g1": {
+        "total_return": 0.21591515832043928,
+        "max_drawdown": -0.48138825399770124,
+        "sharpe": 0.33967193487923625,
+        "end_equity": 60795.75791602197
+      },
+      "bench_bh": {
+        "total_return": 4.711404282581885,
+        "max_drawdown": -0.3572643636371786,
+        "sharpe": 1.5632665289324157,
+        "end_equity": 285570.21412909427
+      },
+      "mode_distribution": {
+        "bench": 0.6829268292682927,
+        "cash": 0.25277161862527714,
+        "strong": 0.04212860310421286,
+        "ers": 0.022172949002217297
+      },
+      "sticky_audit": {
+        "sticky_coverage": 0.4334811529933481,
+        "sticky_bench_share": 1.0,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.0,
+        "thrust_coverage": 0.5421286031042128,
+        "thrust_bench_share": 1.0,
+        "theme_bh_gap_ok_20pp": false
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+      },
+      "soft_pass": false,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": false,
+      "gap_vs_better_pp": 255.05075112323178,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": -255.05075112323178,
+      "vs_ers_pp": 194.49816130291276
+    },
+    "SOXX": {
+      "book": "SOXX",
+      "benchmark": "SOXX",
+      "universe_n": 44,
+      "cache": "/agent/examples/data/emerging_rs_wave_soxx/cache_ohlcv",
+      "window": [
+        "2023-01-01",
+        "2026-08-07"
+      ],
+      "capital_usd": 50000.0,
+      "currency": "USD",
+      "fee_model": "futu_us",
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 2.2203480157048383,
+        "max_drawdown": -0.36874889927302645,
+        "sharpe": 1.0434800982611236,
+        "end_equity": 161017.40078524192
+      },
+      "pure_ers_g1": {
+        "total_return": 3.9910493745616913,
+        "max_drawdown": -0.44924832311862184,
+        "sharpe": 1.2733020210386987,
+        "end_equity": 249552.46872808458
+      },
+      "bench_bh": {
+        "total_return": 3.7154044422746093,
+        "max_drawdown": -0.4136430724609298,
+        "sharpe": 1.3498246404461733,
+        "end_equity": 235770.22211373047
+      },
+      "mode_distribution": {
+        "bench": 0.647450110864745,
+        "cash": 0.2960088691796009,
+        "strong": 0.028824833702882482,
+        "ers": 0.02771618625277162
+      },
+      "sticky_audit": {
+        "sticky_coverage": 0.42904656319290463,
+        "sticky_bench_share": 1.0,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.0,
+        "thrust_coverage": 0.5144124168514412,
+        "thrust_bench_share": 1.0,
+        "theme_bh_gap_ok_20pp": false
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+      },
+      "soft_pass": false,
+      "beat_worse_baseline": false,
+      "within_gap_of_better": false,
+      "gap_vs_better_pp": 177.0701358856853,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": -149.5056426569771,
+      "vs_ers_pp": -177.0701358856853
+    }
+  },
+  "config": {
+    "sticky_enter_trail": -0.06,
+    "sticky_enter_confirm": 2,
+    "sticky_exit_trail": -0.02,
+    "sticky_exit_confirm": 6,
+    "sticky_exit_on_below50": false,
+    "sticky_breadth_max": 0.5,
+    "sticky_forbid_stock_sleeves": true,
+    "harsh_defense_dd": 0.18,
+    "thrust_ret5_min": 0.04,
+    "thrust_ret10_min": 0.07,
+    "thrust_bounce20_min": 0.06,
+    "thrust_ret20_min": 0.08,
+    "thrust_overrides_dd_harsh": true,
+    "thrust_force_bench": true
+  },
+  "naming": {
+    "modes": [
+      "cash",
+      "ers",
+      "strong",
+      "bench"
+    ],
+    "locus": [
+      "stock_led",
+      "index_lean",
+      "neutral"
+    ],
+    "sleeves": [
+      "sticky",
+      "thrust",
+      "crowded"
+    ],
+    "defense": [
+      "mild",
+      "harsh_dd",
+      "harsh_ret"
+    ]
+  },
+  "priority": [
+    "harsh_ret",
+    "thrust",
+    "sticky",
+    "harsh_dd",
+    "mild",
+    "index_lean",
+    "stock_led+crowded",
+    "ers",
+    "cash"
+  ],
+  "note": "v8: v7 priority + 50-trial universal tune defaults (best soft coverage across QQQ/SMH/SOXX/SPY/DIA/IWM/XLF/XLK/XBI/XLE; in-window exploratory)."
+}

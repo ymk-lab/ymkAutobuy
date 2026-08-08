@@ -29,6 +29,11 @@ BOOKS = {
         "universe": list(SEMI_UNIVERSE),
         "cache": ROOT / "examples/data/emerging_rs_wave_soxx/cache_ohlcv",
     },
+    "SMH": {
+        "bench": "SMH",
+        "universe": list(SEMI_UNIVERSE),
+        "cache": ROOT / "examples/data/emerging_rs_wave_smh/cache_ohlcv",
+    },
     "SPY": {
         "bench": "SPY",
         "universe": None,

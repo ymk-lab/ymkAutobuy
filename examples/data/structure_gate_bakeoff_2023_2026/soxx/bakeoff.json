@@ -1,0 +1,60 @@
+{
+  "book": "SOXX",
+  "benchmark": "SOXX",
+  "universe_n": 44,
+  "cache": "/agent/examples/data/emerging_rs_wave_soxx/cache_ohlcv",
+  "window": [
+    "2023-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0,
+  "currency": "USD",
+  "fee_model": "futu_us",
+  "same_rule": true,
+  "structure_gate": {
+    "total_return": 2.2203480157048383,
+    "max_drawdown": -0.36874889927302645,
+    "sharpe": 1.0434800982611236,
+    "end_equity": 161017.40078524192
+  },
+  "pure_ers_g1": {
+    "total_return": 3.9910493745616913,
+    "max_drawdown": -0.44924832311862184,
+    "sharpe": 1.2733020210386987,
+    "end_equity": 249552.46872808458
+  },
+  "bench_bh": {
+    "total_return": 3.7154044422746093,
+    "max_drawdown": -0.4136430724609298,
+    "sharpe": 1.3498246404461733,
+    "end_equity": 235770.22211373047
+  },
+  "mode_distribution": {
+    "bench": 0.647450110864745,
+    "cash": 0.2960088691796009,
+    "strong": 0.028824833702882482,
+    "ers": 0.02771618625277162
+  },
+  "sticky_audit": {
+    "sticky_coverage": 0.42904656319290463,
+    "sticky_bench_share": 1.0,
+    "sticky_stock_sleeve_leak": 0.0,
+    "sticky_cash_share": 0.0,
+    "thrust_coverage": 0.5144124168514412,
+    "thrust_bench_share": 1.0,
+    "theme_bh_gap_ok_20pp": false
+  },
+  "criteria": {
+    "hard": "beat bench_bh AND pure_ers_g1",
+    "soft": "beat worse baseline AND trail better by \u226435pp",
+    "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+  },
+  "soft_pass": false,
+  "beat_worse_baseline": false,
+  "within_gap_of_better": false,
+  "gap_vs_better_pp": 177.0701358856853,
+  "hard_pass_beat_both": false,
+  "max_gap_pp": 35.0,
+  "vs_bh_pp": -149.5056426569771,
+  "vs_ers_pp": -177.0701358856853
+}
