@@ -21,8 +21,44 @@ _Avoid_: 先看 Sharpe／先看回撤再看報酬、用平均單檔超額假裝�
 _Avoid_: 只交易 QQQ 本體、一開始就上無關寬基全集
 
 **Market Regime Gate**:
-允許新開倉的大盤狀態過濾器；具體定義（均線／報酬／新高等）保留為多版本，之後以同一規則其餘部分做比賽選定。
-_Avoid_: 未開閘仍四處抄底、把閘門參數和選股參數混在同一輪亂調
+某一本策略書內部的「可否新開倉」過濾器（如 Emerging RS 書的 G1=QQQ>SMA50）；不是整帳的形勢分類本身。
+_Avoid_: 把 Gate 當成唯一的大盤形勢、未開閘仍四處抄底、把閘門參數和選股參數混在同一輪亂調
+
+**Market Regime Label**:
+每日（收盤）賦予大盤／宇宙的形勢標籤，用來選擇要啟用哪一本策略書；v1 先在 QQQ 主書上運作，標籤數採較完整集合（約五類）。
+_Avoid_: 與 Market Regime Gate 混稱、用盤中即時標籤做回測未來函數
+
+**Strategy Playbook**:
+某一形勢下啟用的完整進出場規則集合。形勢切換時換的是 Playbook，不是只改一個參數。
+_Avoid_: 同一套 Emerging RS 參數硬跑所有形勢、把「換宇宙」和「換形勢」混為一談
+
+**Rotation Playbook**:
+輪動形勢下使用的策略書：Emerging Relative Strength + 其 Market Regime Gate（預設 G1）。僅在標籤判定為輪動時啟用。
+_Avoid_: 集中強勢或防守期仍強制跑 Emerging RS
+
+**Defense / Range / Rotation / CrowdedTrend / PanicRebound**:
+v1 五個 Market Regime Label。Defense=風險關閉；Range=震盪區間；Rotation=領導輪動；CrowdedTrend=少數龍頭集中領漲；PanicRebound=急跌後的恐慌反彈。
+_Avoid_: 把 CrowdedTrend 叫成「強勢股選股」、把 PanicRebound 直接當成新牛市
+
+**Playbook Assignment (provisional)**:
+標籤到策略書的暫時對應，必須經 Bake-Off 驗證後才可落實：Defense→Cash；Range→停新開、舊倉按原書出場後歸 Cash；Rotation→Rotation Playbook；CrowdedTrend→QQQ 買進持有／趨勢滿倉；PanicRebound→最多 30% QQQ 短反彈。
+_Avoid_: 未比較績效就上實盤、測試窗內調參再報同一窗為成功、恐慌期滿倉搶反彈
+
+**Regime Scorecard**:
+以多因子打分選當日最高分標籤；若 Bake-Off 顯示打分效果明顯差於「先風險再型態」層級法，應提示改回層級法。
+_Avoid_: 無對照就堅持打分、把分數當未來函數用未完成日資料
+
+**Regime Hysteresis**:
+進入 Defense 可立即切換；離開 Defense 須連續確認 5 個交易日；攻擊標籤（Range／Rotation／CrowdedTrend／PanicRebound）之間切換須連續確認 3 個交易日。
+_Avoid_: 每日無遲滯亂跳標籤導致過度交易
+
+**CrowdedTrend Test**:
+判定集中強勢須同時滿足：領導榜穩定（近20日與近60日 Top-K 重疊高）且已強股占比高（60日超額>Already-Strong Cap 的家數占比高）。
+_Avoid_: 只看指數漲得快就當 CrowdedTrend
+
+**Playbook Bake-Off**:
+在同一評估協議下，形勢切換帳必須同時打贏 QQQ 買進持有與純 Emerging RS（Rotation-only），才可晉升為預設；並比較最大回撤。
+_Avoid_: 只贏其中一個就上線、只看單一形勢片段、沒有對照組就宣稱較優
 
 **Emerging Relative Strength**:
 進場標的必須是「剛剛相對 QQQ 轉強」：短窗（20 日）超額報酬由非正轉正，且長窗（60 日）尚未呈現長期大幅領先（避免已是強勢股）。
