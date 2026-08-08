@@ -84,3 +84,40 @@ pip install -e ".[web]"
 ```
 
 按鈕操作會以「處理中 / 完成 / 錯誤」即時提示後台進度（SSE）。
+
+---
+
+## Structure Gate v8 自動 paper 掛單
+
+與 G1 **分開**的開關，不會用到 `QRESEARCH_LB_SUBMIT`。
+
+### `.env`
+
+```bash
+QRESEARCH_SG_PAPER_ONLY=1
+QRESEARCH_SG_PAPER_SUBMIT=0   # 先 0 驗證訊號；確認後改 1
+QRESEARCH_SG_BOOK=SPY         # 或 QQQ / SMH …
+QRESEARCH_SLEEVE_USD=50000
+# QRESEARCH_SG_PAPER_OUT=/opt/qresearch/examples/data/structure_gate_v8_paper
+```
+
+### 手動試跑 → 開自動
+
+```bash
+chmod +x deploy/vps-cron/run-sg.sh
+./deploy/vps-cron/run-sg.sh once          # SUBMIT=0：只計畫
+cat examples/data/structure_gate_v8_paper/latest_signal.json
+
+# 確認 target / preview_orders 後：
+# 把 QRESEARCH_SG_PAPER_SUBMIT=1 寫進 .env
+crontab -e   # 貼上 crontab.example 裡 Structure Gate 那一行（美東 16:35）
+```
+
+之後每個美股交易日收盤後，cron 會：抓長橋日 K → 算 v8 mode → 對**模擬盤**市價調倉。  
+同一 `asof` 不會重複下單（`state.json`）；要重送設 `QRESEARCH_FORCE=1`。
+
+| 路徑 | 說明 |
+|---|---|
+| `examples/data/structure_gate_v8_paper/latest_signal.json` | 最新 mode / 目標 |
+| `examples/data/structure_gate_v8_paper/latest_run.json` | 最近一次實際送單 |
+| `examples/data/structure_gate_v8_paper/logs/` | cron 日誌 |
