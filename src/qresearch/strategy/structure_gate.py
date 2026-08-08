@@ -7,7 +7,7 @@ Canonical names (code = docs):
 - Defense: mild | harsh_dd | harsh_ret
 
 Priority (highest wins):
-  harsh_ret > thrust > sticky > harsh_dd > mild > index_lean
+  harsh_ret > thrust > sticky > harsh_dd > reentry > mild > index_lean
   > stock_led+crowded > ers > cash
 """
 
@@ -69,6 +69,18 @@ class StructureGateConfig:
     mild_defense_ret20: float = -0.04
     harsh_defense_dd: float = 0.18
     harsh_defense_ret20: float = -0.12
+    # Vol-adaptive mild: widen dd/ret20 thresholds with realized bench vol.
+    # Off by default (v8). When on: thr = max(fixed, k * σ * √horizon).
+    mild_vol_adaptive: bool = False
+    mild_vol_lookback: int = 60
+    mild_vol_dd_k: float = 2.5
+    mild_vol_ret20_k: float = 2.0
+    # Fast re-entry after mild dips (V-recovery). Forces bench even below SMA50.
+    # Off by default (v8). Priority: between harsh_dd and mild.
+    reentry_force_bench: bool = False
+    reentry_ret5_min: float = 0.03
+    reentry_ret10_min: float = 0.05
+    reentry_bounce20_min: float = 0.05
     # Book-level peak equity hard stop (None = disabled).
     # When equity / peak - 1 <= -book_peak_dd_stop → flatten & halt
     # until non-cash signal confirms for book_dd_reentry_confirm days.
@@ -361,6 +373,52 @@ def thrust_mask(
     return pd.Series(on, index=features.index, dtype=bool, name="thrust")
 
 
+def mild_thresholds(
+    features: pd.DataFrame,
+    bench_close: pd.Series,
+    *,
+    config: StructureGateConfig | None = None,
+) -> tuple[pd.Series, pd.Series]:
+    """Return per-day (dd_thr ≤ 0, ret20_thr ≤ 0) for mild defense."""
+    cfg = config or StructureGateConfig()
+    idx = features.index
+    dd_thr = pd.Series(-abs(cfg.mild_defense_dd), index=idx, dtype=float)
+    ret_thr = pd.Series(float(cfg.mild_defense_ret20), index=idx, dtype=float)
+    if not cfg.mild_vol_adaptive:
+        return dd_thr, ret_thr
+
+    bc = bench_close.astype(float).reindex(idx).ffill()
+    lb = max(10, int(cfg.mild_vol_lookback))
+    sig = bc.pct_change().rolling(lb, min_periods=max(5, lb // 3)).std().clip(lower=1e-4)
+    dd_vol = cfg.mild_vol_dd_k * sig * np.sqrt(60.0)
+    ret_vol = cfg.mild_vol_ret20_k * sig * np.sqrt(20.0)
+    dd_thr = -pd.concat(
+        [pd.Series(abs(cfg.mild_defense_dd), index=idx), dd_vol], axis=1
+    ).max(axis=1)
+    ret_thr = -pd.concat(
+        [pd.Series(abs(cfg.mild_defense_ret20), index=idx), ret_vol], axis=1
+    ).max(axis=1)
+    return dd_thr, ret_thr
+
+
+def reentry_mask(
+    features: pd.DataFrame,
+    *,
+    config: StructureGateConfig | None = None,
+) -> pd.Series:
+    """V-recovery re-entry: bounce/short thrust without requiring above50."""
+    cfg = config or StructureGateConfig()
+    if not cfg.reentry_force_bench:
+        return pd.Series(False, index=features.index, dtype=bool, name="reentry")
+    raw = (
+        (features["ret5"] >= cfg.reentry_ret5_min)
+        | (features["ret10"] >= cfg.reentry_ret10_min)
+        | (features["bounce20"] >= cfg.reentry_bounce20_min)
+    )
+    raw = raw & (features["ret20"] > cfg.harsh_defense_ret20)
+    return raw.fillna(False).rename("reentry")
+
+
 def label_structure_modes(
     bench_close: pd.Series,
     member_closes: pd.DataFrame,
@@ -370,7 +428,7 @@ def label_structure_modes(
     """Return daily mode series + feature frame (incl. helpers).
 
     Priority (highest wins):
-      harsh_ret > thrust > sticky > harsh_dd > mild > index_lean
+      harsh_ret > thrust > sticky > harsh_dd > reentry > mild > index_lean
       > stock_led+crowded > stock_led/neutral ers > cash
     """
     cfg = config or StructureGateConfig()
@@ -387,17 +445,19 @@ def label_structure_modes(
     crowded = crowded_mask(feat, excess, config=cfg)
     sticky = sticky_regime(feat, lead_trail60, config=cfg)
     thrust = thrust_mask(feat, config=cfg)
+    reentry = reentry_mask(feat, config=cfg)
     stock_led = lead_trail20 >= cfg.stock_led_min_trail
     index_lean = lead_trail20 <= cfg.index_lean_max_trail
     harsh_dd = (feat["dd60"] <= -cfg.harsh_defense_dd).fillna(False)
     harsh_ret = (feat["ret20"] <= cfg.harsh_defense_ret20).fillna(False)
+    dd_thr, ret_thr = mild_thresholds(feat, bench_close, config=cfg)
     mild = (
         (feat["above50"] < 0.5)
-        | (feat["dd60"] <= -cfg.mild_defense_dd)
-        | (feat["ret20"] <= cfg.mild_defense_ret20)
+        | (feat["dd60"] <= dd_thr)
+        | (feat["ret20"] <= ret_thr)
     ).fillna(False)
 
-    # Sticky/thrust lock bench through lagging dd60; only harsh_ret breaks them.
+    # Sticky/thrust/reentry lock bench through lagging dd60; only harsh_ret breaks them.
     sticky_lock = sticky & ~harsh_ret
     if cfg.thrust_force_bench:
         thrust_lock = thrust & ~harsh_ret
@@ -405,9 +465,11 @@ def label_structure_modes(
             thrust_lock = thrust_lock & ~harsh_dd
     else:
         thrust_lock = pd.Series(False, index=feat.index)
+    reentry_lock = reentry & ~harsh_ret & ~harsh_dd
     # Outside locks: stock sleeves need clear risk-on (not mild, not either harsh).
     risk_on = ~mild & ~harsh_dd & ~harsh_ret
-    outside = ~(sticky_lock | thrust_lock) if cfg.sticky_forbid_stock_sleeves else (~thrust_lock)
+    locked = sticky_lock | thrust_lock | reentry_lock
+    outside = ~locked if cfg.sticky_forbid_stock_sleeves else ~(thrust_lock | reentry_lock)
 
     # Assign low → high so higher priority overwrites.
     mode = pd.Series("cash", index=feat.index, dtype=object)
@@ -416,6 +478,7 @@ def label_structure_modes(
     mode = mode.mask(outside & risk_on & index_lean, "bench")
     mode = mode.mask(outside & mild & ~harsh_ret, "cash")
     mode = mode.mask(outside & harsh_dd & ~harsh_ret, "cash")
+    mode = mode.mask(reentry_lock, "bench")
     mode = mode.mask(sticky_lock, "bench")
     mode = mode.mask(thrust_lock, "bench")
     mode = mode.mask(harsh_ret, "cash")
@@ -426,9 +489,12 @@ def label_structure_modes(
     meta["leader_vs_bench_trail60"] = lead_trail60
     meta["sticky"] = sticky.astype(float)
     meta["thrust"] = thrust.astype(float)
+    meta["reentry"] = reentry.astype(float)
+    meta["mild_dd_thr"] = dd_thr
+    meta["mild_ret20_thr"] = ret_thr
     meta["stock_led"] = stock_led.astype(float)
     meta["index_lean"] = index_lean.astype(float)
-    meta["bench_bias"] = (sticky_lock | thrust_lock | (index_lean & risk_on)).astype(float)
+    meta["bench_bias"] = (locked | (index_lean & risk_on)).astype(float)
     meta["crowded"] = crowded.astype(float)
     meta["mild"] = mild.astype(float)
     meta["harsh_ret"] = harsh_ret.astype(float)

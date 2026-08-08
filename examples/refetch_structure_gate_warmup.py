@@ -65,16 +65,21 @@ def normalize(raw: pd.DataFrame) -> pd.DataFrame | None:
     return df[~df.index.duplicated(keep="last")].sort_index()
 
 
-def merge_save(path: Path, new: pd.DataFrame) -> int:
-    if path.is_file() and path.stat().st_size > 64:
+def merge_save(path: Path, new: pd.DataFrame, *, replace: bool = False) -> int:
+    """Write OHLCV. Default replace=True-safe: overwrite with fresh download.
+
+    Merging old+new previously re-introduced half/double price flips (AZN/HON).
+    """
+    if replace or not path.is_file() or path.stat().st_size < 64:
+        merged = new
+    else:
         old = pd.read_csv(path, index_col=0, parse_dates=True)
         old.columns = [str(c).lower() for c in old.columns]
         old = old[["open", "high", "low", "close", "volume"]].dropna()
         old.index = pd.to_datetime(old.index).tz_localize(None).normalize()
+        # Prefer new on overlap; still risky if new has gaps — prefer --replace.
         merged = pd.concat([old, new]).sort_index()
         merged = merged[~merged.index.duplicated(keep="last")]
-    else:
-        merged = new
     path.parent.mkdir(parents=True, exist_ok=True)
     merged.to_csv(path)
     return len(merged)
@@ -125,12 +130,12 @@ def universe_for(book: str) -> list[str]:
     ]
 
 
-def refetch_book(book: str, start: str, end: str) -> None:
+def refetch_book(book: str, start: str, end: str, *, replace: bool) -> None:
     spec = BOOKS[book]
     cache: Path = spec["cache"]
     members = universe_for(book)
     tickers = sorted({spec["bench"], *members})
-    print(f"\n=== {book} tickers={len(tickers)} -> {cache} ===")
+    print(f"\n=== {book} tickers={len(tickers)} -> {cache} replace={replace} ===")
     # chunk to keep yfinance happier on large universes
     panel: dict[str, pd.DataFrame] = {}
     chunk = 80
@@ -142,7 +147,7 @@ def refetch_book(book: str, start: str, end: str) -> None:
         raise SystemExit(f"{book}: bench {spec['bench']} download failed")
     n_ok = 0
     for sym, df in panel.items():
-        merge_save(cache / f"{sym}.csv", df)
+        merge_save(cache / f"{sym}.csv", df, replace=replace)
         n_ok += 1
     print(f"saved={n_ok} missing={len(tickers) - n_ok}")
 
@@ -152,11 +157,23 @@ def main() -> None:
     ap.add_argument("books", nargs="*", default=["QQQ", "SOXX", "SPY"])
     ap.add_argument("--start", default="2021-06-01")
     ap.add_argument("--end", default="2026-01-05")
+    ap.add_argument(
+        "--replace",
+        action="store_true",
+        default=True,
+        help="overwrite CSVs with fresh download (default on; avoids merge pollution)",
+    )
+    ap.add_argument(
+        "--merge",
+        action="store_true",
+        help="merge into existing CSVs instead of replace",
+    )
     args = ap.parse_args()
+    replace = not args.merge
     for b in [x.strip().upper() for x in args.books]:
         if b not in BOOKS:
             raise SystemExit(f"unknown book {b}; choose from {sorted(BOOKS)}")
-        refetch_book(b, args.start, args.end)
+        refetch_book(b, args.start, args.end, replace=replace)
     print("\nDone.")
 
 
