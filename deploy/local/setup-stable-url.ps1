@@ -46,15 +46,20 @@ function Upsert-Env([string]$key, [string]$value) {
 Write-Host "=== Stable API URL setup ==="
 Write-Host "Quick tunnel URLs change every restart. Named Tunnel does not."
 Write-Host ""
+Write-Host "Create tunnel here (new UI):"
+Write-Host "  https://dash.cloudflare.com/ -> Networking -> Tunnels -> Create a tunnel"
+Write-Host "  (NOT one.dash.cloudflare.com Zero Trust -> Networks)"
+Write-Host "Published application / route should point to:"
+Write-Host "  http://127.0.0.1:8787"
+Write-Host "You need a domain already on Cloudflare for the fixed hostname."
+Write-Host "Token: tunnel Overview -> Add a replica / Install connector -> copy token"
+Write-Host ""
 
 if (-not $TunnelToken) {
-  Write-Host "Cloudflare Zero Trust -> Networks -> Tunnels -> Create"
-  Write-Host "Public hostname points to: http://127.0.0.1:8787"
-  Write-Host "Then paste the tunnel token below."
   $TunnelToken = Read-Host "CLOUDFLARE_TUNNEL_TOKEN"
 }
 if (-not $PublicUrl) {
-  $PublicUrl = Read-Host "Public URL (https://your-fixed-hostname)"
+  $PublicUrl = Read-Host "Public URL (https://api.your-domain.com)"
 }
 
 $TunnelToken = $TunnelToken.Trim()

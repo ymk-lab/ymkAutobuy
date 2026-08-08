@@ -112,11 +112,13 @@ FUTU_OPEND_LOGIN_PWD=...
 deploy\local\setup-stable-url.bat
 ```
 
-依提示貼上：
+依提示貼上（**新介面路徑**）：
 
-1. Cloudflare Zero Trust → Tunnels → Create → Public hostname → `http://127.0.0.1:8787`
-2. Tunnel **token**
-3. 固定公開網址（你的域名，例如 `https://sg-api.yourdomain.com`）
+1. 開 https://dash.cloudflare.com/ → 左側 **Networking → Tunnels → Create a tunnel**  
+   （不要再找 `one.dash.cloudflare.com` 的 Zero Trust → Networks）
+2. 安裝 connector 後複製 **token**
+3. 新增 Published application／路由：hostname 用你的域名，服務指到 `http://127.0.0.1:8787`
+4. 固定公開網址例如 `https://sg-api.yourdomain.com`（域名需已加在 Cloudflare）
 
 腳本會寫入 `.env`、重啟後端、並把 Firebase `ApiBase` 寫死成固定網址。  
 之後只要開 https://ymk-autobuy.web.app 即可（可先開一次 `?api=clear` 清掉舊隧道）。
