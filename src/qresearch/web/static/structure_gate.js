@@ -1,9 +1,9 @@
 (() => {
   const MODE_COPY = {
-    cash: "空手防守：結構轉弱或不在 risk-on 時持有現金，等待下一根明確訊號。",
-    ers: "新興轉強：風險開、非指數偏強時，持有剛相對基準轉強的個股（G1 ERS）。",
-    strong: "已強領導：個股領漲且結構集中（crowded）時，升級持有確認過的領導股。",
-    bench: "基準滿倉：Sticky／Thrust／指數偏強時，滿倉基準 ETF，避免選股落後指數。",
+    cash: "空手防守：結構轉弱或不在 risk-on 時持有現金。",
+    ers: "新興轉強：持有剛相對基準轉強的個股（G1 ERS）。",
+    strong: "已強領導：個股領漲且 crowded 時，持有確認領導股。",
+    bench: "基準滿倉：Sticky／Thrust／指數偏強時，滿倉基準 ETF。",
   };
 
   const PARAM_META = [
@@ -29,10 +29,9 @@
 
   let submitEnabled = false;
   let busy = false;
+  let statusCache = null;
 
-  function $(sel) {
-    return document.querySelector(sel);
-  }
+  const $ = (sel) => document.querySelector(sel);
 
   function fmt(v) {
     if (typeof v === "boolean") return v ? "true" : "false";
@@ -44,17 +43,53 @@
     return String(v);
   }
 
-  function fmtPct(x) {
+  function money(x) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    return Number(x).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    });
+  }
+
+  function money2(x) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    return Number(x).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function pct(x) {
     if (x == null || Number.isNaN(Number(x))) return "—";
     return `${(Number(x) * 100).toFixed(1)}%`;
   }
 
-  function setMode(mode) {
-    document.querySelectorAll(".sg-mode").forEach((el) => {
-      el.classList.toggle("is-active", el.dataset.mode === mode);
-    });
-    const detail = document.getElementById("mode-detail");
-    if (detail) detail.textContent = MODE_COPY[mode] || "";
+  function signedMoney(x) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    const n = Number(x);
+    const s = money2(Math.abs(n));
+    if (n > 0) return `+${s}`;
+    if (n < 0) return `−${s}`;
+    return s;
+  }
+
+  function pnlClass(x) {
+    if (x == null || Number.isNaN(Number(x))) return "";
+    if (Number(x) > 0) return "is-up";
+    if (Number(x) < 0) return "is-down";
+    return "";
+  }
+
+  function toast(msg, level = "info") {
+    const root = $("#toast-root");
+    if (!root) return;
+    const el = document.createElement("div");
+    el.className = `toast toast-${level}`;
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 4200);
   }
 
   function pushActivity(msg, level = "info") {
@@ -65,7 +100,7 @@
     const t = new Date().toISOString().slice(11, 19);
     row.textContent = `[${t}] ${msg}`;
     box.prepend(row);
-    while (box.children.length > 40) box.removeChild(box.lastChild);
+    while (box.children.length > 80) box.removeChild(box.lastChild);
   }
 
   function setBusy(on, label) {
@@ -83,12 +118,82 @@
     b.className = submitEnabled ? "badge badge-on" : "badge badge-off";
   }
 
+  function setMode(mode) {
+    document.querySelectorAll(".sg-mode").forEach((el) => {
+      el.classList.toggle("is-active", el.dataset.mode === mode);
+    });
+    const detail = $("#mode-detail");
+    if (detail) detail.textContent = MODE_COPY[mode] || "";
+  }
+
+  function renderOrders(listEl, rows, emptyText) {
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    if (!rows || !rows.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = emptyText;
+      listEl.appendChild(li);
+      return;
+    }
+    for (const o of rows) {
+      const li = document.createElement("li");
+      const side = (o.side || "").toLowerCase();
+      li.innerHTML = `<span class="side ${side}">${side}</span> <strong>${o.quantity}</strong> ${o.symbol} <span class="px">@ ${Number(o.price).toFixed(2)}</span>`;
+      listEl.appendChild(li);
+    }
+  }
+
+  function renderHoldings(account) {
+    const body = $("#holdings-body");
+    if (!body) return;
+    const holdings = account?.holdings || [];
+    if (!holdings.length) {
+      const pos = account?.positions || {};
+      const keys = Object.keys(pos);
+      if (!keys.length) {
+        body.innerHTML = `<tr><td colspan="7" class="empty">無持倉</td></tr>`;
+        return;
+      }
+      body.innerHTML = keys
+        .map((k) => {
+          const q = account?.quotes?.[k];
+          return `<tr><td>${k}</td><td>${pos[k]}</td><td>—</td><td>${q != null ? Number(q).toFixed(2) : "—"}</td><td>—</td><td>—</td><td>—</td></tr>`;
+        })
+        .join("");
+      return;
+    }
+    body.innerHTML = holdings
+      .map((h) => {
+        const up = h.unrealized_pnl;
+        const day = h.day_pnl;
+        return `<tr>
+          <td>${h.symbol}${h.name ? `<small>${h.name}</small>` : ""}</td>
+          <td>${h.quantity}</td>
+          <td>${h.cost_price != null ? Number(h.cost_price).toFixed(2) : "—"}</td>
+          <td>${h.last != null ? Number(h.last).toFixed(2) : "—"}</td>
+          <td>${h.market_value != null ? money2(h.market_value) : "—"}</td>
+          <td class="${pnlClass(up)}">${up != null ? signedMoney(up) : "—"}</td>
+          <td class="${pnlClass(day)}">${day != null ? signedMoney(day) : "—"}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   function renderSgStatus(data) {
     if (!data) return;
+    statusCache = data;
     submitEnabled = !!data.submit_enabled;
     renderSubmitBadge();
+
     const sig = data.signal || {};
     const bt = data.backtest || {};
+    const account = data.account || {};
+    const pnl = account.pnl || {};
+    const run = data.last_run || {};
+    const state = data.state || {};
+
+    const mode = sig.mode || "—";
     const tgt = sig.target || {};
     const tgtS =
       Object.keys(tgt).length === 0
@@ -96,25 +201,84 @@
         : Object.entries(tgt)
             .map(([k, v]) => `${k} ${(Number(v) * 100).toFixed(0)}%`)
             .join(", ");
-    const asof = $("#sg-asof");
-    const modeEl = $("#sg-mode");
-    const targetEl = $("#sg-target");
-    const bookEl = $("#sg-book");
-    const btSg = $("#sg-bt-sg");
-    const btBh = $("#sg-bt-bh");
-    if (asof) asof.textContent = sig.asof || "—";
-    if (modeEl) modeEl.textContent = sig.mode || "—";
-    if (targetEl) targetEl.textContent = tgtS;
-    if (bookEl) bookEl.textContent = data.book || sig.book || "QQQ";
-    if (btSg) btSg.textContent = fmtPct(bt.structure_gate_total_return);
-    if (btBh) btBh.textContent = fmtPct(bt.bench_bh_total_return);
+
+    const sleeveCap = data.sleeve_usd ? Number(data.sleeve_usd) : null;
+    const sleeveFromSig = sig.sleeve_equity_usd != null ? Number(sig.sleeve_equity_usd) : null;
+    const equity = pnl.equity_usd != null ? Number(pnl.equity_usd) : null;
+    const sleeve =
+      sleeveCap != null && sleeveCap > 0
+        ? sleeveCap
+        : sleeveFromSig != null
+          ? sleeveFromSig
+          : equity;
+
+    $("#m-sleeve") && ($("#m-sleeve").textContent = money(sleeve));
+    $("#m-cash") && ($("#m-cash").textContent = money2(account.cash_usd ?? sig.cash_usd));
+    $("#m-equity") && ($("#m-equity").textContent = money2(equity ?? sleeveFromSig));
+    const upnlEl = $("#m-upnl");
+    if (upnlEl) {
+      upnlEl.textContent = signedMoney(pnl.unrealized_pnl);
+      upnlEl.className = pnlClass(pnl.unrealized_pnl);
+    }
+    const dayEl = $("#m-day");
+    if (dayEl) {
+      dayEl.textContent = signedMoney(pnl.day_pnl);
+      dayEl.className = pnlClass(pnl.day_pnl);
+    }
+    $("#m-asof") && ($("#m-asof").textContent = sig.asof || "—");
+
+    $("#sg-mode-hero") && ($("#sg-mode-hero").textContent = mode);
+    $("#sg-target-hero") && ($("#sg-target-hero").textContent = tgtS);
+    $("#sg-book") && ($("#sg-book").textContent = data.book || sig.book || "—");
+    $("#sg-mode") && ($("#sg-mode").textContent = mode);
+    $("#sg-target") && ($("#sg-target").textContent = tgtS);
+
+    const flags = ["sticky", "thrust", "mild", "harsh_ret", "harsh_dd", "index_lean", "stock_led", "crowded"]
+      .filter((k) => sig[k])
+      .join(" · ");
+    $("#sg-flags") && ($("#sg-flags").textContent = flags || "—");
+
+    const sub = $("#sg-monitor-sub");
+    if (sub) {
+      const submitTxt = submitEnabled ? "送單開啟（模擬盤）" : "只計畫、不送單";
+      sub.textContent = `asof ${sig.asof || "—"} · ${submitTxt} · paper only`;
+    }
+
+    renderOrders($("#preview-list"), sig.preview_orders || [], "尚無預覽單");
+    renderOrders($("#fill-list"), run.fills || [], "尚無成交紀錄");
+    const st = $("#state-line");
+    if (st) {
+      st.textContent = state.asof
+        ? `state：asof=${state.asof} submitted=${!!state.submitted}${state.mode ? ` mode=${state.mode}` : ""}`
+        : "state：尚無";
+    }
+
+    renderHoldings(account);
+
+    $("#sg-bt-sg") && ($("#sg-bt-sg").textContent = pct(bt.structure_gate_total_return));
+    $("#sg-bt-bh") && ($("#sg-bt-bh").textContent = pct(bt.bench_bh_total_return));
+    $("#sg-bt-range") &&
+      ($("#sg-bt-range").textContent =
+        bt.start && bt.end ? `${bt.start} → ${bt.end}` : "—");
+    $("#sg-bt-gate") &&
+      ($("#sg-bt-gate").textContent =
+        bt.soft_pass == null
+          ? "—"
+          : `${bt.soft_pass ? "soft✓" : "soft✗"} / ${bt.hard_pass_beat_both ? "hard✓" : "hard✗"}`);
+
     const sel = $("#sg-book-select");
-    if (sel && data.book) sel.value = data.book;
+    if (sel && (data.book || sig.book)) sel.value = data.book || sig.book;
+
     if (sig.mode) setMode(sig.mode);
+
+    const clock = $("#sg-badge-clock");
+    if (clock && data.server_time_utc) {
+      clock.textContent = String(data.server_time_utc).slice(11, 19) + "Z";
+    }
   }
 
   async function loadParams() {
-    const body = document.getElementById("params-body");
+    const body = $("#params-body");
     if (!body) return;
     try {
       const res = await fetch("/api/structure-gate/v8");
@@ -136,8 +300,9 @@
     }
   }
 
-  async function refreshStatus() {
-    const res = await fetch("/api/sg/status");
+  async function refreshStatus({ live = false } = {}) {
+    const url = live ? "/api/sg/status?live=1" : "/api/sg/status";
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`status HTTP ${res.status}`);
     const data = await res.json();
     renderSgStatus(data);
@@ -147,6 +312,7 @@
   async function consumeSSE(url, actionLabel) {
     setBusy(true, "處理中");
     pushActivity(`處理中：${actionLabel}…`, "info");
+    toast(`處理中：${actionLabel}…`, "info");
     const res = await fetch(url);
     if (!res.ok || !res.body) throw new Error(`請求失敗 (${res.status})`);
     const reader = res.body.getReader();
@@ -173,20 +339,27 @@
           continue;
         }
         const level = evt.level || (evt.phase === "error" ? "error" : "info");
-        if (evt.message) pushActivity(evt.message, level);
-        if (evt.phase === "done") ok = !!evt.ok;
-        if (evt.data && (evt.data.signal || evt.data.backtest)) {
-          renderSgStatus(evt.data);
+        if (evt.message) {
+          pushActivity(evt.message, level);
+          if (level === "ok" || level === "error" || evt.phase === "start") {
+            toast(evt.message, level === "log" ? "info" : level);
+          }
         }
-        if (evt.data && evt.data.submit_enabled != null) {
-          submitEnabled = !!evt.data.submit_enabled;
-          renderSubmitBadge();
+        if (evt.phase === "done") ok = !!evt.ok;
+        if (evt.data) {
+          if (evt.data.signal || evt.data.backtest || evt.data.account) {
+            renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
+          }
+          if (evt.data.submit_enabled != null) {
+            submitEnabled = !!evt.data.submit_enabled;
+            renderSubmitBadge();
+          }
         }
       }
     }
     setBusy(false);
     try {
-      await refreshStatus();
+      await refreshStatus({ live: false });
     } catch {
       /* ignore */
     }
@@ -196,19 +369,21 @@
   async function withAction(fn) {
     if (busy) {
       pushActivity("忙碌中：請等待目前工作結束", "error");
+      toast("忙碌中：請稍候", "error");
       return;
     }
     try {
       await fn();
     } catch (err) {
       pushActivity(`錯誤：${err?.message || err}`, "error");
+      toast(`錯誤：${err?.message || err}`, "error");
       setBusy(false);
     }
   }
 
   function bookParam() {
     const sel = $("#sg-book-select");
-    return encodeURIComponent((sel && sel.value) || "QQQ");
+    return encodeURIComponent((sel && sel.value) || "SPY");
   }
 
   document.querySelectorAll(".sg-mode").forEach((btn) => {
@@ -222,10 +397,13 @@
         withAction(async () => {
           setBusy(true, "處理中");
           pushActivity("處理中：重新整理狀態…", "info");
-          await refreshStatus();
+          await refreshStatus({ live: true });
           pushActivity("完成：狀態已更新", "ok");
+          toast("完成：狀態已更新", "ok");
           setBusy(false);
         });
+      } else if (action === "sync") {
+        withAction(() => consumeSSE("/api/sg/sync-account", "同步長橋帳戶"));
       } else if (action === "signal") {
         withAction(() =>
           consumeSSE(
@@ -262,5 +440,7 @@
 
   setMode("cash");
   loadParams();
-  refreshStatus().catch((err) => pushActivity(`狀態載入失敗：${err.message}`, "error"));
+  refreshStatus({ live: false })
+    .then(() => refreshStatus({ live: true }).catch(() => null))
+    .catch((err) => pushActivity(`狀態載入失敗：${err.message}`, "error"));
 })();

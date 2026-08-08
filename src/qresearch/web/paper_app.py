@@ -1,4 +1,4 @@
-"""FastAPI control panel for Emerging RS G1 Longbridge paper trading."""
+"""FastAPI control panel for Structure Gate v8 Longbridge paper trading."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v8_paper"
 DAILY = ROOT / "examples" / "run_emerging_rs_g1_paper_daily.py"
 SG_DAILY = ROOT / "examples" / "run_structure_gate_v8_paper_daily.py"
 
-app = FastAPI(title="qresearch G1 Paper", version="0.1.0")
+app = FastAPI(title="qresearch Structure Gate Paper", version="0.2.0")
 _lock = threading.Lock()
 
 
@@ -253,11 +253,12 @@ def _account_snapshot() -> dict[str, Any]:
     return out
 
 
-def _account_path() -> Path:
-    return _out_dir() / "account_live.json"
+def _account_path(*, sg: bool = True) -> Path:
+    base = _sg_out_dir() if sg else _out_dir()
+    return base / "account_live.json"
 
 
-def _save_account(snap: dict[str, Any]) -> dict[str, Any]:
+def _save_account(snap: dict[str, Any], *, sg: bool = True) -> dict[str, Any]:
     """Persist live account snapshot so UI refresh does not fall back to stale signal."""
     payload = {
         "ok": bool(snap.get("ok", True)),
@@ -273,15 +274,17 @@ def _save_account(snap: dict[str, Any]) -> dict[str, Any]:
     if snap.get("error"):
         payload["error"] = snap["error"]
         payload["ok"] = False
-    _account_path().write_text(json.dumps(payload, indent=2, default=float) + "\n")
+    _account_path(sg=sg).write_text(json.dumps(payload, indent=2, default=float) + "\n")
     return payload
 
 
-def _account_from_files() -> dict[str, Any]:
-    live = _read_json(_account_path())
+def _account_from_files(*, sg: bool = True) -> dict[str, Any]:
+    live = _read_json(_account_path(sg=sg))
     if live:
         return live
-    run = _read_json(_out_dir() / "latest_run.json") or {}
+    out = _sg_out_dir() if sg else _out_dir()
+    run = _read_json(out / "latest_run.json") or {}
+    signal = _read_json(out / "latest_signal.json") or {}
     if run.get("positions_after") is not None or run.get("cash_after") is not None:
         return {
             "ok": True,
@@ -290,6 +293,15 @@ def _account_from_files() -> dict[str, Any]:
             "quotes": {},
             "updated_at_utc": run.get("generated_at_utc"),
             "source": "latest_run",
+        }
+    if signal.get("positions") is not None or signal.get("cash_usd") is not None:
+        return {
+            "ok": True,
+            "cash_usd": signal.get("cash_usd"),
+            "positions": signal.get("positions") or {},
+            "quotes": {},
+            "updated_at_utc": signal.get("generated_at_utc"),
+            "source": "latest_signal",
         }
     return {"ok": True, "cash_usd": None, "positions": {}, "quotes": {}, "source": "none"}
 
@@ -301,9 +313,13 @@ def _status_payload(*, live: bool = False) -> dict[str, Any]:
     state = _read_json(out / "state.json") or {}
     if live:
         snap = _account_snapshot()
-        account = _save_account(snap) if snap.get("ok") else {**snap, "positions": {}, "quotes": {}}
+        account = (
+            _save_account(snap, sg=False)
+            if snap.get("ok")
+            else {**snap, "positions": {}, "quotes": {}}
+        )
     else:
-        account = _account_from_files()
+        account = _account_from_files(sg=False)
     return {
         "ok": True,
         "root": str(ROOT),
@@ -325,7 +341,8 @@ def index() -> FileResponse:
 
 @app.get("/structure-gate")
 def structure_gate_page() -> FileResponse:
-    return FileResponse(STATIC / "structure_gate_v8.html")
+    """Legacy path — same Structure Gate paper monitor as `/`."""
+    return FileResponse(STATIC / "index.html")
 
 
 @app.get("/api/structure-gate/v8")
@@ -370,20 +387,35 @@ def structure_gate_v8_config() -> JSONResponse:
     )
 
 
-def _sg_status_payload() -> dict[str, Any]:
+def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     out = _sg_out_dir()
     signal = _read_json(out / "latest_signal.json") or {}
     run = _read_json(out / "latest_run.json") or {}
     state = _read_json(out / "state.json") or {}
     backtest = _read_json(out / "latest_backtest.json") or {}
+    if live:
+        snap = _account_snapshot()
+        account = (
+            _save_account(snap, sg=True)
+            if snap.get("ok")
+            else {**snap, "positions": {}, "quotes": {}}
+        )
+    else:
+        account = _account_from_files(sg=True)
+    book = (
+        os.getenv("QRESEARCH_SG_BOOK")
+        or signal.get("book")
+        or "SPY"
+    )
     return {
         "ok": True,
         "out_dir": str(out),
-        "book": os.getenv("QRESEARCH_SG_BOOK", "QQQ"),
+        "book": str(book).upper(),
         "submit_enabled": _env_sg_submit(),
         "paper_only": _env_truthy("QRESEARCH_SG_PAPER_ONLY", "1"),
         "sleeve_usd": os.getenv("QRESEARCH_SLEEVE_USD", ""),
         "signal": signal,
+        "account": account,
         "last_run": run,
         "state": state,
         "backtest": backtest,
@@ -392,8 +424,55 @@ def _sg_status_payload() -> dict[str, Any]:
 
 
 @app.get("/api/sg/status")
-def api_sg_status() -> dict[str, Any]:
-    return _sg_status_payload()
+def api_sg_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
+    return _sg_status_payload(live=bool(live))
+
+
+@app.get("/api/sg/sync-account")
+async def api_sg_sync_account() -> StreamingResponse:
+    async def gen() -> AsyncIterator[str]:
+        yield _sse({"phase": "start", "message": "處理中：準備連線長橋帳戶…", "level": "info"})
+        await asyncio.sleep(0.05)
+        if not _lock.acquire(blocking=False):
+            yield _sse({"phase": "error", "message": "忙碌中：另一個工作正在執行", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+            return
+        try:
+            yield _sse({"phase": "progress", "message": "處理中：讀取現金與持倉…", "level": "info"})
+            snap = await asyncio.to_thread(_account_snapshot)
+            if not snap.get("ok"):
+                yield _sse({"phase": "error", "message": f"失敗：{snap.get('error')}", "level": "error"})
+                yield _sse({"phase": "done", "ok": False})
+                return
+            saved = await asyncio.to_thread(lambda: _save_account(snap, sg=True))
+            npos = len(saved.get("positions") or {})
+            pos_txt = (
+                ", ".join(f"{k}×{v:g}" for k, v in (saved.get("positions") or {}).items())
+                if npos
+                else "無持倉"
+            )
+            pnl = saved.get("pnl") or {}
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": (
+                        f"完成帳戶同步：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
+                        f"權益 {float(pnl.get('equity_usd') or 0):,.2f}，持倉 {pos_txt}"
+                    ),
+                    "level": "ok",
+                    "data": {"account": saved, **snap},
+                }
+            )
+            status = _sg_status_payload(live=False)
+            status["account"] = saved
+            yield _sse({"phase": "done", "ok": True, "data": status})
+        except Exception as exc:  # noqa: BLE001
+            yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+        finally:
+            _lock.release()
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/api/sg/logs")
@@ -500,7 +579,10 @@ async def api_sg_run(
                 yield _sse({"phase": "log", "message": text, "level": "log"})
 
             code = await proc.wait()
-            status = _sg_status_payload()
+            try:
+                status = await asyncio.to_thread(lambda: _sg_status_payload(live=True))
+            except Exception:
+                status = _sg_status_payload(live=False)
             signal = status.get("signal") or {}
             backtest = status.get("backtest") or {}
             if code == 0:

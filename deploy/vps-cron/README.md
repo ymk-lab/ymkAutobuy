@@ -83,7 +83,8 @@ pip install -e ".[web]"
 # 瀏覽 http://<VPS-IP>:8787
 ```
 
-按鈕操作會以「處理中 / 完成 / 錯誤」即時提示後台進度（SSE）。
+首頁為 **Structure Gate paper monitor**（本金／目標／掛單／盈虧優先；其後才是回測與規則）。  
+按鈕旁有操作說明；進度以 SSE 即時顯示。
 
 ---
 
