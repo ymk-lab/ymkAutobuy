@@ -146,3 +146,7 @@ examples/data/panel/
 !examples/data/emerging_rs_g1_multi_slot/
 !examples/data/emerging_rs_g1_multi_slot/*.csv
 !examples/data/emerging_rs_g1_multi_slot/*.json
+
+!examples/data/emerging_rs_g1_multi_slot_3/
+!examples/data/emerging_rs_g1_multi_slot_3/*.csv
+!examples/data/emerging_rs_g1_multi_slot_3/*.json
