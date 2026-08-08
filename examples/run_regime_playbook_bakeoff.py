@@ -17,6 +17,10 @@ sys.path.insert(0, str(ROOT / "examples"))
 from qresearch.backtest.futu_costs import FutuUsEquityFees
 from qresearch.data.loader import validate_ohlcv
 from qresearch.strategy.emerging_rs_wave import EmergingRSWaveBook
+from qresearch.strategy.regime_label import (
+    RegimeScorecardConfig,
+    crowded_trend_relaxed_config,
+)
 from qresearch.strategy.regime_playbook import (
     RegimePlaybookConfig,
     simulate_cash,
@@ -32,8 +36,12 @@ from run_emerging_rs_wave_gates import (  # type: ignore
 )
 
 METHOD = (sys.argv[1] if len(sys.argv) > 1 else "hierarchy").strip().lower()
-OUT = ROOT / "examples" / "data" / (
+PROFILE = (sys.argv[2] if len(sys.argv) > 2 else "default").strip().lower()
+_OUT_BASE = (
     "regime_playbook_bakeoff_hierarchy" if METHOD == "hierarchy" else "regime_playbook_bakeoff"
+)
+OUT = ROOT / "examples" / "data" / (
+    f"{_OUT_BASE}_relaxed" if PROFILE == "relaxed" else _OUT_BASE
 )
 CACHE_CANDIDATES = [
     ROOT / "examples" / "data" / "emerging_rs_wave_qqq_g1_longbridge" / "cache_ohlcv",
@@ -83,8 +91,23 @@ def main() -> None:
     fees = FutuUsEquityFees(slippage_bps=3.0)
     qqq, opens, closes = load_panel()
 
-    # 1) Regime switch
-    print(f"label_method={METHOD}")
+    scorecard: RegimeScorecardConfig = (
+        crowded_trend_relaxed_config()
+        if PROFILE == "relaxed"
+        else RegimeScorecardConfig()
+    )
+    print(f"label_method={METHOD} profile={PROFILE}")
+    print(
+        "crowded:",
+        {
+            "overlap": scorecard.crowded_overlap,
+            "strong_share": scorecard.crowded_strong_share,
+            "require_both": scorecard.crowded_require_both,
+            "defense_dd": scorecard.defense_dd,
+            "defense_ret20": scorecard.defense_ret20,
+            "leave_defense_confirm": scorecard.leave_defense_confirm,
+        },
+    )
     sw = simulate_regime_switch(
         opens,
         closes,
@@ -93,7 +116,7 @@ def main() -> None:
         capital=CAPITAL,
         start=START,
         fees=fees,
-        config=RegimePlaybookConfig(label_method=METHOD),
+        config=RegimePlaybookConfig(label_method=METHOD, scorecard=scorecard),
     )
     m_sw = metrics(sw.equity, CAPITAL)
 
@@ -156,6 +179,15 @@ def main() -> None:
     report = {
         "passed_bakeoff": passed,
         "label_method": METHOD,
+        "profile": PROFILE,
+        "scorecard": {
+            "crowded_overlap": scorecard.crowded_overlap,
+            "crowded_strong_share": scorecard.crowded_strong_share,
+            "crowded_require_both": scorecard.crowded_require_both,
+            "defense_dd": scorecard.defense_dd,
+            "defense_ret20": scorecard.defense_ret20,
+            "leave_defense_confirm": scorecard.leave_defense_confirm,
+        },
         "criteria": "regime_switch must beat qqq_bh AND pure_ers_g1",
         "beat_qqq_bh": beat_qqq,
         "beat_pure_ers": beat_ers,

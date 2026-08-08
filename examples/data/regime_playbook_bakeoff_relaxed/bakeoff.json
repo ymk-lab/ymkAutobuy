@@ -1,0 +1,52 @@
+{
+  "passed_bakeoff": false,
+  "label_method": "scorecard",
+  "profile": "relaxed",
+  "scorecard": {
+    "crowded_overlap": 0.4,
+    "crowded_strong_share": 0.15,
+    "crowded_require_both": false,
+    "defense_dd": 0.12,
+    "defense_ret20": -0.05,
+    "leave_defense_confirm": 3
+  },
+  "criteria": "regime_switch must beat qqq_bh AND pure_ers_g1",
+  "beat_qqq_bh": false,
+  "beat_pure_ers": false,
+  "regime_switch": {
+    "total_return": 0.3145011416539998,
+    "max_drawdown": -0.1325137981809672,
+    "sharpe": 1.1183440063705512,
+    "end_equity": 65725.05708269999
+  },
+  "pure_ers_g1": {
+    "total_return": 1.1920934627762931,
+    "max_drawdown": -0.268470639947621,
+    "sharpe": 1.5793003176264477,
+    "end_equity": 109604.67313881466
+  },
+  "qqq_bh": {
+    "total_return": 0.4070107124919997,
+    "max_drawdown": -0.22564909140363387,
+    "sharpe": 1.0827469697435512,
+    "end_equity": 70350.53562459999
+  },
+  "always_cash": {
+    "total_return": 0.0,
+    "max_drawdown": 0.0,
+    "sharpe": 0.0,
+    "end_equity": 50000.0
+  },
+  "label_distribution": {
+    "CrowdedTrend": 0.76,
+    "Rotation": 0.1175,
+    "Defense": 0.115,
+    "Range": 0.0075
+  },
+  "fallback_hint": "Scorecard underperformed pass gate \u2014 consider switching classifier to risk-first hierarchy (ADR-0009 option A).",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0
+}
