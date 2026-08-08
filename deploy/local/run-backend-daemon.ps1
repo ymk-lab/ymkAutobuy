@@ -1,9 +1,11 @@
-﻿# Headless watchdog: keep uvicorn + cloudflared running (for Task Scheduler / autostart).
-# Prefer named tunnel when CLOUDFLARE_TUNNEL_TOKEN is set in .env (stable hostname).
+﻿# Local-VPS watchdog: OpenD + uvicorn + cloudflared (Task Scheduler / autostart).
+# Order: start OpenD -> wait API port -> uvicorn -> tunnel.
+# Prefer named tunnel when CLOUDFLARE_TUNNEL_TOKEN is set (.env).
 param(
   [int]$Port = 0,
   [int]$CheckSeconds = 20,
-  [int]$StartupDelaySeconds = 15
+  [int]$StartupDelaySeconds = 20,
+  [int]$OpenDWaitSeconds = 90
 )
 
 $ErrorActionPreference = "Continue"
@@ -22,6 +24,7 @@ $uiErrLog = Join-Path $logs "uvicorn.err.log"
 $tunnelOutLog = Join-Path $logs "cloudflared.out.log"
 $tunnelErrLog = Join-Path $logs "cloudflared.err.log"
 $tunnelUrlFile = Join-Path $logs "tunnel-url.txt"
+$opendPathFile = Join-Path $logs "opend-path.txt"
 $pidFile = Join-Path $logs "daemon.pid"
 
 function Write-Log([string]$msg) {
@@ -40,6 +43,10 @@ function Import-DotEnv {
     $v = $line.Substring($i + 1).Trim().Trim('"').Trim("'")
     if ($k) { Set-Item -Path ("Env:" + $k) -Value $v }
   }
+}
+
+function Test-PortListen([int]$p) {
+  return [bool](Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue)
 }
 
 function Get-CloudflaredPath {
@@ -66,8 +73,97 @@ function Get-CloudflaredPath {
   }
 }
 
-function Test-PortListen([int]$p) {
-  return [bool](Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue)
+function Find-OpenDExe {
+  if ($env:FUTU_OPEND_EXE -and (Test-Path $env:FUTU_OPEND_EXE)) {
+    return $env:FUTU_OPEND_EXE
+  }
+  $names = @("FutuOpenD.exe", "OpenD.exe")
+  $roots = @(
+    (Join-Path $env:APPDATA "com.futunn.FutuOpenD"),
+    (Join-Path $env:APPDATA "Futu"),
+    (Join-Path $env:LOCALAPPDATA "Programs"),
+    (Join-Path $env:LOCALAPPDATA "Futu"),
+    ${env:ProgramFiles},
+    ${env:ProgramFiles(x86)},
+    (Join-Path $env:USERPROFILE "Futu"),
+    (Join-Path $env:USERPROFILE "OpenD"),
+    (Join-Path $env:USERPROFILE "Desktop"),
+    (Join-Path $env:USERPROFILE "Downloads")
+  ) | Where-Object { $_ -and (Test-Path $_) }
+
+  foreach ($r in $roots) {
+    foreach ($n in $names) {
+      $direct = Join-Path $r $n
+      if (Test-Path $direct) { return $direct }
+    }
+  }
+
+  # Limited recursive search (depth-ish via Get-ChildItem -Depth)
+  foreach ($r in $roots) {
+    try {
+      $hit = Get-ChildItem -Path $r -Filter "FutuOpenD.exe" -Recurse -ErrorAction SilentlyContinue -Depth 5 |
+        Select-Object -First 1
+      if ($hit) { return $hit.FullName }
+      $hit = Get-ChildItem -Path $r -Filter "OpenD.exe" -Recurse -ErrorAction SilentlyContinue -Depth 5 |
+        Select-Object -First 1
+      if ($hit) { return $hit.FullName }
+    } catch { }
+  }
+  return $null
+}
+
+function Test-OpenDProcess {
+  $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object {
+    $_.ProcessName -match "^(FutuOpenD|OpenD|FutuOpenD.*)$"
+  }
+  return [bool]$procs
+}
+
+function Start-OpenD([string]$exe, [int]$opendPort) {
+  if (Test-PortListen $opendPort) {
+    Write-Log ("OpenD port already listening :" + $opendPort)
+    return $true
+  }
+  if (-not $exe) {
+    Write-Log "OpenD exe not found. Set FUTU_OPEND_EXE in .env to full path of FutuOpenD.exe / OpenD.exe"
+    return $false
+  }
+  if (-not (Test-Path $exe)) {
+    Write-Log ("OpenD exe missing: " + $exe)
+    return $false
+  }
+
+  Set-Content -Path $opendPathFile -Value $exe -Encoding UTF8
+  $workDir = Split-Path -Parent $exe
+  $argList = @()
+  if ($env:FUTU_OPEND_LOGIN_ACCOUNT) {
+    $argList += ("-login_account={0}" -f $env:FUTU_OPEND_LOGIN_ACCOUNT)
+  }
+  if ($env:FUTU_OPEND_LOGIN_PWD) {
+    $argList += ("-login_pwd={0}" -f $env:FUTU_OPEND_LOGIN_PWD)
+  }
+  if ($env:FUTU_OPEND_LANG) {
+    $argList += ("-lang={0}" -f $env:FUTU_OPEND_LANG)
+  }
+
+  Write-Log ("Starting OpenD: " + $exe)
+  if ($argList.Count -gt 0) {
+    Start-Process -FilePath $exe -ArgumentList $argList -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
+  } else {
+    # Use XML next to exe (recommended). GUI OpenD may need interactive login once.
+    Start-Process -FilePath $exe -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
+  }
+
+  $deadline = (Get-Date).AddSeconds($OpenDWaitSeconds)
+  while ((Get-Date) -lt $deadline) {
+    if (Test-PortListen $opendPort) {
+      Write-Log ("OpenD ready on :" + $opendPort)
+      return $true
+    }
+    Start-Sleep -Seconds 2
+  }
+  Write-Log ("OpenD started but port :" + $opendPort + " not listening within " + $OpenDWaitSeconds + "s (login/XML?)")
+  return $false
 }
 
 function Start-Uvicorn([int]$p, [string]$hostAddr, [string]$py) {
@@ -130,7 +226,9 @@ Import-DotEnv
 if ($Port -le 0) {
   if ($env:QRESEARCH_UI_PORT) { $Port = [int]$env:QRESEARCH_UI_PORT } else { $Port = 8787 }
 }
-$hostAddr = if ($env:QRESEARCH_UI_HOST) { $env:QRESEARCH_UI_HOST } else { "127.0.0.1" }
+$hostAddr = if ($env:QRESEARCH_UI_HOST) { $env:QRESEARCH_UI_HOST } else { "0.0.0.0" }
+$opendPort = if ($env:FUTU_OPEND_PORT) { [int]$env:FUTU_OPEND_PORT } else { 11111 }
+$skipOpenD = ($env:QRESEARCH_SKIP_OPEND -eq "1")
 
 $firebaseOrigins = "https://ymk-autobuy.web.app,https://ymk-autobuy.firebaseapp.com"
 if (-not $env:QRESEARCH_CORS_ORIGINS -or $env:QRESEARCH_CORS_ORIGINS -eq "*") {
@@ -149,26 +247,55 @@ $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUNBUFFERED = "1"
 
 Set-Content -Path $pidFile -Value $PID -Encoding ASCII
-Write-Log ("Daemon start PID=" + $PID + " port=" + $Port + " delay=" + $StartupDelaySeconds + "s")
+Write-Log ("Daemon start PID=" + $PID + " ui=:" + $Port + " opend=:" + $opendPort + " delay=" + $StartupDelaySeconds + "s")
 Start-Sleep -Seconds $StartupDelaySeconds
+
+$opendExe = $null
+if (-not $skipOpenD) {
+  $opendExe = Find-OpenDExe
+  if ($opendExe) {
+    Write-Log ("OpenD exe: " + $opendExe)
+    Set-Content -Path $opendPathFile -Value $opendExe -Encoding UTF8
+  } else {
+    Write-Log "OpenD exe not auto-detected"
+  }
+}
 
 $cfPath = Get-CloudflaredPath
 
 while ($true) {
   try {
     Import-DotEnv
+    if ($env:FUTU_OPEND_PORT) { $opendPort = [int]$env:FUTU_OPEND_PORT }
+    $skipOpenD = ($env:QRESEARCH_SKIP_OPEND -eq "1")
+
+    if (-not $skipOpenD) {
+      if (-not $opendExe) { $opendExe = Find-OpenDExe }
+      if (-not (Test-PortListen $opendPort)) {
+        [void](Start-OpenD -exe $opendExe -opendPort $opendPort)
+      }
+    }
+
+    # Prefer API after OpenD is up (or after wait attempt)
     if (-not (Test-PortListen $Port)) {
-      Start-Uvicorn -p $Port -hostAddr $hostAddr -py $venvPy
-      Start-Sleep -Seconds 2
+      if ($skipOpenD -or (Test-PortListen $opendPort) -or (-not $opendExe)) {
+        Start-Uvicorn -p $Port -hostAddr $hostAddr -py $venvPy
+        Start-Sleep -Seconds 2
+      } else {
+        Write-Log "Waiting for OpenD before starting uvicorn"
+      }
     }
 
     if ($cfPath) {
       if (-not (Test-CloudflaredRunning)) {
-        Start-Tunnel -cf $cfPath -p $Port
-        Start-Sleep -Seconds 2
+        # Only expose tunnel once API is listening
+        if (Test-PortListen $Port) {
+          Start-Tunnel -cf $cfPath -p $Port
+          Start-Sleep -Seconds 2
+        }
       }
     } else {
-      Write-Log "cloudflared missing; UI only on localhost"
+      Write-Log "cloudflared missing; local API only"
     }
   } catch {
     Write-Log ("loop error: " + $_.Exception.Message)

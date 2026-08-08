@@ -67,21 +67,38 @@ Firebase 頁 https://ymk-autobuy.web.app → 點頁腳 **API** → 貼上隧道�
 powershell -ExecutionPolicy Bypass -File deploy\local\stop-backend.ps1
 ```
 
-## 4b. 開機自動掛著（Windows）
+## 4b. 本機 VPS：開機自動 OpenD + API（Windows）
 
 雙擊一次：
 
 ```text
-deploy\local\install-autostart.bat
+deploy\local\install-local-vps.bat
 ```
 
-會在「登入 Windows」時用工作排程器背景啟動：
+會：
 
-- uvicorn `:8787`
-- cloudflared（watchdog，掛掉會重開）
+1. 下載／準備 `cloudflared`
+2. 自動尋找 `FutuOpenD.exe` / `OpenD.exe`（或請你在 `.env` 設 `FUTU_OPEND_EXE`）
+3. 註冊「登入 Windows」自動啟動 watchdog：
+   - 啟動 OpenD → 等 `:11111`
+   - 啟動 uvicorn `:8787`
+   - 啟動 cloudflared 隧道
 
 日誌：`deploy/local/logs/daemon.log`  
-解除：`deploy/local/uninstall-autostart.ps1`
+隧道網址：`deploy/local/logs/tunnel-url.txt`  
+解除：`deploy/local/uninstall-autostart.ps1`  
+只停 API：`deploy/local/stop-backend.ps1`  
+連 OpenD 一起停：`deploy/local/stop-backend.ps1 -StopOpenD`
+
+命令列 OpenD 建議在同目錄配好 `FutuOpenD.xml`（自動登入／SIMULATE）。也可在 `.env` 設：
+
+```env
+FUTU_OPEND_EXE=C:\path\to\FutuOpenD.exe
+FUTU_OPEND_LOGIN_ACCOUNT=...
+FUTU_OPEND_LOGIN_PWD=...
+```
+
+（密碼寫進 `.env` 有風險；優先用官方 XML 密文配置。）
 
 **建議固定網址（否則 quick tunnel 每次重開網址都變）：**
 

@@ -34,21 +34,21 @@ Register-ScheduledTask `
   -Trigger $trigger `
   -Settings $settings `
   -Principal $principal `
-  -Description "Structure Gate uvicorn + cloudflared (OpenD paper API) at logon" | Out-Null
+  -Description "Local VPS: OpenD + uvicorn + cloudflared at logon" | Out-Null
 
 Write-Host ("Registered scheduled task: " + $TaskName)
 Write-Host "Starts at Windows logon for user: $($env:USERNAME)"
+Write-Host "Boot order: OpenD -> API :8787 -> cloudflared"
 Write-Host ""
-Write-Host "Optional stable public URL: set in .env"
+Write-Host "Set OpenD path in .env if needed:"
+Write-Host "  FUTU_OPEND_EXE=C:\path\to\FutuOpenD.exe"
+Write-Host "Optional stable public URL:"
 Write-Host "  CLOUDFLARE_TUNNEL_TOKEN=..."
 Write-Host "  CLOUDFLARE_PUBLIC_URL=https://your-fixed-hostname"
-Write-Host "Then bake Firebase once:"
-Write-Host "  cd deploy\firebase"
-Write-Host "  .\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://your-fixed-hostname"
 Write-Host ""
 Write-Host "Logs: deploy\local\logs\daemon.log"
-Write-Host "Stop autostart: deploy\local\uninstall-autostart.ps1"
-Write-Host "Stop processes now: deploy\local\stop-backend.ps1"
+Write-Host "One-key install: deploy\local\install-local-vps.bat"
+Write-Host "Remove autostart: deploy\local\uninstall-autostart.ps1"
 
 if ($StartNow) {
   Write-Host "Starting task now..."
