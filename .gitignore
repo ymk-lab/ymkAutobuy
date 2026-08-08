@@ -143,6 +143,13 @@ examples/data/panel/
 !examples/data/emerging_rs_g1_paper/*.json
 !examples/data/emerging_rs_g1_paper/*.csv
 
+!examples/data/structure_gate_v8_paper/
+!examples/data/structure_gate_v8_paper/*.json
+!examples/data/structure_gate_v8_paper/*.csv
+!examples/data/structure_gate_v8_paper/backtest/
+!examples/data/structure_gate_v8_paper/backtest/*.json
+!examples/data/structure_gate_v8_paper/backtest/*.csv
+
 !examples/data/emerging_rs_g1_multi_slot/
 !examples/data/emerging_rs_g1_multi_slot/*.csv
 !examples/data/emerging_rs_g1_multi_slot/*.json
