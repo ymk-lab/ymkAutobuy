@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -20,7 +21,6 @@ from qresearch.strategy.regime_playbook import simulate_bench_bh, simulate_cash
 from qresearch.strategy.structure_gate import StructureGateConfig, simulate_structure_gate
 from run_emerging_rs_wave_gates import (  # type: ignore
     CAPITAL,
-    START,
     UNIVERSE as QQQ_UNIVERSE,
     metrics,
     simulate_book,
@@ -28,6 +28,7 @@ from run_emerging_rs_wave_gates import (  # type: ignore
 from run_emerging_rs_wave_soxx import UNIVERSE as SEMI_UNIVERSE  # type: ignore
 
 OUT = ROOT / "examples" / "data" / "structure_gate_bakeoff"
+START = pd.Timestamp("2025-01-01")
 END = pd.Timestamp("2026-08-07")
 MIN_BARS = 220
 # Soft pass: beat the worse baseline, and trail the better one by at most this many pp.
@@ -199,7 +200,10 @@ def _universe_for(book: str) -> list[str]:
     raise SystemExit(f"{book}: no universe")
 
 
-def load_panel(book: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Path]:
+def load_panel(
+    book: str, *, end: pd.Timestamp | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Path]:
+    end = END if end is None else pd.Timestamp(end)
     spec = BOOKS[book]
     cache = next((p for p in spec["caches"] if p.is_dir()), None)
     if cache is None:
@@ -214,8 +218,8 @@ def load_panel(book: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Pat
             continue
         df = _load(cache / f"{sym}.csv")
         if df is not None and len(df) >= MIN_BARS:
-            frames[sym] = df.loc[:END]
-    bench = bench.loc[:END]
+            frames[sym] = df.loc[:end]
+    bench = bench.loc[:end]
     idx = bench.index
     closes = pd.DataFrame({s: frames[s]["close"].reindex(idx) for s in frames})
     opens = pd.DataFrame({s: frames[s]["open"].reindex(idx) for s in frames})
@@ -246,10 +250,18 @@ def fees_for(book: str, default_fees: object) -> object:
     return default_fees
 
 
-def run_book(book: str, fees: object, cfg: StructureGateConfig) -> dict:
+def run_book(
+    book: str,
+    fees: object,
+    cfg: StructureGateConfig,
+    *,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    out_root: Path,
+) -> dict:
     fee_model = fees_for(book, fees)
-    bench, opens, closes, cache = load_panel(book)
-    out_dir = OUT / book.lower()
+    bench, opens, closes, cache = load_panel(book, end=end)
+    out_dir = out_root / book.lower()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     sw = simulate_structure_gate(
@@ -258,7 +270,7 @@ def run_book(book: str, fees: object, cfg: StructureGateConfig) -> dict:
         bench["open"],
         bench["close"],
         capital=CAPITAL,
-        start=START,
+        start=start,
         fees=fee_model,
         config=cfg,
     )
@@ -273,7 +285,7 @@ def run_book(book: str, fees: object, cfg: StructureGateConfig) -> dict:
     m_ers = metrics(eq_ers, CAPITAL)
 
     eq_bh = simulate_bench_bh(
-        bench["open"], bench["close"], capital=CAPITAL, start=START, fees=fee_model
+        bench["open"], bench["close"], capital=CAPITAL, start=start, fees=fee_model
     ).reindex(win).ffill()
     m_bh = metrics(eq_bh, CAPITAL)
     m_cash = metrics(simulate_cash(capital=CAPITAL, index=win), CAPITAL)
@@ -329,7 +341,7 @@ def run_book(book: str, fees: object, cfg: StructureGateConfig) -> dict:
         "benchmark": BOOKS[book]["bench"],
         "universe_n": int(closes.shape[1]),
         "cache": str(cache),
-        "window": [str(START.date()), str(win.max().date())],
+        "window": [str(start.date()), str(win.max().date())],
         "capital_usd": CAPITAL,
         "currency": BOOKS[book].get("currency", "USD"),
         "fee_model": "futu_hk_approx" if BOOKS[book].get("fees") == "hk" else "futu_us",
@@ -370,12 +382,29 @@ def run_book(book: str, fees: object, cfg: StructureGateConfig) -> dict:
     return report
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
+def main(argv: list[str] | None = None) -> None:
+    p = argparse.ArgumentParser(description="Structure Gate bake-off (v8 defaults)")
+    p.add_argument("books", nargs="*", help="Book names, e.g. QQQ SPY SOXX")
+    p.add_argument("--start", default=str(START.date()), help="Eval start YYYY-MM-DD")
+    p.add_argument("--end", default=str(END.date()), help="Eval end YYYY-MM-DD (inclusive)")
+    p.add_argument(
+        "--out",
+        default=str(OUT),
+        help="Output directory for bakeoff artifacts",
+    )
+    args = p.parse_args(argv)
+
+    start = pd.Timestamp(args.start)
+    end = pd.Timestamp(args.end)
+    out_root = Path(args.out)
+    out_root.mkdir(parents=True, exist_ok=True)
+
     fees = FutuUsEquityFees(slippage_bps=3.0)
     cfg = StructureGateConfig()
-    books = [a.strip().upper() for a in sys.argv[1:]] or ["QQQ", "SMH"]
-    reports = [run_book(b, fees, cfg) for b in books]
+    books = [a.strip().upper() for a in args.books] or ["QQQ", "SMH"]
+    reports = [
+        run_book(b, fees, cfg, start=start, end=end, out_root=out_root) for b in books
+    ]
 
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
@@ -383,6 +412,7 @@ def main() -> None:
         "rule": "structure_gate_v8_universal_tune",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
+        "window": [str(start.date()), str(end.date())],
         "both_soft_pass": both_soft,
         "both_hard_pass": both_hard,
         "books": {r["book"]: r for r in reports},
@@ -424,12 +454,13 @@ def main() -> None:
             "across QQQ/SMH/SOXX/SPY/DIA/IWM/XLF/XLK/XBI/XLE; in-window exploratory)."
         ),
     }
-    (OUT / "bakeoff_combined.json").write_text(
+    (out_root / "bakeoff_combined.json").write_text(
         json.dumps(combined, indent=2, default=float) + "\n"
     )
     print("\n=== COMBINED ===")
+    print(f"window={start.date()}..{end.date()}")
     print(f"both_soft_pass={both_soft} both_hard_pass={both_hard}")
-    print(f"wrote {OUT}")
+    print(f"wrote {out_root}")
 
 
 if __name__ == "__main__":
