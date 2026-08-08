@@ -162,3 +162,7 @@ examples/data/panel/
 !examples/data/emerging_rs_wave_smh/
 !examples/data/emerging_rs_wave_smh/*.csv
 !examples/data/emerging_rs_wave_smh/*.json
+
+!examples/data/regime_playbook_bakeoff/
+!examples/data/regime_playbook_bakeoff/*.csv
+!examples/data/regime_playbook_bakeoff/*.json
