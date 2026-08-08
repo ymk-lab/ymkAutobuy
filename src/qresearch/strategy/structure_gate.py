@@ -11,7 +11,8 @@ Priority (highest wins):
   > stock_led+crowded > ers > cash
 
 Defaults = v8. Use ``StructureGateConfig.v9()`` for hysteresis / mild-top /
-split-slippage variant.
+split-slippage variant. ``v10()`` is the cross-book preset (SPY regime +
+union stock sleeve + best-of ETF bench) used with ``simulate_structure_gate_cross``.
 """
 
 from __future__ import annotations
@@ -127,6 +128,16 @@ class StructureGateConfig:
             bench_slippage_bps=3.0,
             stock_slippage_bps=8.0,
         )
+
+    @classmethod
+    def v10(cls) -> "StructureGateConfig":
+        """v10 cross-book: same defense/sleeve knobs as v8.
+
+        Cross behaviour lives in ``simulate_structure_gate_cross``:
+        SPY regimes the day; ERS/strong pick from a union universe; bench
+        rotates to the strongest of {SPY, QQQ, SMH} on a 20d return score.
+        """
+        return cls()
 
 
 def top_concentration(ret_panel: pd.DataFrame, k: int = 3) -> pd.Series:
@@ -918,6 +929,269 @@ def simulate_structure_gate(
     meta["book_dd_halt"] = pd.Series(halt_flags, index=mode.index, dtype=float).reindex(meta.index)
     meta["mode_signal"] = mode
     meta["mode"] = mode_exec
+    return StructureSimResult(
+        equity=pd.Series(equity_rows, index=idx, name="equity"),
+        mode=mode_exec.reindex(idx),
+        meta=meta.reindex(idx),
+        trades=pd.DataFrame(trades),
+    )
+
+
+def best_etf_by_momentum(
+    etf_closes: pd.DataFrame,
+    *,
+    lookback: int = 20,
+    default: str | None = None,
+) -> pd.Series:
+    """Daily ticker with highest ``lookback``-day total return among ETF columns."""
+    px = etf_closes.astype(float).sort_index()
+    ret = px / px.shift(lookback) - 1.0
+    fallback = default or (str(px.columns[0]) if len(px.columns) else "")
+    picks: list[str] = []
+    for dt in ret.index:
+        row = ret.loc[dt].replace([np.inf, -np.inf], np.nan).dropna()
+        if row.empty:
+            picks.append(fallback)
+        else:
+            picks.append(str(row.idxmax()))
+    return pd.Series(picks, index=ret.index, name="best_etf")
+
+
+def simulate_structure_gate_cross(
+    opens: pd.DataFrame,
+    closes: pd.DataFrame,
+    etf_opens: pd.DataFrame,
+    etf_closes: pd.DataFrame,
+    *,
+    regime_etf: str = "SPY",
+    capital: float = 50_000.0,
+    start: pd.Timestamp | None = None,
+    fees: object | None = None,
+    config: StructureGateConfig | None = None,
+    etf_momentum_lookback: int = 20,
+) -> StructureSimResult:
+    """Cross-book Structure Gate (v10).
+
+    - Regime / defense / sticky / thrust: measured on ``regime_etf`` (default SPY).
+    - ``ers`` / ``strong``: pick from the union stock panel vs regime close.
+    - ``bench``: next-open full weight in the ETF with best ``etf_momentum_lookback``
+      return among ``etf_closes`` columns (typically SPY/QQQ/SMH).
+    """
+    from qresearch.backtest.futu_costs import FutuUsEquityFees
+
+    cfg = config or StructureGateConfig.v10()
+    fee_model = fees if fees is not None else FutuUsEquityFees(slippage_bps=3.0)
+    bench_fees, stock_fees = _split_fee_models(fee_model, cfg)
+
+    if regime_etf not in etf_closes.columns:
+        raise ValueError(f"regime_etf={regime_etf} missing from etf_closes")
+
+    regime_close = etf_closes[regime_etf].astype(float)
+    regime_vol = None
+    mode, meta = label_structure_modes(regime_close, closes, config=cfg, bench_volume=regime_vol)
+    book = EmergingRSWaveBook(gate="G1", config=cfg.ers_config or EmergingRSWaveConfig())
+    ers_w, _ = book.generate_weights(closes, regime_close)
+    strong_w = strong_leader_weights(closes, regime_close, config=cfg)
+    best_etf = best_etf_by_momentum(
+        etf_closes, lookback=etf_momentum_lookback, default=regime_etf
+    )
+
+    px = closes.astype(float).sort_index()
+    op = opens.astype(float).reindex(px.index)
+    eo = etf_opens.astype(float).reindex(px.index)
+    ec = etf_closes.astype(float).reindex(px.index)
+    mode = mode.reindex(px.index).fillna("cash")
+    ers_w = ers_w.reindex(px.index).fillna(0.0)
+    strong_w = strong_w.reindex(px.index).fillna(0.0)
+    best_etf = best_etf.reindex(px.index)
+    best_etf = best_etf.fillna(regime_etf)
+
+    dates = list(px.index)
+    if start is None:
+        start = dates[0]
+    else:
+        start = pd.Timestamp(start)
+
+    cash = float(capital)
+    pos_sym: str | None = None
+    pos_shares = 0.0
+    pos_kind = "cash"  # cash|ers|strong|bench
+    pending = "cash"
+    target_sym: str | None = None
+    target_w = 0.0
+    peak_eq = float(capital)
+    dd_halt = False
+    dd_reentry = 0
+    dd_stop = (
+        abs(float(cfg.book_peak_dd_stop))
+        if cfg.book_peak_dd_stop is not None and cfg.book_peak_dd_stop > 0
+        else None
+    )
+    reentry_need = max(1, int(cfg.book_dd_reentry_confirm))
+    mode_exec = mode.copy()
+    halt_flags: list[float] = []
+    bench_pick_rows: list[str] = []
+
+    equity_rows: list[float] = []
+    trades: list[dict] = []
+    eq_index: list[pd.Timestamp] = []
+
+    def _active(weights_row: pd.Series) -> tuple[str | None, float]:
+        active = weights_row[weights_row.abs() > 1e-12]
+        if len(active) == 0:
+            return None, 0.0
+        return str(active.index[0]), float(active.iloc[0])
+
+    def _px_open(dt: pd.Timestamp, sym: str, kind: str) -> float:
+        if kind == "bench":
+            return float(eo.at[dt, sym])
+        return float(op.at[dt, sym])
+
+    def _px_close(dt: pd.Timestamp, sym: str, kind: str) -> float:
+        if kind == "bench":
+            return float(ec.at[dt, sym])
+        return float(px.at[dt, sym])
+
+    def _mark(dt: pd.Timestamp) -> float:
+        if pos_kind == "cash" or pos_shares <= 0 or pos_sym is None:
+            return cash
+        return cash + pos_shares * _px_close(dt, pos_sym, pos_kind)
+
+    def _fees_for_kind(kind: str) -> object:
+        return bench_fees if kind == "bench" else stock_fees
+
+    def _sell_all(dt: pd.Timestamp, reason: str) -> None:
+        nonlocal cash, pos_sym, pos_shares, pos_kind
+        if pos_sym is None or pos_shares <= 0:
+            return
+        kind = pos_kind
+        px_o = _px_open(dt, pos_sym, kind)
+        if not np.isfinite(px_o) or px_o <= 0:
+            return
+        notional = pos_shares * px_o
+        cost = float(_fees_for_kind(kind).total_cost_usd(notional, px_o))
+        cash += notional - cost
+        trades.append(
+            {
+                "date": dt.strftime("%Y-%m-%d"),
+                "side": "SELL",
+                "symbol": pos_sym,
+                "shares": round(pos_shares, 4),
+                "price": round(px_o, 4),
+                "notional_usd": round(notional, 2),
+                "cost_usd": round(cost, 2),
+                "reason": reason,
+                "kind": kind,
+            }
+        )
+        pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
+
+    def _buy(dt: pd.Timestamp, sym: str, weight: float, reason: str, kind: str) -> None:
+        nonlocal cash, pos_sym, pos_shares, pos_kind
+        px_o = _px_open(dt, sym, kind)
+        if not np.isfinite(px_o) or px_o <= 0:
+            return
+        shares = float(np.floor(cash * abs(weight) / px_o))
+        if shares < 1:
+            return
+        fee_m = _fees_for_kind(kind)
+        notional = shares * px_o
+        cost = float(fee_m.total_cost_usd(notional, px_o))
+        if notional + cost > cash:
+            shares = float(np.floor((cash * 0.999) / px_o))
+            if shares < 1:
+                return
+            notional = shares * px_o
+            cost = float(fee_m.total_cost_usd(notional, px_o))
+        cash -= notional + cost
+        pos_sym, pos_shares, pos_kind = sym, shares, kind
+        trades.append(
+            {
+                "date": dt.strftime("%Y-%m-%d"),
+                "side": "BUY",
+                "symbol": sym,
+                "shares": round(shares, 4),
+                "price": round(px_o, 4),
+                "notional_usd": round(notional, 2),
+                "cost_usd": round(cost, 2),
+                "reason": reason,
+                "kind": kind,
+            }
+        )
+
+    for dt in dates:
+        if dt >= start:
+            if pending == "cash":
+                _sell_all(dt, "to_cash" if not dd_halt else "book_dd_stop")
+            elif pending in ("bench", "ers", "strong"):
+                kind = pending
+                if pos_kind not in ("cash", kind):
+                    _sell_all(dt, f"switch_to_{kind}")
+                sym, w = target_sym, target_w
+                if sym is None or w <= 0:
+                    if pos_kind == kind:
+                        _sell_all(dt, f"{kind}_flat")
+                else:
+                    if pos_kind == kind and pos_sym != sym:
+                        _sell_all(dt, f"{kind}_rotate")
+                    if pos_kind == "cash":
+                        _buy(dt, sym, w, f"{kind}_enter", kind)
+
+            eq_index.append(dt)
+            marked = _mark(dt)
+            equity_rows.append(marked)
+            if marked > peak_eq:
+                peak_eq = marked
+            if dd_stop is not None and peak_eq > 0:
+                dd_now = marked / peak_eq - 1.0
+                if dd_now <= -dd_stop:
+                    dd_halt = True
+                    dd_reentry = 0
+
+        m = str(mode.at[dt])
+        pick = str(best_etf.at[dt]) if pd.notna(best_etf.at[dt]) else regime_etf
+        if pick not in ec.columns:
+            pick = regime_etf
+        bench_pick_rows.append(pick if m == "bench" else "")
+
+        if m == "cash":
+            pending, target_sym, target_w = "cash", None, 0.0
+        elif m == "bench":
+            pending, target_sym, target_w = "bench", pick, 1.0
+        elif m == "strong":
+            sym, w = _active(strong_w.loc[dt])
+            pending, target_sym, target_w = "strong", sym, w
+        else:
+            sym, w = _active(ers_w.loc[dt])
+            pending, target_sym, target_w = "ers", sym, w
+
+        if dd_halt:
+            if m != "cash":
+                dd_reentry += 1
+            else:
+                dd_reentry = 0
+            if dd_reentry >= reentry_need:
+                dd_halt = False
+                dd_reentry = 0
+            else:
+                pending, target_sym, target_w = "cash", None, 0.0
+                mode_exec.at[dt] = "cash"
+        halt_flags.append(1.0 if dd_halt else 0.0)
+
+        if dt < start:
+            cash = float(capital)
+            pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
+            peak_eq = float(capital)
+            dd_halt = False
+            dd_reentry = 0
+
+    idx = pd.DatetimeIndex(eq_index)
+    meta = meta.copy()
+    meta["book_dd_halt"] = pd.Series(halt_flags, index=mode.index, dtype=float).reindex(meta.index)
+    meta["mode_signal"] = mode
+    meta["mode"] = mode_exec
+    meta["bench_etf"] = pd.Series(bench_pick_rows, index=mode.index, dtype=object).reindex(meta.index)
+    meta["best_etf"] = best_etf
     return StructureSimResult(
         equity=pd.Series(equity_rows, index=idx, name="equity"),
         mode=mode_exec.reindex(idx),

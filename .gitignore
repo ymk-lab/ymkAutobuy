@@ -177,3 +177,7 @@ examples/data/panel/
 !examples/data/regime_playbook_bakeoff_hierarchy/
 !examples/data/regime_playbook_bakeoff_hierarchy/*.csv
 !examples/data/regime_playbook_bakeoff_hierarchy/*.json
+
+!examples/data/structure_gate_v10_cross/
+!examples/data/structure_gate_v10_cross/*.json
+!examples/data/structure_gate_v10_cross/*.csv

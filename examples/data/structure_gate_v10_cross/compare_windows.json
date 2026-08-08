@@ -1,0 +1,149 @@
+{
+  "ok": true,
+  "preset": "v10_cross",
+  "design": {
+    "regime_etf": "SPY",
+    "stock_universe": "union(QQQ, SMH/SOXX semi)",
+    "bench_sleeve": "best of SPY/QQQ/SMH by 20d return",
+    "knobs": "StructureGateConfig.v10() (== v8 thresholds)"
+  },
+  "verdict": {
+    "short": "\u8de8\u7248\u584a\u80fd\u5728 2025 \u725b\u5e02\u8d0f SPY BH\uff0c\u4f46\u8d0f\u4e0d\u4e86\u300cSPY book \u5168\u5b87\u5b99 v8\u300d\uff1b2021\u20132026 \u5168\u7a0b\u53cd\u800c\u8f38 SPY BH\u2014\u2014bench \u8f2a\u52d5\u5e38\u9396 SMH\uff0c\u56de\u64a4\u66f4\u5927\u3002",
+    "keep_default": "v8 single-book (SPY or QQQ) still preferred; v10 experimental"
+  },
+  "windows": {
+    "2025-01-01_2026-08-07": {
+      "v10_total_return": 0.9624,
+      "v10_vs_spy_bh_pp": 62.9,
+      "v10_max_dd": -0.2564,
+      "baselines": {
+        "v8_QQQ": {
+          "sg": 0.9244,
+          "bh": 0.412
+        },
+        "v8_SPY": {
+          "sg": 1.7514,
+          "bh": 0.333
+        },
+        "v8_SMH": {
+          "sg": 1.289,
+          "bh": 1.3893
+        }
+      },
+      "bench_etf_mix": {
+        "SMH": 0.757,
+        "SPY": 0.211,
+        "QQQ": 0.032
+      },
+      "note": "v10 beats SPY BH but trails v8_SPY single-book stock sleeve"
+    },
+    "2021-06-01_2026-08-07": {
+      "v10_total_return": 0.7257510494107686,
+      "v10_vs_spy_bh_pp": -23.80880946135786,
+      "v10_max_dd": -0.3729809379664708,
+      "baselines": {
+        "v8_QQQ": {
+          "sg": 1.2165584796279996,
+          "bh": 1.7375166438819996
+        },
+        "v8_SPY": {
+          "sg": 3.0257640623985544,
+          "bh": 0.9638391440243472
+        },
+        "v8_SMH": {
+          "sg": 1.8256950979386777,
+          "bh": 3.7793536891076043
+        }
+      },
+      "bench_etf_mix": {
+        "SMH": 0.6251896813353566,
+        "SPY": 0.3232169954476479,
+        "QQQ": 0.051593323216995446
+      },
+      "note": "v10 underperforms SPY BH; SMH chase in bench sleeve hurts in 2022"
+    }
+  },
+  "latest_full_sample": {
+    "ok": true,
+    "preset": "v10_cross",
+    "start": "2021-06-01",
+    "end": "2026-08-07",
+    "capital": 50000.0,
+    "fees": "futu_us+slippage",
+    "design": {
+      "regime_etf": "SPY",
+      "stock_universe": "union(QQQ, SMH/SOXX semi)",
+      "bench_sleeve": "best of SPY/QQQ/SMH by 20d return",
+      "knobs": "StructureGateConfig.v10() (== v8 thresholds)"
+    },
+    "v10": {
+      "total_return": 0.7257510494107686,
+      "max_drawdown": -0.3729809379664708,
+      "sharpe": 0.4889145983920031,
+      "end_equity": 86287.55247053843,
+      "vs_spy_bh_pp": -23.80880946135786,
+      "mode_distribution": {
+        "bench": 0.5057559478127398,
+        "cash": 0.2870299309286262,
+        "ers": 0.14428242517267845,
+        "strong": 0.06293169608595549
+      },
+      "bench_etf_mix": {
+        "SMH": 0.6251896813353566,
+        "SPY": 0.3232169954476479,
+        "QQQ": 0.051593323216995446
+      },
+      "n_members": 121,
+      "n_trades": 377,
+      "top_buy_symbols": {
+        "SMH": 57,
+        "SPY": 41,
+        "QQQ": 16,
+        "ACLS": 8,
+        "APP": 7,
+        "SMCI": 5,
+        "MELI": 5,
+        "HIMX": 4,
+        "AMBA": 3,
+        "MNST": 3,
+        "NVDA": 3,
+        "PDD": 3
+      }
+    },
+    "baselines": [
+      {
+        "name": "v8_QQQ",
+        "total_return": 1.2165584796279996,
+        "bh_total_return": 1.7375166438819996,
+        "vs_bh_pp": -52.0958164254,
+        "max_drawdown": -0.21331504940610457,
+        "n_members": 97
+      },
+      {
+        "name": "v8_SPY",
+        "total_return": 3.0257640623985544,
+        "bh_total_return": 0.9638391440243472,
+        "vs_bh_pp": 206.19249183742073,
+        "max_drawdown": -0.2578551610962695,
+        "n_members": 500
+      },
+      {
+        "name": "v8_SMH",
+        "total_return": 1.8256950979386777,
+        "bh_total_return": 3.7793536891076043,
+        "vs_bh_pp": -195.36585911689266,
+        "max_drawdown": -0.34239675619463505,
+        "n_members": 44
+      }
+    ],
+    "soft_vs_spy_and_best_single": {
+      "soft_pass": false,
+      "beat_worse_baseline": false,
+      "within_gap_of_better": false,
+      "gap_vs_better_pp": 230.00130129877857,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0
+    },
+    "best_single_book": "v8_SPY"
+  }
+}
