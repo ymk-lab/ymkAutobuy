@@ -37,16 +37,23 @@ ProjectId 還是佔位字。請先建立 Firebase 專案：
 if (
   $ApiBase -notmatch "^https://" -or
   $ApiBase -match "YOUR_|PLACEHOLDER|example\.com|TUNNEL_HOST" -or
-  $ApiBase -match "127\.0\.0\.1|localhost"
+  $ApiBase -match "127\.0\.0\.1|localhost" -or
+  $ApiBase -match "^https://\.trycloudflare\.com$" -or
+  $ApiBase -match "^https://trycloudflare\.com" -or
+  ($ApiBase -match "trycloudflare\.com" -and $ApiBase -notmatch "^https://[a-z0-9-]+\.trycloudflare\.com$")
 ) {
   throw @"
-ApiBase 必須是公開的 https 隧道網址（不能用 127.0.0.1 / localhost）。
-Firebase 頁面是 https，瀏覽器會擋掉打本機 http。
+ApiBase 必須是完整隧道網址，例如：
+  https://random-words-1234.trycloudflare.com
 
-1) uvicorn 已在 :8787 即可
+不能是：
+  http://127.0.0.1:8787
+  https://.trycloudflare.com   ← 缺 hostname（你上次部署就是這個）
+
+1) 確認 uvicorn :8787 在跑
 2) 另開視窗：cloudflared tunnel --url http://127.0.0.1:8787
-3) 複製日誌中的 https://xxxx.trycloudflare.com
-4) .\deploy.ps1 -ProjectId <id> -ApiBase https://xxxx.trycloudflare.com
+3) 從日誌複製整段 https://xxxx.trycloudflare.com（xxxx 不能為空）
+4) .\deploy.ps1 -ProjectId ymk-autobuy -ApiBase https://xxxx.trycloudflare.com
 "@
 }
 
