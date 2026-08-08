@@ -1,0 +1,124 @@
+{
+  "rule": "structure_gate_v8_universal_tune",
+  "ticker_agnostic": true,
+  "soft_max_gap_pp": 35.0,
+  "window": [
+    "2023-01-01",
+    "2025-12-31"
+  ],
+  "both_soft_pass": true,
+  "both_hard_pass": false,
+  "books": {
+    "QQQ": {
+      "book": "QQQ",
+      "benchmark": "QQQ",
+      "universe_n": 97,
+      "cache": "/agent/examples/data/emerging_rs_wave_qqq_g1_longbridge/cache_ohlcv",
+      "window": [
+        "2023-01-01",
+        "2025-12-31"
+      ],
+      "capital_usd": 50000.0,
+      "currency": "USD",
+      "fee_model": "futu_us",
+      "same_rule": true,
+      "structure_gate": {
+        "total_return": 0.9880346175134023,
+        "max_drawdown": -0.21335914872101436,
+        "sharpe": 1.1415635036678673,
+        "end_equity": 99401.73087567011
+      },
+      "pure_ers_g1": {
+        "total_return": 0.7154324687351741,
+        "max_drawdown": -0.2492543126049922,
+        "sharpe": 0.8552624446902793,
+        "end_equity": 85771.6234367587
+      },
+      "bench_bh": {
+        "total_return": 1.320983323882,
+        "max_drawdown": -0.22717487304237227,
+        "sharpe": 1.5438516768783817,
+        "end_equity": 116049.1661941
+      },
+      "mode_distribution": {
+        "bench": 0.5545212765957447,
+        "ers": 0.22606382978723405,
+        "cash": 0.18617021276595744,
+        "strong": 0.03324468085106383
+      },
+      "sticky_audit": {
+        "sticky_coverage": 0.3178191489361702,
+        "sticky_bench_share": 1.0,
+        "sticky_stock_sleeve_leak": 0.0,
+        "sticky_cash_share": 0.0,
+        "thrust_coverage": 0.3151595744680851,
+        "thrust_bench_share": 1.0,
+        "theme_bh_gap_ok_20pp": false
+      },
+      "criteria": {
+        "hard": "beat bench_bh AND pure_ers_g1",
+        "soft": "beat worse baseline AND trail better by \u226435pp",
+        "theme_track": "vs bench_bh gap \u226420pp (theme book aspirational)"
+      },
+      "soft_pass": true,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": true,
+      "gap_vs_better_pp": 33.29487063685976,
+      "hard_pass_beat_both": false,
+      "max_gap_pp": 35.0,
+      "vs_bh_pp": -33.29487063685976,
+      "vs_ers_pp": 27.26021487782282
+    }
+  },
+  "config": {
+    "sticky_enter_trail": -0.06,
+    "sticky_enter_confirm": 2,
+    "sticky_exit_trail": -0.02,
+    "sticky_exit_confirm": 6,
+    "sticky_exit_on_below50": false,
+    "sticky_breadth_max": 0.5,
+    "sticky_forbid_stock_sleeves": true,
+    "harsh_defense_dd": 0.18,
+    "thrust_ret5_min": 0.04,
+    "thrust_ret10_min": 0.07,
+    "thrust_bounce20_min": 0.06,
+    "thrust_ret20_min": 0.08,
+    "thrust_overrides_dd_harsh": true,
+    "thrust_force_bench": true
+  },
+  "naming": {
+    "modes": [
+      "cash",
+      "ers",
+      "strong",
+      "bench"
+    ],
+    "locus": [
+      "stock_led",
+      "index_lean",
+      "neutral"
+    ],
+    "sleeves": [
+      "sticky",
+      "thrust",
+      "crowded"
+    ],
+    "defense": [
+      "mild",
+      "harsh_dd",
+      "harsh_ret"
+    ]
+  },
+  "priority": [
+    "harsh_ret",
+    "thrust",
+    "sticky",
+    "harsh_dd",
+    "mild",
+    "index_lean",
+    "stock_led+crowded",
+    "ers",
+    "cash"
+  ],
+  "note": "v8: v7 priority + 50-trial universal tune defaults (best soft coverage across QQQ/SMH/SOXX/SPY/DIA/IWM/XLF/XLK/XBI/XLE; in-window exploratory)."
+}
