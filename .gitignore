@@ -185,3 +185,6 @@ examples/data/panel/
 !examples/data/structure_gate_v11_blend/
 !examples/data/structure_gate_v11_blend/*.json
 !examples/data/structure_gate_v11_blend/*.csv
+
+# local transfer packages
+deploy/local/dist/
