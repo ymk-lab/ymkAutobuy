@@ -1,5 +1,5 @@
 {
-  "rule": "structure_gate_v1",
+  "rule": "structure_gate_v2_leadership_split",
   "ticker_agnostic": true,
   "soft_max_gap_pp": 35.0,
   "both_soft_pass": false,
@@ -17,10 +17,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 1.6843517219799962,
-        "max_drawdown": -0.23828393374801915,
-        "sharpe": 1.6384969921057426,
-        "end_equity": 134217.5860989998
+        "total_return": 1.732049418111996,
+        "max_drawdown": -0.2357742820795723,
+        "sharpe": 1.7662115651132466,
+        "end_equity": 136602.4709055998
       },
       "pure_ers_g1": {
         "total_return": 1.1920934627762931,
@@ -37,7 +37,8 @@
       "mode_distribution": {
         "ers": 0.555,
         "cash": 0.2575,
-        "hold_strong": 0.1875
+        "hold_strong": 0.1425,
+        "hold_bench": 0.045
       },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
@@ -46,11 +47,11 @@
       "soft_pass": true,
       "beat_worse_baseline": true,
       "within_gap_of_better": true,
-      "gap_vs_better_pp": -49.225825920370305,
+      "gap_vs_better_pp": -53.995595533570295,
       "hard_pass_beat_both": true,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": 127.73410094879965,
-      "vs_ers_pp": 49.225825920370305
+      "vs_bh_pp": 132.50387056199963,
+      "vs_ers_pp": 53.995595533570295
     },
     "SMH": {
       "book": "SMH",
@@ -64,10 +65,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 0.022524570707570968,
-        "max_drawdown": -0.47982444880557273,
-        "sharpe": 0.3643335680743754,
-        "end_equity": 51126.22853537855
+        "total_return": 0.4073324823939044,
+        "max_drawdown": -0.34911592611592956,
+        "sharpe": 0.6723666160088838,
+        "end_equity": 70366.62411969522
       },
       "pure_ers_g1": {
         "total_return": 0.1946212401789671,
@@ -82,7 +83,8 @@
         "end_equity": 119464.65413700002
       },
       "mode_distribution": {
-        "hold_strong": 0.645,
+        "hold_bench": 0.3675,
+        "hold_strong": 0.2775,
         "cash": 0.1875,
         "ers": 0.1675
       },
@@ -91,13 +93,13 @@
         "soft": "beat worse baseline AND trail better by \u226435pp"
       },
       "soft_pass": false,
-      "beat_worse_baseline": false,
+      "beat_worse_baseline": true,
       "within_gap_of_better": false,
-      "gap_vs_better_pp": 136.67685120324296,
+      "gap_vs_better_pp": 98.19606003460962,
       "hard_pass_beat_both": false,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": -136.67685120324296,
-      "vs_ers_pp": -17.209666947139613
+      "vs_bh_pp": -98.19606003460962,
+      "vs_ers_pp": 21.271124221493732
     },
     "SOXX": {
       "book": "SOXX",
@@ -111,10 +113,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 0.1324693621545292,
-        "max_drawdown": -0.3939738544517144,
-        "sharpe": 0.4409085512265202,
-        "end_equity": 56623.46810772646
+        "total_return": 0.564877709133333,
+        "max_drawdown": -0.44019337197767006,
+        "sharpe": 0.79069503679472,
+        "end_equity": 78243.88545666666
       },
       "pure_ers_g1": {
         "total_return": 2.816814557134621,
@@ -129,9 +131,10 @@
         "end_equity": 125600.0699522551
       },
       "mode_distribution": {
-        "hold_strong": 0.4725,
         "ers": 0.29,
-        "cash": 0.2375
+        "hold_bench": 0.265,
+        "cash": 0.2375,
+        "hold_strong": 0.2075
       },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
@@ -140,11 +143,11 @@
       "soft_pass": false,
       "beat_worse_baseline": false,
       "within_gap_of_better": false,
-      "gap_vs_better_pp": 268.4345194980092,
+      "gap_vs_better_pp": 225.1936848001288,
       "hard_pass_beat_both": false,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": -137.9532036890573,
-      "vs_ers_pp": -268.4345194980092
+      "vs_bh_pp": -94.7123689911769,
+      "vs_ers_pp": -225.1936848001288
     },
     "SPY": {
       "book": "SPY",
@@ -158,10 +161,10 @@
       "capital_usd": 50000.0,
       "same_rule": true,
       "structure_gate": {
-        "total_return": 1.2513519934117414,
-        "max_drawdown": -0.492607858071347,
-        "sharpe": 1.095445449368801,
-        "end_equity": 112567.59967058708
+        "total_return": 0.8877950604313332,
+        "max_drawdown": -0.4808165891272568,
+        "sharpe": 0.9436253363362179,
+        "end_equity": 94389.75302156666
       },
       "pure_ers_g1": {
         "total_return": 0.403669262349986,
@@ -177,8 +180,9 @@
       },
       "mode_distribution": {
         "ers": 0.5125,
-        "hold_strong": 0.3,
-        "cash": 0.1875
+        "hold_strong": 0.25,
+        "cash": 0.1875,
+        "hold_bench": 0.05
       },
       "criteria": {
         "hard": "beat bench_bh AND pure_ers_g1",
@@ -187,11 +191,11 @@
       "soft_pass": true,
       "beat_worse_baseline": true,
       "within_gap_of_better": true,
-      "gap_vs_better_pp": -84.76827310617554,
+      "gap_vs_better_pp": -48.412579808134716,
       "hard_pass_beat_both": true,
       "max_gap_pp": 35.0,
-      "vs_bh_pp": 91.83763666566816,
-      "vs_ers_pp": 84.76827310617554
+      "vs_bh_pp": 55.48194336762733,
+      "vs_ers_pp": 48.412579808134716
     }
   },
   "config": {
@@ -199,8 +203,10 @@
     "crowded_overlap_min": 0.4,
     "strong_share_min": 0.3,
     "ers_lag_trigger": -0.05,
+    "leadership_trail_days": 20,
+    "stock_led_min_trail": 0.0,
     "harsh_defense_dd": 0.12,
     "mild_defense_dd": 0.08
   },
-  "note": "Accept soft pass: same feature rule on every book; may trail the book-specific oracle by a few dozen pp."
+  "note": "Crowded splits by leader-vs-bench trail: stock-led\u2192hold_strong, index-led\u2192hold_bench. Soft pass may trail book oracle by \u226435pp."
 }
