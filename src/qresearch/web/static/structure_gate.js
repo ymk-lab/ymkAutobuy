@@ -86,7 +86,7 @@
     const root = $("#toast-root");
     if (!root) return;
     const el = document.createElement("div");
-    el.className = `toast toast-${level}`;
+    el.className = `toast ${level}`;
     el.textContent = msg;
     root.appendChild(el);
     setTimeout(() => el.remove(), 4200);
