@@ -105,12 +105,13 @@ def load_symbol_any(cache: Path, symbol: str) -> pd.DataFrame | None:
 
 def refresh_via_futu(symbols: list[str], cache: Path) -> int:
     if not has_futu_opend():
-        print("OpenD not reachable — using cache only")
+        print("OpenD not reachable — skip Futu history refresh")
         return 0
-    from futu import OpenQuoteContext
+    from futu import KLType, AuType, RET_OK, OpenQuoteContext
 
     from qresearch.brokers.futu.config import futu_opend_host, futu_opend_port
     from qresearch.brokers.futu.history import fetch_daily
+    from qresearch.brokers.futu.symbols import to_futu_code
 
     host, port = futu_opend_host(), futu_opend_port()
     ctx = OpenQuoteContext(host=host, port=port)
@@ -119,14 +120,94 @@ def refresh_via_futu(symbols: list[str], cache: Path) -> int:
         for i, sym in enumerate(symbols, 1):
             df = fetch_daily(ctx, sym, start=date(2021, 6, 1))
             if df is None or len(df) < MIN_BARS:
+                # Probe once for a clearer error on first failures
+                if i <= 3 or sym in {"SPY", "QQQ", "SMH"}:
+                    code = to_futu_code(sym)
+                    ret, data, _ = ctx.request_history_kline(
+                        code,
+                        start="2024-01-01",
+                        end=str(date.today()),
+                        ktype=KLType.K_DAY,
+                        autype=AuType.QFQ,
+                        max_count=100,
+                    )
+                    why = data if ret != RET_OK else f"rows={0 if data is None else len(data)}"
+                    print(f"futu miss {sym} ({code}): {why}")
                 continue
             save_cache(cache, sym, df)
             n_ok += 1
-            if i == 1 or i % 40 == 0 or i == len(symbols):
-                print(f"futu [{i}/{len(symbols)}] ok={n_ok} last={sym}")
+            if i == 1 or i % 40 == 0 or i == len(symbols) or sym in {"SPY", "QQQ", "SMH"}:
+                print(f"futu [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
     finally:
         ctx.close()
     return n_ok
+
+
+def bootstrap_via_yfinance(symbols: list[str], cache: Path) -> int:
+    """Fill missing OHLCV from Yahoo when Futu history is unavailable."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        print("yfinance not installed — pip install yfinance")
+        return 0
+
+    n_ok = 0
+    for i, sym in enumerate(symbols, 1):
+        if load_cache(cache, sym) is not None:
+            continue
+        try:
+            raw = yf.download(
+                sym,
+                start="2021-06-01",
+                auto_adjust=True,
+                progress=False,
+                threads=False,
+            )
+            if raw is None or len(raw) < MIN_BARS:
+                print(f"yf miss {sym}: rows={0 if raw is None else len(raw)}")
+                continue
+            if isinstance(raw.columns, pd.MultiIndex):
+                raw.columns = [str(c[0]).lower() for c in raw.columns]
+            else:
+                raw.columns = [str(c).lower() for c in raw.columns]
+            need = ["open", "high", "low", "close", "volume"]
+            if any(c not in raw.columns for c in need):
+                print(f"yf miss {sym}: bad columns {list(raw.columns)}")
+                continue
+            df = validate_ohlcv(raw[need].dropna())
+            df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
+            df = df[~df.index.duplicated(keep="last")].sort_index()
+            if len(df) < MIN_BARS:
+                continue
+            save_cache(cache, sym, df)
+            n_ok += 1
+            if i == 1 or i % 40 == 0 or i == len(symbols) or sym in {"SPY", "QQQ", "SMH"}:
+                print(f"yf [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"yf miss {sym}: {exc}")
+    return n_ok
+
+
+def ensure_market_data(cache: Path, *, refresh: bool) -> None:
+    """Guarantee SPY/QQQ/SMH (+ light members) exist for first local run."""
+    benches = ["SPY", "QQQ", "SMH"]
+    light = sorted(set(benches) | set(book_members("QQQ")) | set(book_members("SMH")))
+    missing_benches = [s for s in benches if load_cache(cache, s) is None]
+    want_futu = light if refresh else missing_benches
+    if want_futu:
+        print(f"refresh futu n={len(want_futu)} missing_benches={missing_benches}")
+        n_futu = refresh_via_futu(want_futu, cache)
+        print(f"futu refreshed ok={n_futu}")
+
+    # Yahoo fallback for anything still missing (benches always; members when refresh/first-run).
+    still_benches = [s for s in benches if load_cache(cache, s) is None]
+    need_yf = still_benches[:]
+    if refresh or still_benches:
+        need_yf = [s for s in light if load_cache(cache, s) is None]
+    if need_yf:
+        print(f"bootstrap yfinance n={len(need_yf)}")
+        n_yf = bootstrap_via_yfinance(need_yf, cache)
+        print(f"yfinance ok={n_yf}")
 
 
 def build_book_panel(
@@ -137,9 +218,12 @@ def build_book_panel(
     bdf = frames[book]
     idx = bdf.index
     members = [s for s in book_members(book) if s in frames and s != book]
-    closes = pd.DataFrame({s: frames[s]["close"].reindex(idx) for s in members})
+    closes = pd.DataFrame({s: frames[s]["close"].reindex(idx) for s in members}, index=idx)
     keep = [c for c in closes.columns if closes[c].notna().sum() >= MIN_BARS]
     closes = closes[keep]
+    # Empty stock panel is OK (mode can still be cash/bench from index alone).
+    if closes.shape[1] == 0:
+        closes = pd.DataFrame(index=idx)
     vol = bdf["volume"] if "volume" in bdf.columns else None
     return closes, bdf["close"], vol
 
@@ -186,13 +270,15 @@ def main() -> int:
     print(f"mode={mode} submit={submit} weights={WEIGHTS} broker=futu out={base}")
     print(f"opend={has_futu_opend()} simulate=1 paper_only=1")
 
-    want = sorted({"SPY", "QQQ", "SMH"} | set(book_members("QQQ")) | set(book_members("SMH")) | set(book_members("SPY")))
-    # Prefer cache; optional Futu refresh for ETFs + a light set when REFRESH=1
-    refresh = _env_bool("QRESEARCH_REFRESH_CACHE", False)
-    if refresh:
-        # Full refresh of 500+ names via OpenD is slow; refresh ETFs + QQQ/SMH members.
-        light = sorted({"SPY", "QQQ", "SMH"} | set(book_members("QQQ")) | set(book_members("SMH")))
-        refresh_via_futu(light, cache)
+    want = sorted(
+        {"SPY", "QQQ", "SMH"}
+        | set(book_members("QQQ"))
+        | set(book_members("SMH"))
+        | set(book_members("SPY"))
+    )
+    # First local run often has empty cache (lean package). Fill via Futu, else Yahoo.
+    refresh = _env_bool("QRESEARCH_REFRESH_CACHE", True)
+    ensure_market_data(cache, refresh=refresh)
 
     frames: dict[str, pd.DataFrame] = {}
     for sym in want:
@@ -202,8 +288,9 @@ def main() -> int:
     for b in WEIGHTS:
         if b not in frames:
             print(f"missing bench cache {b}")
+            print("hint: pip install yfinance  then re-run; or check OpenD US quote rights")
             return 1
-    print(f"frames={len(frames)}")
+    print(f"frames={len(frames)} benches=OK")
 
     book_meta = {}
     book_targets_raw: dict[str, dict[str, float]] = {}
