@@ -175,7 +175,7 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
     dist = sw.mode.value_counts(normalize=True).sort_values(ascending=False)
     gate = soft_pass(m_sw["total_return"], m_bh["total_return"], m_ers["total_return"])
 
-    # Sticky audit (experts)
+    # Sticky + thrust audit
     sticky = sw.meta["sticky_index_strong"].fillna(0) > 0.5
     sticky_cov = float(sticky.mean()) if len(sticky) else 0.0
     if sticky.any():
@@ -185,11 +185,19 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
         cash_share = float((sticky_modes == "cash").mean())
     else:
         etf_share, stock_leak, cash_share = 0.0, 0.0, 0.0
+    thrust = sw.meta["index_thrust"].fillna(0) > 0.5 if "index_thrust" in sw.meta else pd.Series(False, index=sw.mode.index)
+    thrust_cov = float(thrust.mean()) if len(thrust) else 0.0
+    if thrust.any():
+        thrust_etf = float((sw.mode.loc[thrust] == "hold_bench").mean())
+    else:
+        thrust_etf = 0.0
     audit = {
         "sticky_coverage": sticky_cov,
         "sticky_hold_bench_share": etf_share,
         "sticky_stock_sleeve_leak": stock_leak,
         "sticky_cash_share": cash_share,
+        "thrust_coverage": thrust_cov,
+        "thrust_hold_bench_share": thrust_etf,
         "theme_bh_gap_ok_20pp": bool(
             (m_bh["total_return"] - m_sw["total_return"]) * 100 <= 20.0
         ),
@@ -247,6 +255,8 @@ def run_book(book: str, fees: FutuUsEquityFees, cfg: StructureGateConfig) -> dic
         f"etf_in_sticky={audit['sticky_hold_bench_share']*100:.1f}%",
         f"stock_leak={audit['sticky_stock_sleeve_leak']*100:.1f}%",
         f"cash_in_sticky={audit['sticky_cash_share']*100:.1f}%",
+        f"| thrust_cov={audit['thrust_coverage']*100:.1f}%",
+        f"etf_in_thrust={audit['thrust_hold_bench_share']*100:.1f}%",
     )
     print(
         f"HARD={gate['hard_pass_beat_both']} SOFT={gate['soft_pass']} "
@@ -266,7 +276,7 @@ def main() -> None:
     both_soft = all(r["soft_pass"] for r in reports)
     both_hard = all(r["hard_pass_beat_both"] for r in reports)
     combined = {
-        "rule": "structure_gate_v5_expert_sticky",
+        "rule": "structure_gate_v6_index_thrust",
         "ticker_agnostic": True,
         "soft_max_gap_pp": SOFT_MAX_GAP_PP,
         "both_soft_pass": both_soft,
@@ -281,10 +291,17 @@ def main() -> None:
             "index_regime_breadth_max": cfg.index_regime_breadth_max,
             "sticky_forbid_stock_sleeves": cfg.sticky_forbid_stock_sleeves,
             "harsh_defense_dd": cfg.harsh_defense_dd,
+            "thrust_ret5_min": cfg.thrust_ret5_min,
+            "thrust_ret10_min": cfg.thrust_ret10_min,
+            "thrust_bounce20_min": cfg.thrust_bounce20_min,
+            "thrust_ret20_min": cfg.thrust_ret20_min,
+            "thrust_overrides_dd_harsh": cfg.thrust_overrides_dd_harsh,
+            "thrust_force_hold_bench": cfg.thrust_force_hold_bench,
         },
         "note": (
-            "Expert sticky: earlier enter, no mild-cash/stock sleeves inside "
-            "sticky episode; audit coverage and ETF share in sticky."
+            "v6: sticky lag sleeve + absolute index-thrust recovery sleeve; "
+            "thrust overrides lagging dd60 harsh and forces hold_bench while "
+            "the bench is ripping after reclaiming SMA50."
         ),
     }
     (OUT / "bakeoff_combined.json").write_text(

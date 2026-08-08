@@ -49,6 +49,17 @@ class StructureGateConfig:
     index_regime_exit_on_below50: bool = False
     # Inside sticky: never ERS / hold_strong / mild-cash (experts).
     sticky_forbid_stock_sleeves: bool = True
+    # Index thrust: absolute bench melt-up / recovery (orthogonal to sticky lag).
+    # Fires when the index itself is ripping; used to re-enter hold_bench faster
+    # after defense and to override lagging dd60 harsh / stock-led sleeves.
+    thrust_ret5_min: float = 0.04
+    thrust_ret10_min: float = 0.07
+    thrust_bounce20_min: float = 0.08  # close / 20d low - 1
+    thrust_ret20_min: float = 0.10
+    thrust_require_above50: bool = True
+    thrust_confirm: int = 1
+    thrust_overrides_dd_harsh: bool = True
+    thrust_force_hold_bench: bool = True
     # Mild defense (Rotation books): G1-like
     mild_defense_dd: float = 0.08
     mild_defense_ret20: float = -0.03
@@ -91,6 +102,8 @@ def structure_features(
     stock60 = px / px.shift(60) - 1.0
     bench60 = bc / bc.shift(60) - 1.0
     pct_beat60 = stock60.gt(bench60, axis=0).sum(axis=1) / px.notna().sum(axis=1).clip(lower=1)
+    low20 = bc.rolling(20, min_periods=5).min()
+    bounce20 = bc / low20 - 1.0
     return pd.DataFrame(
         {
             "overlap": meta["overlap"],
@@ -98,6 +111,9 @@ def structure_features(
             "breadth": meta["breadth"],
             "above50": meta["above_sma50"],
             "ret20": meta["ret20"],
+            "ret5": bc / bc.shift(5) - 1.0,
+            "ret10": bc / bc.shift(10) - 1.0,
+            "bounce20": bounce20,
             "dd60": meta["dd60"],
             "top3_conc20": conc,
             "pct_beat60": pct_beat60,
@@ -295,6 +311,43 @@ def sticky_index_strong_regime(
     return pd.Series(active, index=features.index, dtype=bool, name="sticky_index_strong")
 
 
+def index_thrust_mask(
+    features: pd.DataFrame,
+    *,
+    config: StructureGateConfig | None = None,
+) -> pd.Series:
+    """Absolute bench melt-up / recovery thrust (not relative leadership).
+
+    Orthogonal to sticky lag: catches post-drawdown index rips where leaders
+    may still look stock-led, or dd60 still prints harsh while price reclaims.
+    """
+    cfg = config or StructureGateConfig()
+    raw = (
+        (features["ret5"] >= cfg.thrust_ret5_min)
+        | (features["ret10"] >= cfg.thrust_ret10_min)
+        | (features["bounce20"] >= cfg.thrust_bounce20_min)
+        | (features["ret20"] >= cfg.thrust_ret20_min)
+    )
+    # Still plunging on 20d is not a thrust we want to ride.
+    raw = raw & (features["ret20"] > cfg.harsh_defense_ret20)
+    if cfg.thrust_require_above50:
+        raw = raw & (features["above50"] > 0.5)
+
+    confirm = max(1, int(cfg.thrust_confirm))
+    if confirm <= 1:
+        return raw.fillna(False).rename("index_thrust")
+
+    on: list[bool] = []
+    streak = 0
+    for flag in raw.fillna(False).tolist():
+        if flag:
+            streak += 1
+        else:
+            streak = 0
+        on.append(streak >= confirm)
+    return pd.Series(on, index=features.index, dtype=bool, name="index_thrust")
+
+
 def label_structure_modes(
     bench_close: pd.Series,
     member_closes: pd.DataFrame,
@@ -316,9 +369,17 @@ def label_structure_modes(
     )
     crowded = crowded_structure_mask(feat, excess, config=cfg)
     sticky_index = sticky_index_strong_regime(feat, lead_trail60, config=cfg)
+    thrust = index_thrust_mask(feat, config=cfg)
     stock_led = lead_trail20 >= cfg.stock_led_min_trail
     index_lean = lead_trail20 <= cfg.index_led_max_trail
-    harsh = (feat["dd60"] <= -cfg.harsh_defense_dd) | (feat["ret20"] <= cfg.harsh_defense_ret20)
+    harsh_dd = feat["dd60"] <= -cfg.harsh_defense_dd
+    harsh_ret = feat["ret20"] <= cfg.harsh_defense_ret20
+    harsh = harsh_dd | harsh_ret
+    # During index thrust, lagging drawdown alone should not pin cash.
+    if cfg.thrust_overrides_dd_harsh:
+        harsh_for_mode = (harsh_ret | (harsh_dd & ~thrust)).fillna(False)
+    else:
+        harsh_for_mode = harsh.fillna(False)
     mild = (
         (feat["above50"] < 0.5)
         | (feat["dd60"] <= -cfg.mild_defense_dd)
@@ -327,28 +388,32 @@ def label_structure_modes(
 
     # Experts: inside sticky → only hold_bench (or harsh→cash). No stock sleeves / mild cash.
     mode = pd.Series("cash", index=feat.index, dtype=object)
-    risk_on = ~mild & ~harsh
+    risk_on = ~mild & ~harsh_for_mode
     outside = ~sticky_index if cfg.sticky_forbid_stock_sleeves else pd.Series(True, index=feat.index)
 
-    mode = mode.mask(sticky_index & ~harsh, "hold_bench")
+    mode = mode.mask(sticky_index & ~harsh_for_mode, "hold_bench")
     # Outside sticky: tactical sleeves
-    mode = mode.mask(outside & index_lean & ~harsh, "hold_bench")
+    mode = mode.mask(outside & index_lean & ~harsh_for_mode, "hold_bench")
     mode = mode.mask(outside & stock_led & risk_on, "ers")
     mode = mode.mask(outside & stock_led & crowded & risk_on, "hold_strong")
     mode = mode.mask(outside & ~index_lean & ~stock_led & risk_on, "ers")
-    mode = mode.mask(outside & ~index_lean & mild & ~harsh, "cash")
-    mode = mode.mask(harsh.fillna(False), "cash")
+    mode = mode.mask(outside & ~index_lean & mild & ~harsh_for_mode, "cash")
+    mode = mode.mask(harsh_for_mode, "cash")
     # Final clamp: sticky days cannot be ers/strong/cash unless harsh
     if cfg.sticky_forbid_stock_sleeves:
-        mode = mode.mask(sticky_index & ~harsh, "hold_bench")
+        mode = mode.mask(sticky_index & ~harsh_for_mode, "hold_bench")
+    # Index thrust sleeve: ride the bench while it is ripping (post-defense catch-up).
+    if cfg.thrust_force_hold_bench:
+        mode = mode.mask(thrust & ~harsh_ret.fillna(False), "hold_bench")
 
     meta = feat.copy()
     meta["ers_excess60"] = excess
     meta["leader_vs_bench_trail"] = lead_trail20
     meta["leader_vs_bench_trail60"] = lead_trail60
     meta["sticky_index_strong"] = sticky_index.astype(float)
+    meta["index_thrust"] = thrust.astype(float)
     meta["stock_led"] = stock_led.astype(float)
-    meta["index_led"] = (sticky_index | index_lean).astype(float)
+    meta["index_led"] = (sticky_index | index_lean | thrust).astype(float)
     meta["crowded_structure"] = crowded.astype(float)
     meta["mode"] = mode
     return mode.rename("mode"), meta
