@@ -1,0 +1,53 @@
+{
+  "passed_bakeoff": true,
+  "label_method": "scorecard",
+  "profile": "relaxed",
+  "scorecard": {
+    "crowded_overlap": 0.4,
+    "crowded_strong_share": 0.15,
+    "crowded_require_both": false,
+    "defense_dd": 0.12,
+    "defense_ret20": -0.05,
+    "leave_defense_confirm": 3
+  },
+  "benchmark": "SMH",
+  "universe_n": 44,
+  "criteria": "regime_switch must beat smh_bh AND pure_ers_g1",
+  "beat_smh_bh": true,
+  "beat_pure_ers": true,
+  "regime_switch": {
+    "total_return": 1.5536366299225701,
+    "max_drawdown": -0.15808872820334163,
+    "sharpe": 1.9831985933788154,
+    "end_equity": 127681.8314961285
+  },
+  "pure_ers_g1": {
+    "total_return": 0.1946212401789671,
+    "max_drawdown": -0.4525290263393982,
+    "sharpe": 0.474647625809435,
+    "end_equity": 59731.06200894835
+  },
+  "smh_bh": {
+    "total_return": 1.3892930827400005,
+    "max_drawdown": -0.32639328683701796,
+    "sharpe": 1.5577831169519538,
+    "end_equity": 119464.65413700002
+  },
+  "always_cash": {
+    "total_return": 0.0,
+    "max_drawdown": 0.0,
+    "sharpe": 0.0,
+    "end_equity": 50000.0
+  },
+  "label_distribution": {
+    "CrowdedTrend": 0.7625,
+    "Defense": 0.2025,
+    "Rotation": 0.035
+  },
+  "fallback_hint": null,
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0
+}

@@ -1,0 +1,53 @@
+{
+  "passed_bakeoff": false,
+  "label_method": "hierarchy",
+  "profile": "relaxed",
+  "scorecard": {
+    "crowded_overlap": 0.4,
+    "crowded_strong_share": 0.15,
+    "crowded_require_both": false,
+    "defense_dd": 0.12,
+    "defense_ret20": -0.05,
+    "leave_defense_confirm": 3
+  },
+  "benchmark": "SMH",
+  "universe_n": 44,
+  "criteria": "regime_switch must beat smh_bh AND pure_ers_g1",
+  "beat_smh_bh": false,
+  "beat_pure_ers": true,
+  "regime_switch": {
+    "total_return": 0.75088830603,
+    "max_drawdown": -0.15613029907298537,
+    "sharpe": 1.4244186043288258,
+    "end_equity": 87544.4153015
+  },
+  "pure_ers_g1": {
+    "total_return": 0.1946212401789671,
+    "max_drawdown": -0.4525290263393982,
+    "sharpe": 0.474647625809435,
+    "end_equity": 59731.06200894835
+  },
+  "smh_bh": {
+    "total_return": 1.3892930827400005,
+    "max_drawdown": -0.32639328683701796,
+    "sharpe": 1.5577831169519538,
+    "end_equity": 119464.65413700002
+  },
+  "always_cash": {
+    "total_return": 0.0,
+    "max_drawdown": 0.0,
+    "sharpe": 0.0,
+    "end_equity": 50000.0
+  },
+  "label_distribution": {
+    "CrowdedTrend": 0.585,
+    "Defense": 0.345,
+    "PanicRebound": 0.07
+  },
+  "fallback_hint": "On SMH CrowdedTrend book, switch still trails SMH B&H and/or ERS \u2014 confirm CrowdedTrend\u2192SMH mapping / thresholds, or keep SMH as B&H-only sleeve.",
+  "window": [
+    "2025-01-01",
+    "2026-08-07"
+  ],
+  "capital_usd": 50000.0
+}

@@ -46,6 +46,8 @@ class RegimeScorecardConfig:
     range_ret20_abs: float = 0.03
     crowded_overlap: float = 0.50
     crowded_strong_share: float = 0.25
+    # If False: CrowdedTrend leadership test is overlap OR strong_share (still needs trend context).
+    crowded_require_both: bool = True
     rotation_overlap_max: float = 0.40
     rotation_strong_max: float = 0.20
     panic_dd: float = 0.10
@@ -53,6 +55,19 @@ class RegimeScorecardConfig:
     panic_bounce_min: float = 0.04
     leave_defense_confirm: int = 5
     attack_switch_confirm: int = 3
+
+
+def crowded_trend_relaxed_config() -> RegimeScorecardConfig:
+    """Looser CrowdedTrend for single-theme / ETF-led bull legs (e.g. SMH)."""
+    return RegimeScorecardConfig(
+        crowded_overlap=0.40,
+        crowded_strong_share=0.15,
+        crowded_require_both=False,
+        # Slightly less hair-trigger Defense so CrowdedTrend can stick through shallow dips.
+        defense_dd=0.12,
+        defense_ret20=-0.05,
+        leave_defense_confirm=3,
+    )
 
 
 def _top_set(row: pd.Series, k: int) -> set[str]:
@@ -143,14 +158,18 @@ def score_regimes(
     scores.loc[breadth >= 0.45, "Rotation"] += 0.4
     scores.loc[above200.fillna(False), "Rotation"] += 0.3
 
-    # CrowdedTrend (both conditions required for full score)
+    # CrowdedTrend (leadership concentration; AND/OR via crowded_require_both)
     scores["CrowdedTrend"] = 0.0
     scores.loc[above50.fillna(False), "CrowdedTrend"] += 1.0
-    both = (overlap_s >= cfg.crowded_overlap) & (strong_share >= cfg.crowded_strong_share)
-    scores.loc[both.fillna(False), "CrowdedTrend"] += 2.0
-    scores.loc[overlap_s >= cfg.crowded_overlap, "CrowdedTrend"] += 0.4
-    scores.loc[strong_share >= cfg.crowded_strong_share, "CrowdedTrend"] += 0.4
+    ov_ok = overlap_s >= cfg.crowded_overlap
+    ss_ok = strong_share >= cfg.crowded_strong_share
+    crowd_hit = (ov_ok & ss_ok) if cfg.crowded_require_both else (ov_ok | ss_ok)
+    scores.loc[crowd_hit.fillna(False), "CrowdedTrend"] += 2.0
+    scores.loc[ov_ok.fillna(False), "CrowdedTrend"] += 0.4
+    scores.loc[ss_ok.fillna(False), "CrowdedTrend"] += 0.4
     scores.loc[ret20 >= 0.05, "CrowdedTrend"] += 0.3
+    # Extra: clear uptrend while above SMA50 favors Crowded over Rotation
+    scores.loc[above50.fillna(False) & (ret20 >= 0.03), "CrowdedTrend"] += 0.5
 
     scores = scores.fillna(0.0)
     meta = pd.DataFrame(
@@ -281,8 +300,15 @@ def hierarchy_raw_labels(
         if (not a50) or (ddv <= -cfg.defense_dd) or (r20 <= cfg.defense_ret20):
             raw.append("Defense")
             continue
-        # 3) CrowdedTrend (both tests)
-        if ov >= cfg.crowded_overlap and ss >= cfg.crowded_strong_share:
+        # 3) CrowdedTrend (AND or OR per config)
+        ov_ok = ov >= cfg.crowded_overlap
+        ss_ok = ss >= cfg.crowded_strong_share
+        crowd_hit = (ov_ok and ss_ok) if cfg.crowded_require_both else (ov_ok or ss_ok)
+        if a50 and crowd_hit:
+            raw.append("CrowdedTrend")
+            continue
+        # Risk-on uptrend default → Crowded when above SMA50 and rising (relaxed path)
+        if a50 and (not cfg.crowded_require_both) and r20 >= 0.03:
             raw.append("CrowdedTrend")
             continue
         # 4) Rotation vs Range
