@@ -246,6 +246,18 @@ $env:PYTHONPATH = (Join-Path $Root "src")
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUNBUFFERED = "1"
 
+# Single-instance guard
+if (Test-Path $pidFile) {
+  $oldPid = 0
+  try { $oldPid = [int]((Get-Content $pidFile -ErrorAction SilentlyContinue | Select-Object -First 1)) } catch { }
+  if ($oldPid -gt 0 -and $oldPid -ne $PID) {
+    $old = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
+    if ($old -and $old.ProcessName -match "powershell|pwsh") {
+      Write-Log ("Another daemon PID=" + $oldPid + " already running; exiting")
+      exit 0
+    }
+  }
+}
 Set-Content -Path $pidFile -Value $PID -Encoding ASCII
 Write-Log ("Daemon start PID=" + $PID + " ui=:" + $Port + " opend=:" + $opendPort + " delay=" + $StartupDelaySeconds + "s")
 Start-Sleep -Seconds $StartupDelaySeconds
@@ -257,11 +269,19 @@ if (-not $skipOpenD) {
     Write-Log ("OpenD exe: " + $opendExe)
     Set-Content -Path $opendPathFile -Value $opendExe -Encoding UTF8
   } else {
-    Write-Log "OpenD exe not auto-detected"
+    Write-Log "OpenD exe not auto-detected - set FUTU_OPEND_EXE in .env"
   }
 }
 
+Write-Log "Resolving cloudflared..."
 $cfPath = Get-CloudflaredPath
+if ($cfPath) { Write-Log ("cloudflared: " + $cfPath) } else { Write-Log "cloudflared missing" }
+
+# Write OpenD path into .env hint file for user
+if ($opendExe) {
+  $envHint = Join-Path $logs "opend-env-snippet.txt"
+  Set-Content -Path $envHint -Value ("FUTU_OPEND_EXE=" + $opendExe) -Encoding ASCII
+}
 
 while ($true) {
   try {
@@ -272,15 +292,20 @@ while ($true) {
     if (-not $skipOpenD) {
       if (-not $opendExe) { $opendExe = Find-OpenDExe }
       if (-not (Test-PortListen $opendPort)) {
+        Write-Log ("OpenD port :" + $opendPort + " down; starting...")
         [void](Start-OpenD -exe $opendExe -opendPort $opendPort)
       }
     }
 
-    # Prefer API after OpenD is up (or after wait attempt)
-    if (-not (Test-PortListen $Port)) {
-      if ($skipOpenD -or (Test-PortListen $opendPort) -or (-not $opendExe)) {
+    $opendUp = $skipOpenD -or (Test-PortListen $opendPort)
+    $apiUp = Test-PortListen $Port
+
+    if (-not $apiUp) {
+      if ($opendUp -or (-not $opendExe)) {
         Start-Uvicorn -p $Port -hostAddr $hostAddr -py $venvPy
-        Start-Sleep -Seconds 2
+        Start-Sleep -Seconds 3
+        $apiUp = Test-PortListen $Port
+        Write-Log ("uvicorn listening=" + $apiUp)
       } else {
         Write-Log "Waiting for OpenD before starting uvicorn"
       }
@@ -288,15 +313,20 @@ while ($true) {
 
     if ($cfPath) {
       if (-not (Test-CloudflaredRunning)) {
-        # Only expose tunnel once API is listening
-        if (Test-PortListen $Port) {
+        if ($apiUp) {
+          Write-Log "cloudflared not running; starting tunnel..."
           Start-Tunnel -cf $cfPath -p $Port
           Start-Sleep -Seconds 2
+        } else {
+          Write-Log "Skip tunnel until API listens"
         }
       }
-    } else {
-      Write-Log "cloudflared missing; local API only"
     }
+
+    # Heartbeat status line every loop
+    $tu = ""
+    if (Test-Path $tunnelUrlFile) { $tu = (Get-Content $tunnelUrlFile -ErrorAction SilentlyContinue | Select-Object -First 1) }
+    Write-Log ("status opend=" + (Test-PortListen $opendPort) + " api=" + (Test-PortListen $Port) + " tunnelProc=" + (Test-CloudflaredRunning) + " url=" + $tu)
   } catch {
     Write-Log ("loop error: " + $_.Exception.Message)
   }
