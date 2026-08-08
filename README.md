@@ -25,10 +25,12 @@ python3 examples/run_structure_gate_v11_paper_daily.py once
 PYTHONPATH=src python3 -m uvicorn qresearch.web.paper_app:app --host 0.0.0.0 --port 8787
 ```
 
-永久網址（二選一）：
+永久網址：
 
-1. **Firebase Hosting（前端）+ 隧道（API）** — 見 `deploy/firebase/README.md`
-2. **Cloudflare Named Tunnel** 直出整站：hostname → `http://127.0.0.1:8787`，token 寫入 `.env` 的 `CLOUDFLARE_TUNNEL_TOKEN`：
+1. **Firebase Hosting + Cloud Run API**（同源 `/api`）— `deploy/cloudrun/README.md`  
+   OpenD 需在 VPS；筆電 OpenD 無法被 Cloud Run 直連。
+2. **Firebase Hosting + 本機隧道 API** — `deploy/firebase/README.md` + `deploy/local/start-backend.bat`
+3. **Cloudflare Named Tunnel** 直出整站：hostname → `http://127.0.0.1:8787`：
 
 ```bash
 bash deploy/cloudflare/run-named-tunnel.sh

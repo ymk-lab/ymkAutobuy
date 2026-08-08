@@ -46,9 +46,6 @@ writeFileSync(
 );
 
 console.log(`[firebase-build] public=${publicDir}`);
-console.log(`[firebase-build] QRESEARCH_API_BASE=${apiBase || "(empty — UI cannot call local OpenD)"}`);
-if (!apiBase) {
-  console.warn(
-    "[firebase-build] WARN: set QRESEARCH_API_BASE to your tunnel/backend URL before deploy."
-  );
-}
+console.log(
+  `[firebase-build] QRESEARCH_API_BASE=${apiBase || "(empty = same-origin /api via Cloud Run rewrite or in-page tunnel)"}`
+);

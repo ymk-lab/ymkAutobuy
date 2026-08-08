@@ -1,6 +1,18 @@
 # Firebase Hosting — Structure Gate UI
 
-Firebase 只託管**前端靜態頁**。富途 OpenD／下單 API 仍跑在你本機（或 VPS），再透過隧道網址給前端呼叫。
+## 架構（推薦：UI + API 上雲）
+
+```
+瀏覽器 → https://ymk-autobuy.web.app           (Firebase Hosting UI)
+       → https://ymk-autobuy.web.app/api/**    (rewrite → Cloud Run)
+Cloud Run → OpenD                                (需 VPS；見 deploy/cloudrun/)
+```
+
+一鍵部署 API + Hosting：`deploy/cloudrun/deploy-all.bat`（需 gcloud）。
+
+## 暫時：UI 上雲 + API 仍在本機
+
+Firebase 只託管**前端**。本機 uvicorn + OpenD，用隧道給前端呼叫：
 
 ```
 瀏覽器 → https://YOUR_PROJECT.web.app  (Firebase Hosting)

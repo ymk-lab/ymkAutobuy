@@ -18,7 +18,17 @@
 
   function resolveApiBase() {
     const params = new URLSearchParams(location.search);
-    const fromQuery = normalizeApiBase(params.get("api") || params.get("api_base"));
+    const rawQ = params.get("api") || params.get("api_base");
+    // Same-origin Cloud Run rewrite: ?api=same or ?api=clear
+    if (rawQ === "same" || rawQ === "clear" || rawQ === ".") {
+      try {
+        localStorage.removeItem(LS_API);
+      } catch {
+        /* ignore */
+      }
+      return "";
+    }
+    const fromQuery = normalizeApiBase(rawQ);
     if (fromQuery) {
       try {
         localStorage.setItem(LS_API, fromQuery);
