@@ -20,6 +20,9 @@ dev = [
 longbridge = [
   "longbridge>=4.0",
 ]
+futu = [
+  "futu-api>=6.0",
+]
 web = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",

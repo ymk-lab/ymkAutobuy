@@ -21,7 +21,7 @@
     <header class="topbar">
       <div class="brand-block">
         <p class="brand">Structure Gate</p>
-        <p class="brand-sub">qresearch · v8 paper monitor</p>
+        <p class="brand-sub">qresearch · v11 · 富途模擬盤</p>
       </div>
       <nav class="top-meta" aria-label="狀態">
         <span id="sg-badge-submit" class="badge badge-off">PAPER …</span>
@@ -34,13 +34,13 @@
       <!-- 1. Live monitor (first viewport) -->
       <section class="sg-monitor-hero" aria-label="Paper trade 即時監控">
         <div class="sg-monitor-head">
-          <p class="sg-kicker">Live paper trade</p>
+          <p class="sg-kicker">Live paper · Futu SIMULATE · SPY40 / QQQ30 / SMH30</p>
           <h1 class="sg-monitor-title">
             <span id="sg-mode-hero">—</span>
             <span class="sg-monitor-target" id="sg-target-hero">讀取中…</span>
           </h1>
           <p class="sg-monitor-sub" id="sg-monitor-sub">
-            同步長橋模擬盤後，顯示本金、目標與掛單狀態。
+            同步富途 OpenD 模擬盤後，顯示本金、合併目標與掛單狀態。
           </p>
         </div>
 
@@ -99,7 +99,7 @@
 
           <div class="sg-pane sg-pane-wide" aria-labelledby="holdings-title">
             <h2 id="holdings-title">持倉與即時盈虧</h2>
-            <p class="sg-pane-support">來自長橋模擬盤報價；按「同步帳戶」更新。</p>
+            <p class="sg-pane-support">來自富途 OpenD 模擬盤報價；按「同步帳戶」更新。</p>
             <div class="table-scroll">
               <table class="sg-table holdings-table">
                 <thead>
@@ -136,43 +136,35 @@
         <p class="sg-support">先同步與重算訊號；確認目標後再開送單。每日自動掛單仍建議用 cron。</p>
 
         <div class="sg-tool-row">
-          <label class="sg-book-label" for="sg-book-select">Book</label>
-          <select id="sg-book-select" class="sg-select" aria-label="選擇 book">
-            <option value="QQQ">QQQ</option>
-            <option value="SPY" selected>SPY</option>
-            <option value="SOXX">SOXX</option>
-            <option value="SMH">SMH</option>
-            <option value="XLK">XLK</option>
-          </select>
-          <p class="sg-btn-hint">決定基準 ETF 與成分股宇宙。</p>
+          <span class="sg-book-label">配置</span>
+          <strong id="sg-config-label">v11 · SPY 40% / QQQ 30% / SMH 30%</strong>
+          <p class="sg-btn-hint">三袖口獨立算訊號後合併權重，送富途模擬盤。</p>
         </div>
 
         <div class="sg-actions">
           <div class="sg-action">
             <button type="button" class="btn btn-primary" data-sg-action="sync">同步帳戶</button>
-            <p class="sg-btn-hint">向長橋讀取現金、持倉、報價，更新本金與即時盈虧。</p>
+            <p class="sg-btn-hint">經 OpenD 讀取富途模擬盤現金、持倉、報價。</p>
           </div>
           <div class="sg-action">
             <button type="button" class="btn" data-sg-action="refresh">重新整理</button>
-            <p class="sg-btn-hint">只重讀已存的訊號／回測／帳戶檔，不重新抓 K 線。</p>
+            <p class="sg-btn-hint">只重讀已存訊號／帳戶檔，不重算、不下單。</p>
           </div>
           <div class="sg-action">
             <button type="button" class="btn" data-sg-action="signal">重算訊號</button>
-            <p class="sg-btn-hint">用長橋日 K 跑 Structure Gate v8，產出 mode 與目標；不下單。</p>
+            <p class="sg-btn-hint">跑 v11 三袖口合併目標；不下單。</p>
           </div>
           <div class="sg-action">
             <button type="button" class="btn btn-accent" data-sg-action="once">執行一次</button>
-            <p class="sg-btn-hint">
-              重算後依送單開關決定：OFF 只計畫；ON 對模擬盤市價調倉。
-            </p>
+            <p class="sg-btn-hint">OFF 只計畫；ON 對富途 SIMULATE 市價調倉。</p>
           </div>
           <div class="sg-action">
             <button type="button" class="btn" data-sg-action="toggle-submit">切換送單</button>
-            <p class="sg-btn-hint">開關 QRESEARCH_SG_PAPER_SUBMIT。僅模擬盤；不會改 G1 開關。</p>
+            <p class="sg-btn-hint">開關 QRESEARCH_SG_PAPER_SUBMIT（僅模擬盤）。</p>
           </div>
           <div class="sg-action">
-            <button type="button" class="btn" data-sg-action="backtest">長橋回測</button>
-            <p class="sg-btn-hint">用目前 Book 的歷史日 K 跑 v8 回測（有費），更新下方回測數字。</p>
+            <button type="button" class="btn" data-sg-action="backtest">v11 回測</button>
+            <p class="sg-btn-hint">呼叫 blend 回測腳本（有費），更新下方摘要。</p>
           </div>
         </div>
 
@@ -238,8 +230,8 @@
       </section>
 
       <section class="sg-section" id="params" aria-labelledby="params-title">
-        <h2 id="params-title">v8 預設參數</h2>
-        <p class="sg-support">來自 <code>StructureGateConfig.v8()</code>。</p>
+        <h2 id="params-title">v11 預設參數</h2>
+        <p class="sg-support">來自 <code>StructureGateConfig.v11()</code>（knobs 同 v8；三袖口獨立）。</p>
         <div class="table-scroll">
           <table class="sg-table" id="params-table">
             <thead>
@@ -260,8 +252,8 @@
     </main>
 
     <footer class="footer">
-      <span>Structure Gate v8 · Longbridge paper only</span>
-      <span>自動每日掛單請用 cron（run-sg.sh）</span>
+      <span>Structure Gate v11 · Futu OpenD SIMULATE</span>
+      <span>自動每日掛單：deploy/vps-cron/run-sg.sh</span>
     </footer>
 
     <script src="/static/structure_gate.js" defer></script>

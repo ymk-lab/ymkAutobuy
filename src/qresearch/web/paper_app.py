@@ -1,4 +1,4 @@
-"""FastAPI control panel for Structure Gate v8 Longbridge paper trading."""
+"""FastAPI control panel for Structure Gate v11 Futu paper trading."""
 
 from __future__ import annotations
 
@@ -19,11 +19,13 @@ from fastapi.staticfiles import StaticFiles
 ROOT = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parent / "static"
 DEFAULT_OUT = ROOT / "examples" / "data" / "emerging_rs_g1_paper"
-DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v8_paper"
+DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v11_paper"
 DAILY = ROOT / "examples" / "run_emerging_rs_g1_paper_daily.py"
-SG_DAILY = ROOT / "examples" / "run_structure_gate_v8_paper_daily.py"
+SG_DAILY = ROOT / "examples" / "run_structure_gate_v11_paper_daily.py"
+SG_BLEND = ROOT / "examples" / "run_structure_gate_v11_blend.py"
+BLEND_SUMMARY = ROOT / "examples" / "data" / "structure_gate_v11_blend" / "summary.json"
 
-app = FastAPI(title="qresearch Structure Gate Paper", version="0.2.0")
+app = FastAPI(title="qresearch Structure Gate v11 · Futu Paper", version="0.4.0")
 _lock = threading.Lock()
 
 
@@ -100,157 +102,161 @@ def _load_dotenv() -> None:
 def _account_snapshot() -> dict[str, Any]:
     _load_dotenv()
     sys.path.insert(0, str(ROOT / "src"))
-    from qresearch.brokers.longbridge import LongbridgeBrokerAdapter, has_longbridge_credentials
-    from qresearch.brokers.longbridge.symbols import normalize_symbol
+    from qresearch.brokers.futu import FutuBrokerAdapter, has_futu_opend
+    from qresearch.brokers.futu.symbols import normalize_symbol
 
-    if not has_longbridge_credentials():
-        return {"ok": False, "error": "缺少 Longbridge 憑證"}
-    broker = LongbridgeBrokerAdapter.from_env(
+    if not has_futu_opend():
+        return {
+            "ok": False,
+            "error": "無法連線富途 OpenD（檢查 FUTU_OPEND_HOST/PORT，預設 127.0.0.1:11111）",
+        }
+    broker = FutuBrokerAdapter.from_opend(
         dry_run=True,
         currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
         default_market="US",
+        simulate=True,
     )
-    cash = broker.get_cash()
+    try:
+        cash = broker.get_cash()
+        holdings: list[dict[str, Any]] = []
+        positions: dict[str, float] = {}
+        # Prefer detailed position query when available.
+        if broker.trade_ctx is not None:
+            from futu import RET_OK
 
-    # Rich position rows (cost basis from venue).
-    holdings: list[dict[str, Any]] = []
-    positions: dict[str, float] = {}
-    if broker.trade_ctx is not None:
-        resp = broker.trade_ctx.stock_positions()
-        for ch in getattr(resp, "channels", None) or []:
-            for pos in getattr(ch, "positions", None) or []:
-                sym = normalize_symbol(pos.symbol, default_market="US")
-                qty = float(pos.quantity)
-                if abs(qty) < 1e-12:
-                    continue
-                cost = float(getattr(pos, "cost_price", 0) or 0)
-                positions[sym] = positions.get(sym, 0.0) + qty
+            ret, data = broker.trade_ctx.position_list_query(trd_env=broker._trd_env())  # noqa: SLF001
+            if ret == RET_OK and data is not None and len(data):
+                for _, pos in data.iterrows():
+                    sym = normalize_symbol(str(pos["code"]), default_market="US")
+                    qty = float(pos.get("qty", 0) or 0)
+                    if abs(qty) < 1e-12:
+                        continue
+                    cost = float(pos.get("cost_price", 0) or 0)
+                    positions[sym] = positions.get(sym, 0.0) + qty
+                    holdings.append(
+                        {
+                            "symbol": sym,
+                            "name": str(pos.get("stock_name", "") or ""),
+                            "quantity": qty,
+                            "available_quantity": float(pos.get("can_sell_qty", qty) or qty),
+                            "currency": "USD",
+                            "cost_price": cost,
+                        }
+                    )
+        if not holdings:
+            positions = broker.get_positions()
+            for sym, qty in positions.items():
                 holdings.append(
                     {
                         "symbol": sym,
-                        "name": str(getattr(pos, "symbol_name", "") or ""),
-                        "quantity": qty,
-                        "available_quantity": float(getattr(pos, "available_quantity", qty) or qty),
-                        "currency": str(getattr(pos, "currency", "USD") or "USD"),
-                        "cost_price": cost,
+                        "name": "",
+                        "quantity": float(qty),
+                        "available_quantity": float(qty),
+                        "currency": "USD",
+                        "cost_price": None,
                     }
                 )
-    else:
-        positions = broker.get_positions()
-        for sym, qty in positions.items():
-            holdings.append(
-                {
-                    "symbol": sym,
-                    "name": "",
-                    "quantity": float(qty),
-                    "available_quantity": float(qty),
-                    "currency": "USD",
-                    "cost_price": None,
-                }
-            )
 
-    quotes: dict[str, float] = {}
-    quote_meta: dict[str, dict[str, float]] = {}
-    syms = sorted(set(positions) | {"QQQ.US"})
-    quote_warning = None
-    if broker.quote_ctx is not None and syms:
+        quotes: dict[str, float] = {}
+        quote_meta: dict[str, dict[str, float]] = {}
+        syms = sorted(set(positions) | {"SPY.US", "QQQ.US", "SMH.US"})
+        quote_warning = None
         try:
-            for q in broker.quote_ctx.quote(syms):
-                sym = normalize_symbol(q.symbol, default_market="US")
-                last = getattr(q, "last_done", None)
-                prev = getattr(q, "prev_close", None)
-                opn = getattr(q, "open", None)
-                if last is not None and float(last) > 0:
-                    quotes[sym] = float(last)
+            quotes = broker.snapshot_quotes(syms)
+            for sym, last in quotes.items():
                 quote_meta[sym] = {
-                    "last": float(last) if last not in (None, "") else float("nan"),
-                    "prev_close": float(prev) if prev not in (None, "") else float("nan"),
-                    "open": float(opn) if opn not in (None, "") else float("nan"),
+                    "last": float(last),
+                    "prev_close": float("nan"),
+                    "open": float("nan"),
                 }
         except Exception as exc:  # noqa: BLE001
             quote_warning = str(exc)
 
-    enriched: list[dict[str, Any]] = []
-    total_mv = 0.0
-    total_cost = 0.0
-    total_upnl = 0.0
-    total_day = 0.0
-    for h in holdings:
-        sym = h["symbol"]
-        qty = float(h["quantity"])
-        cost = h.get("cost_price")
-        meta = quote_meta.get(sym) or {}
-        last = quotes.get(sym)
-        meta_last = meta.get("last")
-        if last is None and meta_last is not None and not math.isnan(meta_last):
-            last = meta_last
-        prev = meta.get("prev_close")
-        if prev is not None and math.isnan(prev):
-            prev = None
-        row = dict(h)
-        row["last"] = last
-        row["prev_close"] = prev
-        market_value = (last * qty) if last is not None else None
-        cost_value = (float(cost) * qty) if cost not in (None, "") else None
-        upnl = (
-            market_value - cost_value
-            if market_value is not None and cost_value is not None
-            else None
-        )
-        upnl_pct = (
-            (last / float(cost) - 1.0)
-            if last is not None and cost not in (None, "", 0, 0.0)
-            else None
-        )
-        day_pnl = (
-            (last - float(prev)) * qty
-            if last is not None and prev is not None and prev == prev
-            else None
-        )
-        day_pct = (
-            (last / float(prev) - 1.0)
-            if last is not None and prev is not None and prev == prev and float(prev) != 0
-            else None
-        )
-        row.update(
-            {
-                "market_value": market_value,
-                "cost_value": cost_value,
-                "unrealized_pnl": upnl,
-                "unrealized_pnl_pct": upnl_pct,
-                "day_pnl": day_pnl,
-                "day_pnl_pct": day_pct,
-            }
-        )
-        enriched.append(row)
-        if market_value is not None:
-            total_mv += market_value
-        if cost_value is not None:
-            total_cost += cost_value
-        if upnl is not None:
-            total_upnl += upnl
-        if day_pnl is not None:
-            total_day += day_pnl
+        enriched: list[dict[str, Any]] = []
+        total_mv = 0.0
+        total_cost = 0.0
+        total_upnl = 0.0
+        total_day = 0.0
+        for h in holdings:
+            sym = h["symbol"]
+            qty = float(h["quantity"])
+            cost = h.get("cost_price")
+            meta = quote_meta.get(sym) or {}
+            last = quotes.get(sym)
+            meta_last = meta.get("last")
+            if last is None and meta_last is not None and not math.isnan(meta_last):
+                last = meta_last
+            prev = meta.get("prev_close")
+            if prev is not None and math.isnan(prev):
+                prev = None
+            row = dict(h)
+            row["last"] = last
+            row["prev_close"] = prev
+            market_value = (last * qty) if last is not None else None
+            cost_value = (float(cost) * qty) if cost not in (None, "") else None
+            upnl = (
+                market_value - cost_value
+                if market_value is not None and cost_value is not None
+                else None
+            )
+            upnl_pct = (
+                (last / float(cost) - 1.0)
+                if last is not None and cost not in (None, "", 0, 0.0)
+                else None
+            )
+            day_pnl = (
+                (last - float(prev)) * qty
+                if last is not None and prev is not None and prev == prev
+                else None
+            )
+            day_pct = (
+                (last / float(prev) - 1.0)
+                if last is not None and prev is not None and prev == prev and float(prev) != 0
+                else None
+            )
+            row.update(
+                {
+                    "market_value": market_value,
+                    "cost_value": cost_value,
+                    "unrealized_pnl": upnl,
+                    "unrealized_pnl_pct": upnl_pct,
+                    "day_pnl": day_pnl,
+                    "day_pnl_pct": day_pct,
+                }
+            )
+            enriched.append(row)
+            if market_value is not None:
+                total_mv += market_value
+            if cost_value is not None:
+                total_cost += cost_value
+            if upnl is not None:
+                total_upnl += upnl
+            if day_pnl is not None:
+                total_day += day_pnl
 
-    equity = float(cash) + total_mv
-    out: dict[str, Any] = {
-        "ok": True,
-        "cash_usd": cash,
-        "positions": positions,
-        "quotes": quotes,
-        "holdings": enriched,
-        "pnl": {
-            "market_value": total_mv,
-            "cost_value": total_cost,
-            "unrealized_pnl": total_upnl,
-            "unrealized_pnl_pct": (total_upnl / total_cost) if total_cost > 1e-9 else None,
-            "day_pnl": total_day,
-            "equity_usd": equity,
-        },
-    }
-    if quote_warning:
-        out["quote_warning"] = quote_warning
-    return out
+        equity = float(cash) + total_mv
+        out: dict[str, Any] = {
+            "ok": True,
+            "broker": "futu",
+            "trd_env": "SIMULATE",
+            "cash_usd": cash,
+            "positions": positions,
+            "quotes": quotes,
+            "holdings": enriched,
+            "pnl": {
+                "market_value": total_mv,
+                "cost_value": total_cost,
+                "unrealized_pnl": total_upnl,
+                "unrealized_pnl_pct": (total_upnl / total_cost) if total_cost > 1e-9 else None,
+                "day_pnl": total_day,
+                "equity_usd": equity,
+            },
+        }
+        if quote_warning:
+            out["quote_warning"] = quote_warning
+        return out
+    finally:
+        broker.close()
 
 
 def _account_path(*, sg: bool = True) -> Path:
@@ -347,21 +353,22 @@ def structure_gate_page() -> FileResponse:
 
 @app.get("/api/structure-gate/v8")
 def structure_gate_v8_config() -> JSONResponse:
-    """Expose Structure Gate v8 defaults for the rules UI."""
+    """Expose Structure Gate knobs (v11 == v8) for the rules UI."""
     sys.path.insert(0, str(ROOT / "src"))
     from dataclasses import asdict
 
-    from qresearch.strategy.structure_gate import StructureGateConfig
+    from qresearch.strategy.structure_gate import V11_BOOK_WEIGHTS, StructureGateConfig
 
-    cfg = StructureGateConfig.v8()
+    cfg = StructureGateConfig.v11()
     payload = asdict(cfg)
     # EmergingRSWaveConfig is nested; keep JSON-safe primitives only.
     if payload.get("ers_config") is not None:
         payload["ers_config"] = str(payload["ers_config"])
     return JSONResponse(
         {
-            "preset": "v8",
-            "rule": "structure_gate_v8_universal_tune",
+            "preset": "v11",
+            "rule": "structure_gate_v11_blend",
+            "weights": dict(V11_BOOK_WEIGHTS),
             "priority": [
                 "harsh_ret",
                 "thrust",
@@ -375,19 +382,66 @@ def structure_gate_v8_config() -> JSONResponse:
             ],
             "modes": ["cash", "ers", "strong", "bench"],
             "execution": "next_open",
+            "broker": "futu",
             "fee_note": "Futu US equity schedule + slippage_bps on notional",
             "config": payload,
             "paper": {
                 "script": str(SG_DAILY.relative_to(ROOT)),
+                "blend_script": str(SG_BLEND.relative_to(ROOT)),
                 "out_dir": str(_sg_out_dir()),
                 "submit_env": "QRESEARCH_SG_PAPER_SUBMIT",
                 "paper_only": True,
+                "trd_env": "SIMULATE",
             },
         }
     )
 
 
+def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
+    """Map v11 blend summary → UI latest_backtest fields."""
+    if not summary:
+        return {}
+    windows = summary.get("windows") or []
+    if not windows:
+        return {"ok": False, "error": "no windows"}
+    w = windows[0]
+    gate = w.get("soft_pass")
+    if isinstance(gate, dict):
+        soft = gate.get("soft_pass")
+        hard = gate.get("hard_pass_beat_both")
+    else:
+        soft = gate
+        hard = w.get("hard_pass_beat_both")
+    blend = w.get("blend") or {}
+    spy = w.get("spy_bh") or {}
+    return {
+        "ok": True,
+        "book": "V11",
+        "preset": "v11_blend",
+        "start": w.get("start"),
+        "end": w.get("end"),
+        "structure_gate_total_return": blend.get("total_return"),
+        "bench_bh_total_return": spy.get("total_return"),
+        "max_drawdown": blend.get("max_drawdown"),
+        "soft_pass": soft,
+        "hard_pass_beat_both": hard,
+        "weights": w.get("weights") or summary.get("design", {}).get("weights"),
+        "vs_spy_bh_pp": blend.get("vs_spy_bh_pp"),
+    }
+
+
+def _publish_v11_backtest() -> dict[str, Any]:
+    summary = _read_json(BLEND_SUMMARY) or {}
+    flat = _flatten_v11_backtest(summary)
+    if flat:
+        (_sg_out_dir() / "latest_backtest.json").write_text(
+            json.dumps(flat, indent=2, default=float) + "\n"
+        )
+    return flat
+
+
 def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
+    _load_dotenv()
     out = _sg_out_dir()
     signal = _read_json(out / "latest_signal.json") or {}
     run = _read_json(out / "latest_run.json") or {}
@@ -402,15 +456,14 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         )
     else:
         account = _account_from_files(sg=True)
-    book = (
-        os.getenv("QRESEARCH_SG_BOOK")
-        or signal.get("book")
-        or "SPY"
-    )
+    weights = signal.get("weights") or {"SPY": 0.4, "QQQ": 0.3, "SMH": 0.3}
     return {
         "ok": True,
         "out_dir": str(out),
-        "book": str(book).upper(),
+        "book": "V11",
+        "preset": signal.get("preset") or "v11",
+        "broker": "futu",
+        "weights": weights,
         "submit_enabled": _env_sg_submit(),
         "paper_only": _env_truthy("QRESEARCH_SG_PAPER_ONLY", "1"),
         "sleeve_usd": os.getenv("QRESEARCH_SLEEVE_USD", ""),
@@ -431,14 +484,14 @@ def api_sg_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
 @app.get("/api/sg/sync-account")
 async def api_sg_sync_account() -> StreamingResponse:
     async def gen() -> AsyncIterator[str]:
-        yield _sse({"phase": "start", "message": "處理中：準備連線長橋帳戶…", "level": "info"})
+        yield _sse({"phase": "start", "message": "處理中：準備連線富途 OpenD…", "level": "info"})
         await asyncio.sleep(0.05)
         if not _lock.acquire(blocking=False):
             yield _sse({"phase": "error", "message": "忙碌中：另一個工作正在執行", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
             return
         try:
-            yield _sse({"phase": "progress", "message": "處理中：讀取現金與持倉…", "level": "info"})
+            yield _sse({"phase": "progress", "message": "處理中：讀取模擬盤現金與持倉…", "level": "info"})
             snap = await asyncio.to_thread(_account_snapshot)
             if not snap.get("ok"):
                 yield _sse({"phase": "error", "message": f"失敗：{snap.get('error')}", "level": "error"})
@@ -456,7 +509,7 @@ async def api_sg_sync_account() -> StreamingResponse:
                 {
                     "phase": "progress",
                     "message": (
-                        f"完成帳戶同步：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
+                        f"完成帳戶同步（Futu SIMULATE）：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
                         f"權益 {float(pnl.get('equity_usd') or 0):,.2f}，持倉 {pos_txt}"
                     ),
                     "level": "ok",
@@ -496,17 +549,18 @@ async def api_sg_run(
     mode: str = Query("once", pattern="^(signal|once|backtest)$"),
     submit: int = Query(0, ge=0, le=1),
     refresh: int = Query(1, ge=0, le=1),
-    book: str = Query("QQQ"),
+    book: str = Query("V11"),
 ) -> StreamingResponse:
     async def gen() -> AsyncIterator[str]:
-        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v8…", "level": "info"})
+        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v11…", "level": "info"})
         if not _lock.acquire(blocking=False):
             yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
             return
         try:
-            if not SG_DAILY.is_file():
-                yield _sse({"phase": "error", "message": f"找不到腳本 {SG_DAILY}", "level": "error"})
+            script = SG_BLEND if mode == "backtest" else SG_DAILY
+            if not script.is_file():
+                yield _sse({"phase": "error", "message": f"找不到腳本 {script}", "level": "error"})
                 yield _sse({"phase": "done", "ok": False})
                 return
 
@@ -530,20 +584,24 @@ async def api_sg_run(
             env["QRESEARCH_LB_SUBMIT"] = "0"  # never couple to G1 live submit
             env["QRESEARCH_REFRESH_CACHE"] = "1" if refresh else "0"
             env["QRESEARCH_SG_PAPER_OUT"] = str(_sg_out_dir())
-            env["QRESEARCH_SG_BOOK"] = (book or "QQQ").strip().upper()
+            env["QRESEARCH_SG_BOOK"] = "V11"
+            env["FUTU_TRD_ENV"] = env.get("FUTU_TRD_ENV") or "SIMULATE"
             env["PYTHONUNBUFFERED"] = "1"
+            env["PYTHONPATH"] = str(ROOT / "src") + (
+                os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+            )
 
             if mode == "backtest":
-                label = "長橋數據回測（不下單）"
+                label = "v11 blend 回測（不下單）"
             elif want_submit:
-                label = "送單到模擬盤（paper only）"
+                label = "送單到富途模擬盤（paper only）"
             else:
                 label = "只算訊號（不下單）"
             yield _sse(
                 {
                     "phase": "progress",
                     "message": (
-                        f"處理中：mode={mode} book={env['QRESEARCH_SG_BOOK']}，{label}，"
+                        f"處理中：mode={mode} book=V11，{label}，"
                         f"refresh={bool(refresh)}"
                     ),
                     "level": "info",
@@ -552,15 +610,24 @@ async def api_sg_run(
             yield _sse(
                 {
                     "phase": "progress",
-                    "message": "處理中：向長橋抓取日 K / 計算 Structure Gate v8…",
+                    "message": (
+                        "處理中：v11 blend 回測…"
+                        if mode == "backtest"
+                        else "處理中：快取／OpenD 日 K + 計算 Structure Gate v11…"
+                    ),
                     "level": "info",
                 }
             )
 
+            if mode == "backtest":
+                bt_start = os.getenv("QRESEARCH_SG_BT_START", "2025-08-07")
+                bt_end = os.getenv("QRESEARCH_SG_BT_END", "2026-08-07")
+                cmd = [_python(), str(SG_BLEND), bt_start, bt_end]
+            else:
+                cmd = [_python(), str(SG_DAILY), mode]
+
             proc = await asyncio.create_subprocess_exec(
-                _python(),
-                str(SG_DAILY),
-                mode,
+                *cmd,
                 cwd=str(ROOT),
                 env=env,
                 stdout=asyncio.subprocess.PIPE,
@@ -579,6 +646,9 @@ async def api_sg_run(
                 yield _sse({"phase": "log", "message": text, "level": "log"})
 
             code = await proc.wait()
+            if mode == "backtest" and code == 0:
+                await asyncio.to_thread(_publish_v11_backtest)
+
             try:
                 status = await asyncio.to_thread(lambda: _sg_status_payload(live=True))
             except Exception:
@@ -588,9 +658,9 @@ async def api_sg_run(
             if code == 0:
                 if mode == "backtest":
                     msg = (
-                        f"完成回測：book={backtest.get('book')} "
+                        f"完成 v11 回測：{backtest.get('start')}→{backtest.get('end')} "
                         f"SG={float(backtest.get('structure_gate_total_return') or 0)*100:.1f}% "
-                        f"BH={float(backtest.get('bench_bh_total_return') or 0)*100:.1f}%"
+                        f"SPY_BH={float(backtest.get('bench_bh_total_return') or 0)*100:.1f}%"
                     )
                 else:
                     tgt = signal.get("target") or {}
@@ -907,6 +977,9 @@ async def api_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingResp
 
 if STATIC.is_dir():
     app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
+
+# Load .env when the ASGI module is imported (uvicorn entrypoint).
+_load_dotenv()
 
 
 def main() -> None:

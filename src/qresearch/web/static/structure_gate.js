@@ -229,7 +229,13 @@
 
     $("#sg-mode-hero") && ($("#sg-mode-hero").textContent = mode);
     $("#sg-target-hero") && ($("#sg-target-hero").textContent = tgtS);
-    $("#sg-book") && ($("#sg-book").textContent = data.book || sig.book || "—");
+    const weights = data.weights || sig.weights || { SPY: 0.4, QQQ: 0.3, SMH: 0.3 };
+    const bookLabel =
+      "V11 · " +
+      Object.entries(weights)
+        .map(([k, v]) => `${k}${(Number(v) * 100).toFixed(0)}`)
+        .join(" / ");
+    $("#sg-book") && ($("#sg-book").textContent = bookLabel);
     $("#sg-mode") && ($("#sg-mode").textContent = mode);
     $("#sg-target") && ($("#sg-target").textContent = tgtS);
 
@@ -382,8 +388,7 @@
   }
 
   function bookParam() {
-    const sel = $("#sg-book-select");
-    return encodeURIComponent((sel && sel.value) || "SPY");
+    return "V11";
   }
 
   document.querySelectorAll(".sg-mode").forEach((btn) => {
@@ -403,12 +408,12 @@
           setBusy(false);
         });
       } else if (action === "sync") {
-        withAction(() => consumeSSE("/api/sg/sync-account", "同步長橋帳戶"));
+        withAction(() => consumeSSE("/api/sg/sync-account", "同步富途帳戶"));
       } else if (action === "signal") {
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=signal&submit=0&refresh=1&book=${bookParam()}`,
-            "重算訊號"
+            "重算 v11 訊號"
           )
         );
       } else if (action === "once") {
@@ -416,14 +421,14 @@
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=once&submit=${submit}&refresh=1&book=${bookParam()}`,
-            submit ? "執行一次（paper 送單）" : "執行一次（只計畫）"
+            submit ? "執行一次（富途 paper 送單）" : "執行一次（只計畫）"
           )
         );
       } else if (action === "backtest") {
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=backtest&submit=0&refresh=1&book=${bookParam()}`,
-            "長橋回測"
+            "v11 blend 回測"
           )
         );
       } else if (action === "toggle-submit") {
