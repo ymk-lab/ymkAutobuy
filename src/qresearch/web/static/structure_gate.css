@@ -140,6 +140,38 @@
   animation: rise 0.85s ease both;
 }
 
+.sg-pane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sg-pane-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.sg-issue-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.sg-issue-list li {
+  padding: 0.35rem 0;
+  color: var(--err);
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sg-status-ok { color: var(--ok); font-weight: 700; }
+.sg-status-warn { color: var(--warn); font-weight: 700; }
+.sg-status-fail { color: var(--err); font-weight: 700; }
+
 .sg-pane-wide {
   grid-column: 1 / -1;
 }

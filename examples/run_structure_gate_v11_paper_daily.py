@@ -28,6 +28,7 @@ from qresearch.brokers.futu import FutuBrokerAdapter, has_futu_opend, load_doten
 from qresearch.brokers.futu.symbols import normalize_symbol
 from qresearch.data.loader import validate_ohlcv
 from qresearch.execution.targets import TargetWeightExecutor
+from qresearch.paper.fill_audit import append_fills_ledger, reconcile_fills, write_audit
 from qresearch.strategy.structure_gate import V11_BOOK_WEIGHTS, StructureGateConfig
 from run_emerging_rs_wave_gates import UNIVERSE as QQQ_UNIVERSE  # type: ignore
 from run_emerging_rs_wave_soxx import UNIVERSE as SEMI_UNIVERSE  # type: ignore
@@ -473,15 +474,31 @@ def main() -> int:
                 }
                 for f in fills
             ]
+            positions_after = live.get_positions()
+            cash_after = live.get_cash()
             result = {
                 **plan,
                 "fills": fill_rows,
-                "positions_after": live.get_positions(),
-                "cash_after": live.get_cash(),
+                "positions_after": positions_after,
+                "cash_after": cash_after,
             }
             log_path = base / "logs" / f"run_{ts.strftime('%Y%m%dT%H%M%S')}.json"
             log_path.write_text(json.dumps(result, indent=2, default=float) + "\n")
             (base / "latest_run.json").write_text(json.dumps(result, indent=2, default=float) + "\n")
+            append_fills_ledger(
+                base,
+                fill_rows,
+                meta={"asof": str(asof), "run_at": str(ts), "broker": "futu", "preset": "v11"},
+            )
+            audit = reconcile_fills(
+                preview_orders=plan.get("preview_orders") or [],
+                fills=fill_rows,
+                positions_before=positions,
+                positions_after=positions_after,
+                asof=str(asof),
+                run_at=str(ts),
+            )
+            write_audit(base, audit)
             state_path.write_text(
                 json.dumps(
                     {
@@ -492,12 +509,22 @@ def main() -> int:
                         "preset": "v11",
                         "at": str(ts),
                         "n_fills": len(fills),
+                        "fill_audit": audit.get("status"),
                     },
                     indent=2,
                 )
                 + "\n"
             )
             log(f"futu paper fills={len(fills)} → {log_path}")
+            log(f"fill_audit={audit.get('status')} issues={audit.get('n_issues')}")
+            for line in audit.get("lines") or []:
+                log(
+                    f"  [{line.get('status')}] {line.get('side')} "
+                    f"preview={line.get('preview_qty')} fill={line.get('fill_qty')} "
+                    f"{line.get('symbol')} @ {line.get('fill_price')}"
+                )
+            for issue in audit.get("issues") or []:
+                log(f"  !! {issue}")
         finally:
             live.close()
         return 0

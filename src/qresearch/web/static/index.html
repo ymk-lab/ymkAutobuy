@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=design-3" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=design-3" />
+    <link rel="stylesheet" href="/static/styles.css?v=design-4" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=design-4" />
   </head>
   <body class="sg-page sg-monitor">
     <div class="atmosphere" aria-hidden="true"></div>
@@ -97,6 +97,62 @@
             <li class="empty">尚無成交紀錄</li>
           </ul>
           <p class="sg-state-line" id="state-line">state：—</p>
+        </div>
+
+        <div class="sg-pane sg-pane-wide" aria-labelledby="fills-audit-title">
+          <div class="sg-pane-head">
+            <div>
+              <h2 id="fills-audit-title">逐筆成交查核</h2>
+              <p class="sg-pane-support">比對預覽單、實際成交與持倉變化。</p>
+            </div>
+            <div class="sg-pane-head-meta">
+              <span id="sg-audit-badge" class="badge badge-idle">查核 …</span>
+              <button type="button" class="btn btn-ghost" data-sg-action="audit-fills">重新查核</button>
+            </div>
+          </div>
+          <p class="sg-state-line" id="sg-audit-summary">尚未查核</p>
+          <div class="table-scroll">
+            <table class="sg-table" id="fills-audit-table">
+              <thead>
+                <tr>
+                  <th>狀態</th>
+                  <th>方向</th>
+                  <th>標的</th>
+                  <th>預覽股數</th>
+                  <th>成交股數</th>
+                  <th>預覽價</th>
+                  <th>成交價</th>
+                  <th>價差bps</th>
+                  <th>名義</th>
+                </tr>
+              </thead>
+              <tbody id="fills-audit-body">
+                <tr>
+                  <td colspan="9" class="empty">尚無成交可查核（需 latest_run 或 ledger）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3 class="sg-mini">持倉對帳</h3>
+          <div class="table-scroll">
+            <table class="sg-table" id="fills-pos-table">
+              <thead>
+                <tr>
+                  <th>標的</th>
+                  <th>送單前</th>
+                  <th>成交後預期</th>
+                  <th>帳戶現況</th>
+                  <th>結果</th>
+                </tr>
+              </thead>
+              <tbody id="fills-pos-body">
+                <tr>
+                  <td colspan="5" class="empty">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ul class="sg-issue-list" id="sg-audit-issues"></ul>
         </div>
 
         <div class="sg-pane sg-pane-wide" aria-labelledby="holdings-title">
@@ -260,6 +316,6 @@
       <span>deploy/vps-cron/run-sg.sh</span>
     </footer>
 
-    <script src="/static/structure_gate.js?v=design-3" defer></script>
+    <script src="/static/structure_gate.js?v=design-4" defer></script>
   </body>
 </html>

@@ -144,6 +144,96 @@
     }
   }
 
+  function auditStatusClass(status) {
+    if (status === "pass" || status === "ok") return "sg-status-ok";
+    if (status === "warn") return "sg-status-warn";
+    return "sg-status-fail";
+  }
+
+  function renderFillAudit(audit) {
+    const badge = $("#sg-audit-badge");
+    const summary = $("#sg-audit-summary");
+    const body = $("#fills-audit-body");
+    const posBody = $("#fills-pos-body");
+    const issuesEl = $("#sg-audit-issues");
+    if (!body) return;
+
+    if (!audit || (!audit.n_fills && !audit.n_preview && !(audit.lines || []).length)) {
+      if (badge) {
+        badge.textContent = "無成交";
+        badge.className = "badge badge-idle";
+      }
+      if (summary) summary.textContent = "尚未有 latest_run／fills_ledger 可查核";
+      body.innerHTML = `<tr><td colspan="9" class="empty">尚無成交可查核（需 latest_run 或 ledger）</td></tr>`;
+      if (posBody) posBody.innerHTML = `<tr><td colspan="5" class="empty">—</td></tr>`;
+      if (issuesEl) issuesEl.innerHTML = "";
+      return;
+    }
+
+    const st = audit.status || (audit.ok ? "pass" : "fail");
+    if (badge) {
+      badge.textContent = `查核 ${String(st).toUpperCase()}`;
+      badge.className =
+        st === "pass" ? "badge badge-on" : st === "warn" ? "badge badge-busy" : "badge badge-off";
+    }
+    if (summary) {
+      const src = audit.sources || {};
+      summary.textContent =
+        `asof ${audit.asof || "—"} · preview ${audit.n_preview ?? 0} · fills ${audit.n_fills ?? 0}` +
+        ` · issues ${audit.n_issues ?? 0}` +
+        ` · run=${src.latest_run ? "Y" : "N"} account=${src.account_live ? "Y" : "N"}`;
+    }
+
+    const lines = audit.lines || [];
+    if (!lines.length) {
+      body.innerHTML = `<tr><td colspan="9" class="empty">無逐筆資料</td></tr>`;
+    } else {
+      body.innerHTML = lines
+        .map((r) => {
+          const bps = r.price_bps == null ? "—" : Number(r.price_bps).toFixed(1);
+          const notion = r.notional == null ? "—" : money2(r.notional);
+          return `<tr>
+            <td class="${auditStatusClass(r.status)}">${r.status}</td>
+            <td>${r.side || "—"}</td>
+            <td>${r.symbol || "—"}</td>
+            <td>${r.preview_qty == null ? "—" : r.preview_qty}</td>
+            <td>${r.fill_qty == null ? "—" : r.fill_qty}</td>
+            <td>${r.preview_price == null ? "—" : Number(r.preview_price).toFixed(2)}</td>
+            <td>${r.fill_price == null ? "—" : Number(r.fill_price).toFixed(2)}</td>
+            <td>${bps}</td>
+            <td>${notion}</td>
+          </tr>`;
+        })
+        .join("");
+    }
+
+    const pos = audit.positions || [];
+    if (posBody) {
+      if (!pos.length) {
+        posBody.innerHTML = `<tr><td colspan="5" class="empty">—</td></tr>`;
+      } else {
+        posBody.innerHTML = pos
+          .map((p) => {
+            const okTxt = p.ok == null ? "—" : p.ok ? "ok" : "mismatch";
+            const cls = p.ok === false ? "sg-status-fail" : p.ok ? "sg-status-ok" : "";
+            return `<tr>
+              <td>${p.symbol}</td>
+              <td>${p.before ?? "—"}</td>
+              <td>${p.expected_after ?? "—"}</td>
+              <td>${p.after == null ? "—" : p.after}</td>
+              <td class="${cls}">${okTxt}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+    }
+
+    if (issuesEl) {
+      const issues = audit.issues || [];
+      issuesEl.innerHTML = issues.map((x) => `<li>${x}</li>`).join("");
+    }
+  }
+
   function renderHoldings(account) {
     const body = $("#holdings-body");
     if (!body) return;
@@ -259,6 +349,7 @@
         : "state：尚無";
     }
 
+    renderFillAudit(data.fill_audit || null);
     renderHoldings(account);
 
     $("#sg-bt-sg") && ($("#sg-bt-sg").textContent = pct(bt.structure_gate_total_return));
@@ -518,6 +609,26 @@
             next ? "開啟 paper 送單" : "關閉送單"
           )
         );
+      } else if (action === "audit-fills") {
+        withAction(async () => {
+          setBusy(true, "查核中");
+          pushActivity("處理中：逐筆成交查核…", "info");
+          try {
+            const res = await fetch("/api/sg/fills?refresh=1");
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            renderFillAudit(data.audit || null);
+            const st = (data.audit && data.audit.status) || "—";
+            pushActivity(`完成：成交查核 ${st}`, data.audit && data.audit.ok ? "ok" : "error");
+            toast(`成交查核：${st}`, data.audit && data.audit.ok ? "ok" : "error");
+            await refreshStatus({ live: false });
+          } catch (err) {
+            pushActivity(`查核失敗：${err?.message || err}`, "error");
+            toast(`查核失敗：${err?.message || err}`, "error");
+          } finally {
+            setBusy(false);
+          }
+        });
       }
     });
   });

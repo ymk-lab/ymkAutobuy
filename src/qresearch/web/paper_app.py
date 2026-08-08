@@ -16,6 +16,8 @@ from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from qresearch.paper.fill_audit import audit_from_out_dir, load_fills_ledger, write_audit
+
 ROOT = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parent / "static"
 DEFAULT_OUT = ROOT / "examples" / "data" / "emerging_rs_g1_paper"
@@ -475,6 +477,7 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     else:
         account = _account_from_files(sg=True)
     weights = signal.get("weights") or {"SPY": 0.4, "QQQ": 0.3, "SMH": 0.3}
+    audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
     return {
         "ok": True,
         "out_dir": str(out),
@@ -490,6 +493,7 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "last_run": run,
         "state": state,
         "backtest": backtest,
+        "fill_audit": audit,
         "server_time_utc": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -497,6 +501,25 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
 @app.get("/api/sg/status")
 def api_sg_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
     return _sg_status_payload(live=bool(live))
+
+
+@app.get("/api/sg/fills")
+def api_sg_fills(refresh: int = Query(1, ge=0, le=1), limit: int = Query(100, ge=1, le=500)) -> dict[str, Any]:
+    """Line-by-line fill audit + ledger for Structure Gate paper."""
+    out = _sg_out_dir()
+    if refresh:
+        audit = audit_from_out_dir(out)
+        write_audit(out, audit)
+    else:
+        audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
+    ledger = load_fills_ledger(out, limit=limit)
+    return {
+        "ok": True,
+        "out_dir": str(out),
+        "audit": audit,
+        "ledger": ledger,
+        "n_ledger": len(ledger),
+    }
 
 
 @app.get("/api/sg/sync-account")
@@ -523,19 +546,28 @@ async def api_sg_sync_account() -> StreamingResponse:
                 else "無持倉"
             )
             pnl = saved.get("pnl") or {}
+            def _refresh_audit() -> dict[str, Any]:
+                a = audit_from_out_dir(_sg_out_dir())
+                write_audit(_sg_out_dir(), a)
+                return a
+
+            audit = await asyncio.to_thread(_refresh_audit)
+            audit_st = (audit and audit.get("status")) or "—"
             yield _sse(
                 {
                     "phase": "progress",
                     "message": (
                         f"完成帳戶同步（Futu SIMULATE）：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
-                        f"權益 {float(pnl.get('equity_usd') or 0):,.2f}，持倉 {pos_txt}"
+                        f"權益 {float(pnl.get('equity_usd') or 0):,.2f}，持倉 {pos_txt}；"
+                        f"成交查核 {audit_st}"
                     ),
                     "level": "ok",
-                    "data": {"account": saved, **snap},
+                    "data": {"account": saved, "fill_audit": audit, **snap},
                 }
             )
             status = _sg_status_payload(live=False)
             status["account"] = saved
+            status["fill_audit"] = audit
             yield _sse({"phase": "done", "ok": True, "data": status})
         except Exception as exc:  # noqa: BLE001
             yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
