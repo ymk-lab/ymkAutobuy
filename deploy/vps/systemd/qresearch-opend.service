@@ -7,15 +7,13 @@ Wants=network-online.target
 Type=simple
 User=REPLACE_USER
 Group=REPLACE_USER
-WorkingDirectory=/opt/qresearch
-Environment=QRESEARCH_VPS_SECRETS=/opt/qresearch/deploy/vps/secrets/local
+WorkingDirectory=/opt/futuopend
+Environment=FUTU_OPEND_BIN=/opt/futuopend/FutuOpenD
+Environment=FUTU_OPEND_XML=/opt/futuopend/FutuOpenD.xml
 Environment=QRESEARCH_OPEND_LOG=/var/log/qresearch
-ExecStartPre=/opt/qresearch/deploy/vps/bin/require-secrets.sh
-ExecStartPre=/opt/qresearch/deploy/vps/bin/render-opend-xml.sh
 ExecStart=/opt/qresearch/deploy/vps/bin/start-opend.sh
 Restart=on-failure
 RestartSec=10
-# Do not expose OpenD; process binds 127.0.0.1 via XML
 
 [Install]
 WantedBy=multi-user.target
