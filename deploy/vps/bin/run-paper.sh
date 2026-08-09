@@ -8,7 +8,11 @@ VPS="$(cd "$HERE/.." && pwd)"
 LOCAL="${QRESEARCH_VPS_SECRETS:-$VPS/secrets/local}"
 MODE="${1:-signal}"
 
-bash "$HERE/require-secrets.sh"
+# Need OpenD listening; full secrets/local check is optional after manual XML login.
+if ! bash "$HERE/wait-opend.sh" "${FUTU_OPEND_HOST:-127.0.0.1}" "${FUTU_OPEND_PORT:-11111}" 15; then
+  echo "OpenD not up on 11111" >&2
+  exit 1
+fi
 
 cd "$ROOT"
 if [[ -f "$ROOT/.venv/bin/activate" ]]; then
