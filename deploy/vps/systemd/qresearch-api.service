@@ -9,10 +9,21 @@ Type=simple
 User=REPLACE_USER
 Group=REPLACE_USER
 WorkingDirectory=/opt/qresearch
-Environment=QRESEARCH_VPS_SECRETS=/opt/qresearch/deploy/vps/secrets/local
 Environment=PYTHONPATH=/opt/qresearch/src
-ExecStartPre=/opt/qresearch/deploy/vps/bin/require-secrets.sh
-ExecStart=/opt/qresearch/deploy/vps/bin/start-api.sh
+Environment=PYTHONUNBUFFERED=1
+Environment=FUTU_OPEND_HOST=127.0.0.1
+Environment=FUTU_OPEND_PORT=11111
+Environment=FUTU_TRD_ENV=SIMULATE
+Environment=QRESEARCH_FUTU_ALLOW_LIVE=0
+Environment=QRESEARCH_SG_PAPER_ONLY=1
+Environment=QRESEARCH_SG_PAPER_SUBMIT=0
+Environment=QRESEARCH_UI_HOST=0.0.0.0
+Environment=QRESEARCH_UI_PORT=8787
+Environment=QRESEARCH_CORS_ORIGINS=https://ymk-autobuy.web.app,https://ymk-autobuy.firebaseapp.com
+EnvironmentFile=-/opt/qresearch/.env
+EnvironmentFile=-/opt/qresearch/deploy/vps/secrets/local/app.env
+ExecStartPre=/opt/qresearch/deploy/vps/bin/wait-opend.sh 127.0.0.1 11111 30
+ExecStart=/opt/qresearch/.venv/bin/python -m uvicorn qresearch.web.paper_app:app --host 0.0.0.0 --port 8787
 Restart=on-failure
 RestartSec=5
 
