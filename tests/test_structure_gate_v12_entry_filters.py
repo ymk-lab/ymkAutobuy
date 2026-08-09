@@ -11,13 +11,15 @@ def test_entry_gap_scale_thresholds() -> None:
     assert entry_gap_scale(0.005, shrink=0.01, cancel=0.02) == 1.0
     assert entry_gap_scale(0.015, shrink=0.01, cancel=0.02, shrink_weight=0.5) == 0.5
     assert entry_gap_scale(-0.025, shrink=0.01, cancel=0.02) == 0.0
+    assert entry_gap_scale(0.029, shrink=None, cancel=0.03) == 1.0
+    assert entry_gap_scale(0.03, shrink=None, cancel=0.03) == 0.0
     assert entry_gap_scale(0.03, shrink=None, cancel=None) == 1.0
 
 
 def test_v12_config_defaults() -> None:
     cfg = StructureGateConfig.v12()
-    assert cfg.exec_gap_shrink == 0.01
-    assert cfg.exec_gap_cancel == 0.02
+    assert cfg.exec_gap_shrink is None
+    assert cfg.exec_gap_cancel == 0.03
     assert cfg.block_earnings_entries is True
 
 

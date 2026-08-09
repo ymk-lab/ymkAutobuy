@@ -1,0 +1,65 @@
+{
+  "v11": {
+    "preset": "v11",
+    "structure_gate_total_return": 0.9813696974517012,
+    "structure_gate_max_drawdown": -0.13253647722850215,
+    "structure_gate_sharpe": 2.4020142028697684,
+    "spy_bh_total_return": 0.22716536478736504,
+    "vs_spy_pp": 75.42043326643362,
+    "n_buys": 69,
+    "n_gap_cancel": 0,
+    "n_gap_shrink": 0,
+    "n_earnings_block": 0,
+    "config": {
+      "exec_gap_shrink": null,
+      "exec_gap_cancel": null,
+      "block_earnings_entries": false
+    }
+  },
+  "v12_gap3": {
+    "preset": "v12_gap3",
+    "structure_gate_total_return": 1.0055621188218304,
+    "structure_gate_max_drawdown": -0.11141054185822552,
+    "structure_gate_sharpe": 2.45575227167657,
+    "spy_bh_total_return": 0.22716536478736504,
+    "vs_spy_pp": 77.83967540344653,
+    "n_buys": 69,
+    "n_gap_cancel": 5,
+    "n_gap_shrink": 0,
+    "n_earnings_block": 0,
+    "config": {
+      "exec_gap_shrink": null,
+      "exec_gap_cancel": 0.03,
+      "block_earnings_entries": true
+    }
+  },
+  "v12_gap3_only": {
+    "preset": "v12_gap3_only",
+    "structure_gate_total_return": 1.0055621188218304,
+    "structure_gate_max_drawdown": -0.11141054185822552,
+    "structure_gate_sharpe": 2.45575227167657,
+    "spy_bh_total_return": 0.22716536478736504,
+    "vs_spy_pp": 77.83967540344653,
+    "n_buys": 69,
+    "n_gap_cancel": 5,
+    "n_gap_shrink": 0,
+    "n_earnings_block": 0,
+    "config": {
+      "exec_gap_shrink": null,
+      "exec_gap_cancel": 0.03,
+      "block_earnings_entries": false
+    }
+  },
+  "v12_gap3_minus_v11": {
+    "total_return_pp": 2.4192421370129225,
+    "max_drawdown_pp": 2.1125935370276627,
+    "sharpe_delta": 0.05373806880680165,
+    "buys_delta": 0
+  },
+  "v12_gap3_only_minus_v11": {
+    "total_return_pp": 2.4192421370129225,
+    "max_drawdown_pp": 2.1125935370276627,
+    "sharpe_delta": 0.05373806880680165,
+    "buys_delta": 0
+  }
+}

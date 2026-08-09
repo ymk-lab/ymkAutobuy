@@ -2,9 +2,8 @@
 """Bakeoff: Structure Gate v11 vs v12 (gap filter + earnings no-new-entry).
 
 v12 execution overlays (next-open BUYs only):
-  - |open/prev_close-1| ≥ 1% → half size
-  - |open/prev_close-1| ≥ 2% → cancel entry that day
-  - earnings date → cancel new entry (stocks; ETF benches rarely listed)
+  - |open/prev_close-1| ≥ 3% → cancel entry that day
+  - earnings date / next session → cancel new entry (when calendar provided)
 """
 
 from __future__ import annotations

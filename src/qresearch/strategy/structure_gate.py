@@ -159,14 +159,15 @@ class StructureGateConfig:
     def v12(cls) -> "StructureGateConfig":
         """v12: v11 knobs + next-open entry filters.
 
-        - |open/prev_close-1| ≥ 1% → enter at half size
-        - |open/prev_close-1| ≥ 2% → cancel entry that day
-        - block new entries on earnings date and the next session
-          (AH report → next open); needs ``earnings_by_symbol``
+        Bakeoff (2025-08→2026-08): cancel-only at |gap|≥3% beat the tighter
+        1%/2% shrink+cancel rule on both return and drawdown.
+
+        - |open/prev_close-1| ≥ 3% → cancel entry that day
+        - optional earnings block when ``earnings_by_symbol`` is provided
         """
         return cls(
-            exec_gap_shrink=0.01,
-            exec_gap_cancel=0.02,
+            exec_gap_shrink=None,
+            exec_gap_cancel=0.03,
             exec_gap_shrink_weight=0.5,
             block_earnings_entries=True,
         )
