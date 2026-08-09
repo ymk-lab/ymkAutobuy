@@ -7,7 +7,11 @@ ROOT="$(cd "$HERE/../../.." && pwd)"
 VPS="$(cd "$HERE/.." && pwd)"
 LOCAL="${QRESEARCH_VPS_SECRETS:-$VPS/secrets/local}"
 
-bash "$HERE/require-secrets.sh"
+# OpenD must already be up; secrets/local/app.env optional for env overrides.
+if [[ ! -x /opt/futuopend/FutuOpenD && ! -f "${LOCAL}/opend.env" ]]; then
+  echo "OpenD not installed under /opt/futuopend" >&2
+  exit 1
+fi
 
 cd "$ROOT"
 if [[ -f "$ROOT/.venv/bin/activate" ]]; then
