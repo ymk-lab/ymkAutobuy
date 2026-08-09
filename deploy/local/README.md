@@ -156,4 +156,4 @@ UI 重新整理後，「執行一次」才會對 **SIMULATE** 下單。
 | `has_futu_opend() False` | OpenD 未開／埠不對／綁了別的 IP |
 | 同步帳戶失敗 | 確認交易環境是模擬盤；OpenD 已登入 |
 | 缺 K 線 | 開着 OpenD，設 `QRESEARCH_REFRESH_CACHE=1` 再跑 signal |
-| 想關筆電仍跑 | 之後再搬到 VPS；本機方案必須電腦醒着 |
+| 想關筆電仍跑 | 見 **`deploy/vps/`**（Linux VPS + OpenD 密鑰 + systemd） |

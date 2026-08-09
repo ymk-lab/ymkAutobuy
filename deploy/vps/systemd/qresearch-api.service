@@ -1,0 +1,20 @@
+[Unit]
+Description=Structure Gate paper API (uvicorn :8787)
+After=network-online.target qresearch-opend.service
+Wants=network-online.target
+Requires=qresearch-opend.service
+
+[Service]
+Type=simple
+User=REPLACE_USER
+Group=REPLACE_USER
+WorkingDirectory=/opt/qresearch
+Environment=QRESEARCH_VPS_SECRETS=/opt/qresearch/deploy/vps/secrets/local
+Environment=PYTHONPATH=/opt/qresearch/src
+ExecStartPre=/opt/qresearch/deploy/vps/bin/require-secrets.sh
+ExecStart=/opt/qresearch/deploy/vps/bin/start-api.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

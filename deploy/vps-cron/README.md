@@ -1,5 +1,8 @@
 # 小型 VPS + cron：Emerging RS G1 Paper Trade
 
+> **Structure Gate v11 + 富途 OpenD（含帳密／systemd／開盤送單）**  
+> 請改用 **[`deploy/vps/`](../vps/README.md)**。本目錄偏長橋 G1 與舊 SG 說明。
+
 日頻策略，一台 1 vCPU / 1GB 的 Ubuntu VPS 即可。
 
 ## 1. 準備 VPS

@@ -1,0 +1,21 @@
+[Unit]
+Description=Futu OpenD (qresearch VPS, loopback)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=REPLACE_USER
+Group=REPLACE_USER
+WorkingDirectory=/opt/qresearch
+Environment=QRESEARCH_VPS_SECRETS=/opt/qresearch/deploy/vps/secrets/local
+Environment=QRESEARCH_OPEND_LOG=/var/log/qresearch
+ExecStartPre=/opt/qresearch/deploy/vps/bin/require-secrets.sh
+ExecStartPre=/opt/qresearch/deploy/vps/bin/render-opend-xml.sh
+ExecStart=/opt/qresearch/deploy/vps/bin/start-opend.sh
+Restart=on-failure
+RestartSec=10
+# Do not expose OpenD; process binds 127.0.0.1 via XML
+
+[Install]
+WantedBy=multi-user.target

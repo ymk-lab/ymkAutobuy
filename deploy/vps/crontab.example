@@ -1,0 +1,12 @@
+# Structure Gate v11 on VPS — America/New_York wall clock
+# Install: crontab -e  (or crontab -u <APP_USER> -e); fix paths if repo ≠ /opt/qresearch
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+CRON_TZ=America/New_York
+
+# After US cash close: compute signal only (no orders)
+30 16 * * 1-5  /opt/qresearch/deploy/vps/bin/run-paper.sh signal >> /opt/qresearch/examples/data/structure_gate_v11_paper/logs/cron_signal.log 2>&1
+
+# Near RTH open: submit only if QRESEARCH_SG_PAPER_SUBMIT=1 in secrets/local/app.env
+40 9 * * 1-5  /opt/qresearch/deploy/vps/bin/run-paper.sh once >> /opt/qresearch/examples/data/structure_gate_v11_paper/logs/cron_submit.log 2>&1
