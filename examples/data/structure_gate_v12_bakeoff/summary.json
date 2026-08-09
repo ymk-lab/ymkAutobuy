@@ -1,0 +1,110 @@
+{
+  "v11": {
+    "preset": "v11",
+    "start": "2025-08-07",
+    "end": "2026-08-07",
+    "weights": {
+      "SPY": 0.4,
+      "QQQ": 0.3,
+      "SMH": 0.3
+    },
+    "structure_gate_total_return": 0.9813696974517012,
+    "structure_gate_max_drawdown": -0.13253647722850215,
+    "structure_gate_sharpe": 2.4020142028697684,
+    "spy_bh_total_return": 0.22716536478736504,
+    "vs_spy_pp": 75.42043326643362,
+    "n_buys": 69,
+    "n_gap_cancel": 0,
+    "n_gap_shrink": 0,
+    "n_earnings_block": 0,
+    "sleeves": [
+      {
+        "book": "SPY",
+        "total_return": 1.3045121542058067,
+        "max_drawdown": -0.25836187167477787,
+        "sharpe": 1.7937448947231456,
+        "n_trades": 73,
+        "n_buys": 37
+      },
+      {
+        "book": "QQQ",
+        "total_return": 0.7495419867733337,
+        "max_drawdown": -0.1625865837274033,
+        "sharpe": 2.3467808252687603,
+        "n_trades": 53,
+        "n_buys": 27
+      },
+      {
+        "book": "SMH",
+        "total_return": 0.7823407991245939,
+        "max_drawdown": -0.1802778505681476,
+        "sharpe": 1.8986549710394476,
+        "n_trades": 10,
+        "n_buys": 5
+      }
+    ],
+    "config": {
+      "exec_gap_shrink": null,
+      "exec_gap_cancel": null,
+      "exec_gap_shrink_weight": 0.5,
+      "block_earnings_entries": false
+    }
+  },
+  "v12": {
+    "preset": "v12",
+    "start": "2025-08-07",
+    "end": "2026-08-07",
+    "weights": {
+      "SPY": 0.4,
+      "QQQ": 0.3,
+      "SMH": 0.3
+    },
+    "structure_gate_total_return": 0.6208044964280248,
+    "structure_gate_max_drawdown": -0.08471024153427686,
+    "structure_gate_sharpe": 2.2094682336451856,
+    "spy_bh_total_return": 0.22716536478736504,
+    "vs_spy_pp": 39.36391316406598,
+    "n_buys": 65,
+    "n_gap_cancel": 12,
+    "n_gap_shrink": 15,
+    "n_earnings_block": 0,
+    "sleeves": [
+      {
+        "book": "SPY",
+        "total_return": 0.5368797252854605,
+        "max_drawdown": -0.1886832581596285,
+        "sharpe": 1.3771816477141539,
+        "n_trades": 75,
+        "n_buys": 34
+      },
+      {
+        "book": "QQQ",
+        "total_return": 0.5672349731733326,
+        "max_drawdown": -0.11045505848022319,
+        "sharpe": 2.2390134674522053,
+        "n_trades": 54,
+        "n_buys": 27
+      },
+      {
+        "book": "SMH",
+        "total_return": 0.7862737145394683,
+        "max_drawdown": -0.1675684281961317,
+        "sharpe": 1.8963085758580178,
+        "n_trades": 11,
+        "n_buys": 4
+      }
+    ],
+    "config": {
+      "exec_gap_shrink": 0.01,
+      "exec_gap_cancel": 0.02,
+      "exec_gap_shrink_weight": 0.5,
+      "block_earnings_entries": true
+    }
+  },
+  "v12_minus_v11": {
+    "total_return_pp": -36.05652010236764,
+    "max_drawdown_pp": 4.782623569422528,
+    "sharpe_delta": -0.19254596922458278,
+    "buys_delta": -4
+  }
+}

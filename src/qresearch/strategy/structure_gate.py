@@ -104,6 +104,12 @@ class StructureGateConfig:
     book_peak_dd_stop: float | None = None
     book_dd_reentry_confirm: int = 3
     ers_config: EmergingRSWaveConfig | None = None
+    # v12 execution filters (next-open entries only; sells unaffected).
+    # Overnight gap = fill_open / prev_close - 1 (proxy for pre-market move).
+    exec_gap_shrink: float | None = None  # |gap| >= this → size *= exec_gap_shrink_weight
+    exec_gap_cancel: float | None = None  # |gap| >= this → skip new entry
+    exec_gap_shrink_weight: float = 0.5
+    block_earnings_entries: bool = False  # skip BUY on symbol earnings dates
 
     @classmethod
     def v8(cls) -> "StructureGateConfig":
@@ -149,9 +155,45 @@ class StructureGateConfig:
         """
         return cls()
 
+    @classmethod
+    def v12(cls) -> "StructureGateConfig":
+        """v12: v11 knobs + next-open entry filters.
 
-# Default v11 capital weights (must sum to 1.0).
+        - |open/prev_close-1| ≥ 1% → enter at half size
+        - |open/prev_close-1| ≥ 2% → cancel entry that day
+        - block new entries on earnings date and the next session
+          (AH report → next open); needs ``earnings_by_symbol``
+        """
+        return cls(
+            exec_gap_shrink=0.01,
+            exec_gap_cancel=0.02,
+            exec_gap_shrink_weight=0.5,
+            block_earnings_entries=True,
+        )
+
+
+# Default v11/v12 capital weights (must sum to 1.0).
 V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
+V12_BOOK_WEIGHTS: dict[str, float] = dict(V11_BOOK_WEIGHTS)
+
+
+def entry_gap_scale(
+    gap: float,
+    *,
+    shrink: float | None,
+    cancel: float | None,
+    shrink_weight: float = 0.5,
+) -> float:
+    """Return position scale in ``[0, 1]`` for a next-open entry given overnight gap.
+
+    ``1`` = full size, ``shrink_weight`` = reduced, ``0`` = cancel.
+    """
+    g = abs(float(gap))
+    if cancel is not None and cancel > 0 and g >= float(cancel):
+        return 0.0
+    if shrink is not None and shrink > 0 and g >= float(shrink):
+        return float(max(0.0, min(1.0, shrink_weight)))
+    return 1.0
 
 
 def blend_structure_gate_books(
@@ -742,13 +784,21 @@ def simulate_structure_gate(
     fees: object | None = None,
     config: StructureGateConfig | None = None,
     bench_volume: pd.Series | None = None,
+    earnings_by_symbol: dict[str, set[pd.Timestamp]] | None = None,
+    bench_symbol: str | None = None,
 ) -> StructureSimResult:
-    """Next-open: cash / ers / strong leaders / bench ETF."""
+    """Next-open: cash / ers / strong leaders / bench ETF.
+
+    ``earnings_by_symbol`` maps ticker → set of normalized earnings dates; used
+    when ``config.block_earnings_entries`` is on (v12). ``bench_symbol`` names
+    the ETF for earnings lookups on bench entries (optional).
+    """
     from qresearch.backtest.futu_costs import FutuUsEquityFees
 
     cfg = config or StructureGateConfig()
     fee_model = fees if fees is not None else FutuUsEquityFees(slippage_bps=3.0)
     bench_fees, stock_fees = _split_fee_models(fee_model, cfg)
+    earnings_by_symbol = earnings_by_symbol or {}
     mode, meta = label_structure_modes(
         bench_close, closes, config=cfg, bench_volume=bench_volume
     )
@@ -837,11 +887,97 @@ def simulate_structure_gate(
         )
         pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
 
+    def _overnight_gap(dt: pd.Timestamp, open_px: float, close_series: pd.Series) -> float:
+        try:
+            loc = close_series.index.get_loc(dt)
+        except KeyError:
+            return 0.0
+        if not isinstance(loc, (int, np.integer)) or int(loc) <= 0:
+            return 0.0
+        prev = float(close_series.iloc[int(loc) - 1])
+        if not np.isfinite(prev) or prev <= 0 or not np.isfinite(open_px) or open_px <= 0:
+            return 0.0
+        return float(open_px / prev - 1.0)
+
+    def _entry_allowed(
+        dt: pd.Timestamp,
+        *,
+        sym: str,
+        open_px: float,
+        close_series: pd.Series,
+        weight: float,
+        reason: str,
+    ) -> tuple[float, str] | None:
+        """Return (scaled_weight, reason) or None if entry cancelled."""
+        gap = _overnight_gap(dt, open_px, close_series)
+        scale = entry_gap_scale(
+            gap,
+            shrink=cfg.exec_gap_shrink,
+            cancel=cfg.exec_gap_cancel,
+            shrink_weight=cfg.exec_gap_shrink_weight,
+        )
+        if scale <= 0:
+            trades.append(
+                {
+                    "date": dt.strftime("%Y-%m-%d"),
+                    "side": "SKIP",
+                    "symbol": sym,
+                    "shares": 0.0,
+                    "price": round(float(open_px), 4),
+                    "notional_usd": 0.0,
+                    "cost_usd": 0.0,
+                    "reason": f"{reason}|gap_cancel|{gap:.4f}",
+                }
+            )
+            return None
+        if cfg.block_earnings_entries:
+            earn_dates = earnings_by_symbol.get(sym, set())
+            # Block earnings session and the next trading day (AH prints → next open).
+            block_days = set(earn_dates)
+            if len(close_series.index):
+                for ed in list(earn_dates):
+                    pos = close_series.index.searchsorted(ed)
+                    if pos < len(close_series.index) and close_series.index[pos].normalize() == pd.Timestamp(ed).normalize():
+                        if pos + 1 < len(close_series.index):
+                            block_days.add(pd.Timestamp(close_series.index[pos + 1]).normalize())
+                    elif 0 < pos < len(close_series.index):
+                        # ed fell between sessions → block following session
+                        block_days.add(pd.Timestamp(close_series.index[pos]).normalize())
+            if pd.Timestamp(dt).normalize() in block_days:
+                trades.append(
+                    {
+                        "date": dt.strftime("%Y-%m-%d"),
+                        "side": "SKIP",
+                        "symbol": sym,
+                        "shares": 0.0,
+                        "price": round(float(open_px), 4),
+                        "notional_usd": 0.0,
+                        "cost_usd": 0.0,
+                        "reason": f"{reason}|earnings_block",
+                    }
+                )
+                return None
+        out_reason = reason
+        if scale < 1.0:
+            out_reason = f"{reason}|gap_shrink|{gap:.4f}|x{scale:.2f}"
+        return float(weight) * scale, out_reason
+
     def _buy_stock(dt: pd.Timestamp, sym: str, weight: float, reason: str, kind: str) -> None:
         nonlocal cash, pos_sym, pos_shares, pos_kind
         px_o = float(op.at[dt, sym])
         if not np.isfinite(px_o) or px_o <= 0:
             return
+        allowed = _entry_allowed(
+            dt,
+            sym=sym,
+            open_px=px_o,
+            close_series=px[sym],
+            weight=weight,
+            reason=reason,
+        )
+        if allowed is None:
+            return
+        weight, reason = allowed
         shares = float(np.floor(cash * abs(weight) / px_o))
         if shares < 1:
             return
@@ -873,7 +1009,19 @@ def simulate_structure_gate(
         px_o = float(qo.at[dt])
         if not np.isfinite(px_o) or px_o <= 0:
             return
-        shares = float(np.floor(cash / px_o))
+        earn_sym = bench_symbol or "BENCH"
+        allowed = _entry_allowed(
+            dt,
+            sym=earn_sym,
+            open_px=px_o,
+            close_series=qc,
+            weight=1.0,
+            reason=reason,
+        )
+        if allowed is None:
+            return
+        weight, reason = allowed
+        shares = float(np.floor(cash * abs(weight) / px_o))
         if shares < 1:
             return
         notional = shares * px_o
