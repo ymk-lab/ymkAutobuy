@@ -4,6 +4,10 @@
 SPY 40% / QQQ 30% / SMH 30% each run Structure Gate independently; merged
 target weights are sent to one Futu paper account.
 
+Schedule (America/New_York):
+  - ``signal`` after cash close (~16:30): compute targets only
+  - ``once`` at **09:40** next session: submit (official fill window; not 09:30)
+
 Safety:
   - Default dry-run; submit only with QRESEARCH_SG_PAPER_SUBMIT=1
   - FUTU_TRD_ENV defaults to SIMULATE (paper)

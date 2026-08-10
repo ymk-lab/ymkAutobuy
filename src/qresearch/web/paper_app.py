@@ -521,6 +521,8 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "weights": weights,
         "submit_enabled": _env_sg_submit(),
         "paper_only": _env_truthy("QRESEARCH_SG_PAPER_ONLY", "1"),
+        "execution": "rth_0940_et",
+        "execution_note": "signal at prior close; submit at 09:40 America/New_York",
         "sleeve_usd": os.getenv("QRESEARCH_SLEEVE_USD", ""),
         "signal": signal,
         "account": account,
