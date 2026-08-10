@@ -19,16 +19,17 @@ if [[ -f "$ROOT/.venv/bin/activate" ]]; then
   # shellcheck disable=SC1091
   source "$ROOT/.venv/bin/activate"
 fi
-if [[ -f "$ROOT/.env" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ROOT/.env"
-  set +a
-fi
+# Defaults from secrets/local, then repo .env wins (UI set-submit writes .env).
 if [[ -f "${LOCAL}/app.env" ]]; then
   set -a
   # shellcheck disable=SC1090
   source "${LOCAL}/app.env"
+  set +a
+fi
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
   set +a
 fi
 
@@ -48,10 +49,11 @@ fi
 LOG_DIR="${QRESEARCH_SG_PAPER_OUT}/logs"
 mkdir -p "$LOG_DIR"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+ET_STAMP="$(TZ=America/New_York date +%Y-%m-%dT%H:%M:%S%z)"
 LOG_FILE="$LOG_DIR/vps_${MODE}_${STAMP}.log"
 
 {
-  echo "=== vps paper mode=$MODE submit=${QRESEARCH_SG_PAPER_SUBMIT:-0} utc=$STAMP ==="
+  echo "=== vps paper mode=$MODE submit=${QRESEARCH_SG_PAPER_SUBMIT:-0} utc=$STAMP et=$ET_STAMP cron_tz=${CRON_TZ:-unset} ==="
   bash "$HERE/wait-opend.sh" "${FUTU_OPEND_HOST:-127.0.0.1}" "${FUTU_OPEND_PORT:-11111}" 30
   python3 "$ROOT/examples/run_structure_gate_v11_paper_daily.py" "$MODE"
 } 2>&1 | tee -a "$LOG_FILE"

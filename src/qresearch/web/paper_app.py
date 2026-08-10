@@ -69,6 +69,32 @@ def _env_submit() -> bool:
     return _env_truthy("QRESEARCH_LB_SUBMIT", "0")
 
 
+def _upsert_env_file(path: Path, updates: dict[str, str]) -> None:
+    """Create/update KEY=value lines in an env file (preserves other lines)."""
+    existing = _read_text(path).splitlines() if path.is_file() else []
+    found = {k: False for k in updates}
+    lines: list[str] = []
+    for line in existing:
+        replaced = False
+        for key, val in updates.items():
+            if line.startswith(f"{key}="):
+                lines.append(f"{key}={val}")
+                found[key] = True
+                replaced = True
+                break
+        if not replaced:
+            lines.append(line)
+    for key, val in updates.items():
+        if not found[key]:
+            lines.append(f"{key}={val}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_text(path, "\n".join(lines) + "\n")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+
+
 def _env_sg_submit() -> bool:
     return _env_truthy("QRESEARCH_SG_PAPER_SUBMIT", "0")
 
@@ -823,39 +849,28 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
             return
         try:
             env_path = ROOT / ".env"
-            if not env_path.is_file():
-                yield _sse({"phase": "error", "message": "找不到 .env", "level": "error"})
+            app_env = ROOT / "deploy" / "vps" / "secrets" / "local" / "app.env"
+            if not env_path.is_file() and not app_env.is_file():
+                yield _sse({"phase": "error", "message": "找不到 .env / app.env", "level": "error"})
                 yield _sse({"phase": "done", "ok": False})
                 return
 
             def _write() -> None:
-                lines = []
-                found_submit = False
-                found_only = False
-                for line in _read_text(env_path).splitlines():
-                    if line.startswith("QRESEARCH_SG_PAPER_SUBMIT="):
-                        lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
-                        found_submit = True
-                    elif line.startswith("QRESEARCH_SG_PAPER_ONLY="):
-                        lines.append("QRESEARCH_SG_PAPER_ONLY=1")
-                        found_only = True
-                    else:
-                        lines.append(line)
-                if not found_submit:
-                    lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
-                if not found_only:
-                    lines.append("QRESEARCH_SG_PAPER_ONLY=1")
-                _write_text(env_path, "\n".join(lines) + "\n")
-                try:
-                    env_path.chmod(0o600)
-                except OSError:
-                    pass
+                updates = {
+                    "QRESEARCH_SG_PAPER_SUBMIT": str(enabled),
+                    "QRESEARCH_SG_PAPER_ONLY": "1",
+                }
+                # UI toggle must reach cron: write both repo .env and VPS app.env.
+                if env_path.is_file() or not app_env.is_file():
+                    _upsert_env_file(env_path, updates)
+                if app_env.is_file():
+                    _upsert_env_file(app_env, updates)
                 os.environ["QRESEARCH_SG_PAPER_SUBMIT"] = str(enabled)
                 os.environ["QRESEARCH_SG_PAPER_ONLY"] = "1"
 
             await asyncio.to_thread(_write)
             msg = (
-                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1）"
+                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1；含 cron）"
                 if enabled
                 else "已關閉 Structure Gate 送單（只計畫）"
             )
