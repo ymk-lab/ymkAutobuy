@@ -10,8 +10,8 @@ Firebase UI → HTTPS API :8787（VPS）
             cron：收盤後 16:30 signal / 次日 09:40 once
 ```
 
-**成交時點（已定案）**：紙上／實盤送單用美東 **09:40**（不是 09:30）。  
-一年窗對照約差 −0.2pp；回測日線 open 仍可視為近似，但 live cron 以 09:40 為準。
+**成交時點（已定案）**：美東 **09:40**（不是 09:30）。  
+UI「自動送單」會寫 `/opt/qresearch/.env`；cron／systemd 以 `.env` 覆蓋 `app.env`。
 
 帳密**不會**寫進 git；只放在 `deploy/vps/secrets/local/`（已 gitignore）。缺密則拒絕啟動。
 
@@ -77,7 +77,7 @@ sudo systemctl status qresearch-opend qresearch-api
 
 對外建議：Cloudflare Named Tunnel / reverse proxy，**不要**把 `11111` 開到防火牆。
 
-## 5. 排程（收盤算訊號 → 次日 09:40 送單）
+## 5. 排程（對齊回測：收盤算、開盤送）
 
 ```bash
 crontab -e
