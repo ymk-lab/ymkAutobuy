@@ -135,10 +135,10 @@ def refresh_via_futu(symbols: list[str], cache: Path) -> int:
     if not has_futu_opend():
         log("OpenD not reachable — skip Futu history refresh")
         return 0
-    from futu import KLType, AuType, RET_OK, OpenQuoteContext
+    from futu import OpenQuoteContext
 
     from qresearch.brokers.futu.config import futu_opend_host, futu_opend_port
-    from qresearch.brokers.futu.history import fetch_daily
+    from qresearch.brokers.futu.history import fetch_daily_resilient
     from qresearch.brokers.futu.symbols import to_futu_code
 
     host, port = futu_opend_host(), futu_opend_port()
@@ -146,26 +146,34 @@ def refresh_via_futu(symbols: list[str], cache: Path) -> int:
     n_ok = 0
     try:
         for i, sym in enumerate(symbols, 1):
-            df = fetch_daily(ctx, sym, start=date(2021, 6, 1))
-            if df is None or len(df) < MIN_BARS:
-                # Probe once for a clearer error on first failures
+            df, note = fetch_daily_resilient(
+                ctx, sym, start=date(2021, 6, 1), min_bars=MIN_BARS
+            )
+            if df is None or len(df) == 0:
                 if i <= 3 or sym in {"SPY", "QQQ", "SMH"}:
-                    code = to_futu_code(sym)
-                    ret, data, _ = ctx.request_history_kline(
-                        code,
-                        start="2024-01-01",
-                        end=str(date.today()),
-                        ktype=KLType.K_DAY,
-                        autype=AuType.QFQ,
-                        max_count=100,
+                    log(f"futu miss {sym} ({to_futu_code(sym)}): {note}")
+                continue
+            # Merge with existing cache so a shorter Futu window still advances asof.
+            old = load_cache(cache, sym)
+            if old is not None and len(old):
+                merged = pd.concat([old, df]).sort_index()
+                merged = merged[~merged.index.duplicated(keep="last")]
+                df = merged
+            if len(df) < MIN_BARS:
+                if i <= 3 or sym in {"SPY", "QQQ", "SMH"}:
+                    log(
+                        f"futu short {sym} ({to_futu_code(sym)}): bars={len(df)} "
+                        f"need>={MIN_BARS} ({note}); keep for yfinance merge"
                     )
-                    why = data if ret != RET_OK else f"rows={0 if data is None else len(data)}"
-                    log(f"futu miss {sym} ({code}): {why}")
+                save_cache(cache, sym, df)
                 continue
             save_cache(cache, sym, df)
             n_ok += 1
             if i == 1 or i % 40 == 0 or i == len(symbols) or sym in {"SPY", "QQQ", "SMH"}:
-                log(f"futu [{i}/{len(symbols)}] ok={n_ok} last={sym} bars={len(df)}")
+                log(
+                    f"futu [{i}/{len(symbols)}] ok={n_ok} last={sym} "
+                    f"bars={len(df)} {note}"
+                )
     finally:
         ctx.close()
     return n_ok
