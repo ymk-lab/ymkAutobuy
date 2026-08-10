@@ -374,6 +374,47 @@ def already_ran_today(state_path: Path, asof: str) -> bool:
     return st.get("asof") == asof and bool(st.get("submitted"))
 
 
+def _research_cost_usd(quantity: float, price: float, *, slippage_bps: float) -> dict[str, float]:
+    """Match backtest ``FutuUsEquityFees.total_cost_usd`` (broker + slippage)."""
+    from qresearch.backtest.futu_costs import FutuUsEquityFees
+
+    px = float(price)
+    qty = abs(float(quantity))
+    notional = qty * px
+    model = FutuUsEquityFees(slippage_bps=float(slippage_bps))
+    broker = float(model.broker_fee_usd(qty, notional))
+    slip = float(notional * (float(slippage_bps) / 10_000.0))
+    total = float(model.total_cost_usd(notional, px))
+    return {
+        "broker_fee_usd": broker,
+        "slippage_usd": slip,
+        "slippage_bps": float(slippage_bps),
+        "research_cost_usd": total,
+    }
+
+
+def _annotate_fill_costs(
+    rows: list[dict],
+    *,
+    slippage_bps: float,
+) -> list[dict]:
+    out: list[dict] = []
+    for row in rows:
+        r = dict(row)
+        costs = _research_cost_usd(
+            float(r.get("quantity") or 0.0),
+            float(r.get("price") or 0.0),
+            slippage_bps=slippage_bps,
+        )
+        r.update(costs)
+        # Paper audit / ledger: use research total when broker reported 0.
+        reported = float(r.get("fee") or 0.0)
+        r["fee_broker_reported"] = reported
+        r["fee"] = max(reported, costs["research_cost_usd"])
+        out.append(r)
+    return out
+
+
 def main() -> int:
     _configure_stdio()
     load_dotenv_if_present(ROOT / ".env")
@@ -520,6 +561,11 @@ def main() -> int:
             "job_mode": mode,
         }
 
+        # v11 sleeves are ETF/bench — use bench_slippage_bps (default 3).
+        slip_bps = float(cfg.bench_slippage_bps)
+        plan["slippage_bps"] = slip_bps
+        plan["fee_model"] = "futu_us_equity+slippage"
+
         preview = FutuBrokerAdapter(dry_run=True, simulate=True, initial_cash=eq)
         preview._local_cash = float(cash)  # noqa: SLF001
         preview._local_positions = dict(positions)  # noqa: SLF001
@@ -527,25 +573,42 @@ def main() -> int:
             fills = TargetWeightExecutor(preview, min_trade_notional=25.0).rebalance(
                 target, marks, ts, equity=eq
             )
-            plan["preview_orders"] = [
-                {
-                    "order_id": f.order_id,
-                    "symbol": f.symbol,
-                    "side": f.side.value if hasattr(f.side, "value") else str(f.side),
-                    "quantity": f.quantity,
-                    "price": f.price,
-                }
-                for f in fills
-            ]
+            plan["preview_orders"] = _annotate_fill_costs(
+                [
+                    {
+                        "order_id": f.order_id,
+                        "symbol": f.symbol,
+                        "side": f.side.value if hasattr(f.side, "value") else str(f.side),
+                        "quantity": f.quantity,
+                        "price": f.price,
+                        "fee": f.fee,
+                    }
+                    for f in fills
+                ],
+                slippage_bps=slip_bps,
+            )
+            # Dry-run local cash: also deduct research costs (broker+slip), like backtest.
+            for row in plan["preview_orders"]:
+                cost = float(row.get("research_cost_usd") or 0.0)
+                side = str(row.get("side") or "").lower()
+                if side == "buy":
+                    preview._local_cash -= cost  # noqa: SLF001
+                elif side == "sell":
+                    preview._local_cash -= cost  # noqa: SLF001
         except Exception as exc:  # noqa: BLE001
             plan["preview_orders"] = []
             plan["preview_error"] = str(exc)
 
         (base / f"signal_{asof}.json").write_text(json.dumps(plan, indent=2, default=float) + "\n")
         (base / "latest_signal.json").write_text(json.dumps(plan, indent=2, default=float) + "\n")
-        log(f"preview_orders={len(plan.get('preview_orders') or [])}")
+        log(f"preview_orders={len(plan.get('preview_orders') or [])} slip_bps={slip_bps}")
         for o in plan.get("preview_orders") or []:
-            log(f"  {o['side']} {o['quantity']:g} {o['symbol']} @~{o['price']}")
+            log(
+                f"  {o['side']} {o['quantity']:g} {o['symbol']} @~{o['price']} "
+                f"fee≈{float(o.get('fee') or 0):.4f} "
+                f"(broker≈{float(o.get('broker_fee_usd') or 0):.4f}+"
+                f"slip≈{float(o.get('slippage_usd') or 0):.4f})"
+            )
 
         if mode == "signal" or not submit:
             if not submit:
@@ -569,18 +632,27 @@ def main() -> int:
             fills = TargetWeightExecutor(live, min_trade_notional=25.0).rebalance(
                 target, marks, ts, equity=eq
             )
-            fill_rows = [
-                {
-                    "order_id": f.order_id,
-                    "symbol": f.symbol,
-                    "side": f.side.value if hasattr(f.side, "value") else str(f.side),
-                    "quantity": f.quantity,
-                    "price": f.price,
-                    "fee": f.fee,
-                    "timestamp": str(f.timestamp),
-                }
-                for f in fills
-            ]
+            fill_rows = _annotate_fill_costs(
+                [
+                    {
+                        "order_id": f.order_id,
+                        "symbol": f.symbol,
+                        "side": f.side.value if hasattr(f.side, "value") else str(f.side),
+                        "quantity": f.quantity,
+                        "price": f.price,
+                        "fee": f.fee,
+                        "timestamp": str(f.timestamp),
+                    }
+                    for f in fills
+                ],
+                slippage_bps=slip_bps,
+            )
+            for row in fill_rows:
+                log(
+                    f"  cost {row['side']} {row['quantity']:g} {row['symbol']}: "
+                    f"broker≈{row['broker_fee_usd']:.4f} slip≈{row['slippage_usd']:.4f} "
+                    f"total≈{row['research_cost_usd']:.4f} (SIMULATE cash may omit synthetic slip)"
+                )
             positions_after = live.get_positions()
             cash_after = live.get_cash()
             result = {
