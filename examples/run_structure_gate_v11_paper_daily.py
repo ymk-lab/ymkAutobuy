@@ -219,8 +219,57 @@ def _skip_path(cache: Path, symbol: str) -> Path:
     return cache / f"{symbol}.skip"
 
 
+def _cache_last_date(cache: Path, sym: str) -> date | None:
+    df = load_cache(cache, sym)
+    if df is None or len(df) == 0:
+        return None
+    try:
+        return pd.Timestamp(df.index.max()).date()
+    except Exception:
+        return None
+
+
+def _refresh_symbol_yfinance(cache: Path, sym: str) -> bool:
+    try:
+        import yfinance as yf
+    except ImportError:
+        log("yfinance not installed — pip install yfinance")
+        return False
+    try:
+        raw = yf.download(
+            sym,
+            start="2021-06-01",
+            auto_adjust=True,
+            progress=False,
+            threads=False,
+        )
+        if raw is None or len(raw) < MIN_BARS:
+            return False
+        if isinstance(raw.columns, pd.MultiIndex):
+            raw.columns = [str(c[0]).lower() for c in raw.columns]
+        else:
+            raw.columns = [str(c).lower() for c in raw.columns]
+        df = validate_ohlcv(raw[["open", "high", "low", "close", "volume"]].dropna())
+        df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
+        df = df[~df.index.duplicated(keep="last")].sort_index()
+        if len(df) < MIN_BARS:
+            return False
+        save_cache(cache, sym, df)
+        log(f"yf refresh {sym} bars={len(df)} last={df.index.max().date()}")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        log(f"yf refresh {sym}: {exc}")
+        return False
+
+
 def ensure_market_data(cache: Path, *, refresh: bool) -> None:
-    """Guarantee SPY/QQQ/SMH (+ light members) exist for first local run."""
+    """Ensure sleeve benches stay current; bootstrap missing members once.
+
+    A warm cache used to skip *all* history refresh, so ``asof`` could stick on
+    an old session and the next ``once`` cron would no-op (already submitted).
+    """
+    from datetime import timedelta
+
     benches = ["SPY", "QQQ", "SMH"]
     light = sorted(set(benches) | set(book_members("QQQ")) | set(book_members("SMH")))
     cache.mkdir(parents=True, exist_ok=True)
@@ -228,31 +277,49 @@ def ensure_market_data(cache: Path, *, refresh: bool) -> None:
     def _needed(sym: str) -> bool:
         if load_cache(cache, sym) is not None:
             return False
-        # Permanent bad ticks (e.g. HIMX bad OHLC) — don't retry every run.
         if _skip_path(cache, sym).is_file() and sym not in benches:
             return False
         return True
 
     missing = [s for s in light if _needed(s)]
-    missing_benches = [s for s in benches if s in missing]
     force = _env_bool("QRESEARCH_FORCE_REFRESH", False)
+    today = date.today()
+    # Benches older than 3 calendar days are always stale (covers long weekends).
+    # On weekdays, also refresh if last bar is before yesterday.
+    stale_cutoff = today - timedelta(days=3 if today.weekday() >= 5 else 1)
+    stale_benches = [
+        b
+        for b in benches
+        if (refresh or force)
+        and ((_cache_last_date(cache, b) or date(1970, 1, 1)) < stale_cutoff)
+    ]
 
-    # Warm cache: skip Futu bulk refresh (US history often lacks rights / emits CJK errors).
-    if not missing and not force:
-        log("cache warm — skip history refresh")
+    if not missing and not force and not stale_benches:
+        lasts = {b: str(_cache_last_date(cache, b)) for b in benches}
+        log(f"cache warm — benches fresh {lasts}; skip bulk refresh")
         return
 
-    want_futu = missing if missing else (light if force else [])
+    want_futu = list(dict.fromkeys([*stale_benches, *(light if force else missing)]))
     if want_futu:
-        log(f"refresh futu n={len(want_futu)} missing_benches={missing_benches}")
+        log(
+            f"refresh futu n={len(want_futu)} stale_benches={stale_benches} "
+            f"missing={len(missing)} force={int(force)}"
+        )
         n_futu = refresh_via_futu(want_futu, cache)
         log(f"futu refreshed ok={n_futu}")
 
-    still = [s for s in light if _needed(s)]
-    if still:
-        log(f"bootstrap yfinance n={len(still)}")
-        log(f"yfinance ok={bootstrap_via_yfinance(still, cache)}")
-    # Mark leftover non-bench misses so later runs stay warm.
+    # Yahoo fallback for still-missing members and still-stale benches.
+    still_missing = [s for s in light if _needed(s)]
+    still_stale = [
+        b
+        for b in benches
+        if (refresh or force)
+        and ((_cache_last_date(cache, b) or date(1970, 1, 1)) < stale_cutoff)
+    ]
+    for sym in list(dict.fromkeys([*still_stale, *still_missing])):
+        if sym in still_stale or load_cache(cache, sym) is None:
+            _refresh_symbol_yfinance(cache, sym)
+
     for sym in light:
         if sym in benches:
             continue
