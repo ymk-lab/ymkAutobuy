@@ -412,10 +412,12 @@ def main() -> int:
         "ok": True,
         "window": {"start": str(START), "end": str(END)},
         "method": {
-            "bars": "Longbridge 5m open at 09:30 and 09:40 ET",
+            "bars": "5m open at 09:30 and 09:40 ET",
+            "sources": fetch_meta,
             "0930": "cache daily open (unchanged)",
             "0940": "daily open * (bench_0940_open / bench_0930_open) per sleeve",
             "marks": "daily close unchanged; fees/slippage same as v11",
+            "note": "SPY Longbridge history often quota-blocked; Yahoo ~60d + QQQ ratio proxy for older SPY days",
         },
         "entry_move_stats": stats,
         "variants": {"0930": r0930, "0940": r0940},
