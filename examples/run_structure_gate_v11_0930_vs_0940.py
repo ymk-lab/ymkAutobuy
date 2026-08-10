@@ -47,8 +47,11 @@ ET = ZoneInfo("America/New_York")
 OUT = ROOT / "examples" / "data" / "structure_gate_v11_entry_time"
 START = date(2025, 8, 7)
 END = date(2026, 8, 7)
-CHUNK_DAYS = 10  # stay under Longbridge ~1000-bar cap for 5m
+CHUNK_DAYS = 7  # stay under Longbridge ~1000-bar cap for 5m
 BENCHES = ["SPY", "QQQ", "SMH"]
+# Longbridge US history quota often blocks SPY; fall back listed here.
+LB_SYMBOLS = ["QQQ", "SMH"]
+PROXY_RATIO = {"SPY": "QQQ"}
 
 
 def _iter_chunks(start: date, end: date, step_days: int):
@@ -59,86 +62,165 @@ def _iter_chunks(start: date, end: date, step_days: int):
         cur = nxt + timedelta(days=1)
 
 
+def _candles_to_store(candles, sym: str, store: dict[pd.Timestamp, dict[str, float]]) -> int:
+    n = 0
+    for c in candles:
+        ts = pd.Timestamp(c.timestamp)
+        if ts.tzinfo is None:
+            ts = ts.tz_localize("UTC").tz_convert(ET)
+        else:
+            ts = ts.tz_convert(ET)
+        hm = ts.strftime("%H:%M")
+        if hm not in {"09:30", "09:40"}:
+            continue
+        day = pd.Timestamp(datetime(ts.year, ts.month, ts.day))
+        key = f"{sym}_{hm.replace(':', '')}"
+        store.setdefault(day, {})[key] = float(c.open)
+        n += 1
+    return n
+
+
+def fetch_longbridge_symbol(
+    ctx,
+    sym: str,
+    start: date,
+    end: date,
+    store: dict[pd.Timestamp, dict[str, float]],
+) -> int:
+    from longbridge.openapi import AdjustType, Period, TradeSessions
+
+    code = f"{sym}.US"
+    n_bars = 0
+    for a, b in _iter_chunks(start, end, CHUNK_DAYS):
+        candles = None
+        for attempt in range(4):
+            try:
+                candles = list(
+                    ctx.history_candlesticks_by_date(
+                        code,
+                        Period.Min_5,
+                        AdjustType.NoAdjust,
+                        start=a,
+                        end=b,
+                        trade_sessions=TradeSessions.Intraday,
+                    )
+                )
+                break
+            except Exception as exc:  # noqa: BLE001
+                wait = 2.0 * (attempt + 1)
+                print(f"  retry {sym} {a}→{b}: {exc} sleep={wait:.1f}s", flush=True)
+                time.sleep(wait)
+        if candles is None:
+            raise RuntimeError(f"failed {sym} {a}→{b}")
+        n_bars += len(candles)
+        _candles_to_store(candles, sym, store)
+        print(f"  {sym} chunk {a}→{b} bars={len(candles)}", flush=True)
+        time.sleep(0.12)
+    return n_bars
+
+
+def fetch_yahoo_symbol(
+    sym: str,
+    store: dict[pd.Timestamp, dict[str, float]],
+) -> int:
+    """Yahoo 5m — last ~60 calendar days only."""
+    import yfinance as yf
+
+    raw = yf.Ticker(sym).history(period="60d", interval="5m", auto_adjust=False)
+    if raw is None or raw.empty:
+        print(f"  yahoo {sym}: empty", flush=True)
+        return 0
+    idx = raw.index
+    if idx.tz is None:
+        idx = idx.tz_localize(ET)
+    else:
+        idx = idx.tz_convert(ET)
+    n = 0
+    for ts, row in zip(idx, raw.itertuples(index=False)):
+        hm = ts.strftime("%H:%M")
+        if hm not in {"09:30", "09:40"}:
+            continue
+        day = pd.Timestamp(datetime(ts.year, ts.month, ts.day))
+        key = f"{sym}_{hm.replace(':', '')}"
+        store.setdefault(day, {})[key] = float(row.Open)
+        n += 1
+    print(f"  yahoo {sym}: stamps={n} range={idx.min().date()}→{idx.max().date()}", flush=True)
+    return n
+
+
 def fetch_bench_entry_opens(
-    symbols: list[str],
     start: date,
     end: date,
     *,
     cache_path: Path,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, dict]:
     """Return DataFrame index=date with columns like SPY_0930, SPY_0940, …"""
+    meta: dict = {
+        "longbridge_symbols": list(LB_SYMBOLS),
+        "yahoo_symbols": ["SPY"],
+        "ratio_proxy": dict(PROXY_RATIO),
+    }
     if cache_path.is_file():
         df = pd.read_csv(cache_path, parse_dates=["date"]).set_index("date")
         df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
-        # accept cache if it covers the window
-        if df.index.min().date() <= start and df.index.max().date() >= end:
+        need = [f"{b}_{t}" for b in BENCHES for t in ("0930", "0940")]
+        # QQQ/SMH must cover window; SPY may be partial (proxied)
+        core_ok = (
+            "QQQ_0930" in df.columns
+            and "QQQ_0940" in df.columns
+            and "SMH_0930" in df.columns
+            and "SMH_0940" in df.columns
+            and df.index.min().date() <= start
+            and df.index.max().date() >= end
+            and int(df["QQQ_0930"].notna().sum()) >= 200
+        )
+        if core_ok:
             print(f"reuse cache {cache_path} rows={len(df)}", flush=True)
-            return df
+            return df, meta
 
-    from longbridge.openapi import AdjustType, Period, QuoteContext, TradeSessions
+    from longbridge.openapi import QuoteContext
 
     ctx = QuoteContext(load_longbridge_config())
-    # date -> {sym: {0930: px, 0940: px}}
     store: dict[pd.Timestamp, dict[str, float]] = {}
 
-    for sym in symbols:
-        code = f"{sym}.US"
-        n_bars = 0
-        for a, b in _iter_chunks(start, end, CHUNK_DAYS):
-            for attempt in range(3):
-                try:
-                    candles = list(
-                        ctx.history_candlesticks_by_date(
-                            code,
-                            Period.Min_5,
-                            AdjustType.NoAdjust,
-                            a,
-                            b,
-                            TradeSessions.Intraday,
-                        )
-                    )
-                    break
-                except Exception as exc:  # noqa: BLE001
-                    wait = 1.5 * (attempt + 1)
-                    print(f"  retry {sym} {a}→{b}: {exc} sleep={wait:.1f}s", flush=True)
-                    time.sleep(wait)
-            else:
-                raise RuntimeError(f"failed {sym} {a}→{b}")
-            n_bars += len(candles)
-            for c in candles:
-                ts = pd.Timestamp(c.timestamp)
-                if ts.tzinfo is None:
-                    # Longbridge timestamps are UTC
-                    ts = ts.tz_localize("UTC").tz_convert(ET)
-                else:
-                    ts = ts.tz_convert(ET)
-                hm = ts.strftime("%H:%M")
-                if hm not in {"09:30", "09:40"}:
-                    continue
-                day = pd.Timestamp(ts.date())
-                key = f"{sym}_{hm.replace(':', '')}"
-                store.setdefault(day, {})[key] = float(c.open)
-            print(
-                f"  {sym} chunk {a}→{b} bars+={len(candles)} days={len(store)}",
-                flush=True,
-            )
-            time.sleep(0.15)
-        print(f"{sym} done bars≈{n_bars}", flush=True)
+    for sym in LB_SYMBOLS:
+        n = fetch_longbridge_symbol(ctx, sym, start, end, store)
+        print(f"{sym} longbridge bars≈{n}", flush=True)
+
+    fetch_yahoo_symbol("SPY", store)
 
     if not store:
         raise SystemExit("no 09:30/09:40 bars fetched")
     df = pd.DataFrame.from_dict(store, orient="index").sort_index()
     df.index.name = "date"
+    # ensure columns exist
+    for b in BENCHES:
+        for t in ("0930", "0940"):
+            col = f"{b}_{t}"
+            if col not in df.columns:
+                df[col] = pd.NA
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(cache_path)
     print(f"wrote {cache_path} rows={len(df)}", flush=True)
-    return df
+    return df, meta
 
 
 def entry_ratio(entry: pd.DataFrame, bench: str) -> pd.Series:
-    o930 = entry[f"{bench}_0930"]
-    o940 = entry[f"{bench}_0940"]
-    r = (o940 / o930).where(o930.notna() & o940.notna() & (o930 > 0))
+    o930 = entry.get(f"{bench}_0930")
+    o940 = entry.get(f"{bench}_0940")
+    if o930 is None or o940 is None:
+        r = pd.Series(1.0, index=entry.index)
+    else:
+        r = (o940 / o930).where(o930.notna() & o940.notna() & (o930 > 0))
+    proxy = PROXY_RATIO.get(bench)
+    if proxy:
+        p930 = entry[f"{proxy}_0930"]
+        p940 = entry[f"{proxy}_0940"]
+        pr = (p940 / p930).where(p930.notna() & p940.notna() & (p930 > 0))
+        r = r.fillna(pr)
+        # if SPY has no stamps at all, fully use proxy
+        if o930 is None or o930.notna().sum() == 0:
+            r = pr
     return r.reindex(entry.index).fillna(1.0).rename(f"{bench}_r940")
 
 
@@ -274,19 +356,25 @@ def main() -> int:
     start_ts = pd.Timestamp(START)
     end_ts = pd.Timestamp(END)
 
-    print(f"fetch Longbridge 5m entry opens {START}→{END}", flush=True)
-    entry = fetch_bench_entry_opens(
-        BENCHES,
+    print(f"fetch 5m entry opens {START}→{END}", flush=True)
+    entry, fetch_meta = fetch_bench_entry_opens(
         START,
         END,
         cache_path=OUT / "bench_entry_opens_5m.csv",
     )
     # clip to window
     entry = entry.loc[str(START) : str(END)]
-    # require both stamps
     for b in BENCHES:
-        miss = entry[f"{b}_0930"].isna() | entry[f"{b}_0940"].isna()
-        print(f"  {b}: days={len(entry)} missing_either={int(miss.sum())}", flush=True)
+        c930, c940 = f"{b}_0930", f"{b}_0940"
+        if c930 not in entry.columns:
+            print(f"  {b}: no columns (will proxy if configured)", flush=True)
+            continue
+        both = entry[c930].notna() & entry[c940].notna()
+        print(
+            f"  {b}: days_indexed={len(entry)} with_both={int(both.sum())} "
+            f"proxy={PROXY_RATIO.get(b)}",
+            flush=True,
+        )
 
     stats = ratio_stats(entry)
     print("\n09:40 open vs 09:30 open (bps):", flush=True)
