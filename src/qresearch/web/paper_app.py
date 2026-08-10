@@ -557,6 +557,8 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "backtest": backtest,
         "fill_audit": audit,
         "server_time_utc": datetime.now(timezone.utc).isoformat(),
+        "recent_logs": _recent_sg_log_meta(8),
+        "log_view": _default_sg_log_view(),
     }
 
 
@@ -640,20 +642,130 @@ async def api_sg_sync_account() -> StreamingResponse:
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
+def _sg_log_files(log_dir: Path) -> list[Path]:
+    if not log_dir.is_dir():
+        return []
+    return sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def _score_sg_log(path: Path) -> tuple[int, float]:
+    """Higher is better: prefer successful once submits over dry submit=0 plans."""
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        return (-100, path.stat().st_mtime)
+    head = "\n".join(text.splitlines()[:40]).lower()
+    score = 0
+    name = path.name.lower()
+    if "once" in name or "submit" in name:
+        score += 5
+    if "signal" in name and "once" not in name:
+        score -= 1
+    if "submit=1" in head or "submit=true" in head:
+        score += 10
+    if "submit=0" in head or "submit=false" in head:
+        score -= 8
+    if "plan only" in head or "submit=0 — plan only" in head:
+        score -= 12
+    if "futu paper fills=" in head or "fill_audit=pass" in text.lower():
+        score += 20
+    if "already submitted" in head:
+        score += 3
+    if "error" in head or "refuse" in head:
+        score -= 4
+    return (score, path.stat().st_mtime)
+
+
+def _pick_sg_log(files: list[Path], *, prefer: str = "smart") -> Path | None:
+    if not files:
+        return None
+    if prefer == "latest":
+        return files[0]
+    ranked = sorted(files, key=_score_sg_log, reverse=True)
+    return ranked[0]
+
+
+def _recent_sg_log_meta(n: int = 8) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for p in _sg_log_files(_sg_out_dir() / "logs")[:n]:
+        sc, mtime = _score_sg_log(p)
+        out.append(
+            {
+                "name": p.name,
+                "mtime_utc": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
+                "score": sc,
+            }
+        )
+    return out
+
+
+def _default_sg_log_view() -> dict[str, Any] | None:
+    p = _pick_sg_log(_sg_log_files(_sg_out_dir() / "logs"))
+    if p is None:
+        return None
+    return {"file": p.name, "score": _score_sg_log(p)[0]}
+
+
 @app.get("/api/sg/logs")
-def api_sg_logs(tail: int = Query(80, ge=1, le=500)) -> dict[str, Any]:
+def api_sg_logs(
+    tail: int = Query(80, ge=1, le=500),
+    file: str | None = Query(None, description="Exact log file name under logs/"),
+    prefer: str = Query("smart", pattern="^(smart|latest)$"),
+) -> dict[str, Any]:
     log_dir = _sg_out_dir() / "logs"
-    files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+    files = _sg_log_files(log_dir)
     json_runs = sorted(log_dir.glob("run_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if files:
-        path = files[0]
-        lines = path.read_text(errors="replace").splitlines()
-        return {"ok": True, "file": path.name, "lines": lines[-tail:]}
-    if json_runs:
+
+    catalog: list[dict[str, Any]] = []
+    for p in files[:30]:
+        sc, mtime = _score_sg_log(p)
+        catalog.append(
+            {
+                "name": p.name,
+                "mtime_utc": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
+                "bytes": p.stat().st_size,
+                "score": sc,
+            }
+        )
+
+    path: Path | None = None
+    if file:
+        cand = log_dir / Path(file).name
+        if cand.is_file() and cand.suffix == ".log" and cand.resolve().parent == log_dir.resolve():
+            path = cand
+        else:
+            return {
+                "ok": False,
+                "error": f"log file not found: {file}",
+                "file": None,
+                "lines": [],
+                "files": catalog,
+            }
+    elif files:
+        path = _pick_sg_log(files, prefer=prefer)
+    elif json_runs:
         path = json_runs[0]
         text = path.read_text(errors="replace")
-        return {"ok": True, "file": path.name, "lines": text.splitlines()[-tail:]}
-    return {"ok": True, "file": None, "lines": []}
+        return {
+            "ok": True,
+            "file": path.name,
+            "lines": text.splitlines()[-tail:],
+            "files": catalog,
+            "prefer": prefer,
+        }
+
+    if path is None:
+        return {"ok": True, "file": None, "lines": [], "files": catalog, "prefer": prefer}
+
+    lines = path.read_text(errors="replace").splitlines()
+    return {
+        "ok": True,
+        "file": path.name,
+        "lines": lines[-tail:],
+        "files": catalog,
+        "prefer": prefer,
+        "score": _score_sg_log(path)[0],
+    }
 
 
 @app.get("/api/sg/run")

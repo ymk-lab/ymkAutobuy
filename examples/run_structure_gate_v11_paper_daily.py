@@ -19,8 +19,9 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -447,6 +448,7 @@ def main() -> int:
         positions = broker.get_positions()
         need_marks = sorted(set(positions) | set(target) | {"SPY.US", "QQQ.US", "SMH.US"})
         marks: dict[str, float] = {}
+        mark_source = "daily_close"
         for lb in need_marks:
             bare = lb.split(".")[0]
             df = frames.get(bare)
@@ -454,9 +456,34 @@ def main() -> int:
                 marks[lb] = float(df["close"].iloc[-1])
         if broker.quote_ctx is not None:
             try:
-                marks.update(broker.snapshot_quotes(need_marks))
+                snap = broker.snapshot_quotes(need_marks)
+                if snap:
+                    marks.update(snap)
+                    mark_source = "snapshot"
             except Exception as exc:  # noqa: BLE001
                 log(f"snapshot skipped: {exc}")
+
+        # Official live fill window is 09:40 ET — prefer that bar open for once/submit.
+        if mode == "once":
+            try:
+                from qresearch.brokers.futu.intraday import resolve_0940_marks
+
+                m0940, src0940 = resolve_0940_marks(
+                    need_marks,
+                    quote_ctx=getattr(broker, "quote_ctx", None),
+                    day=datetime.now(ZoneInfo("America/New_York")).date(),
+                )
+                if m0940:
+                    marks.update(m0940)
+                    mark_source = src0940
+                    log(
+                        f"marks_0940 source={src0940} n={len(m0940)} "
+                        + ", ".join(f"{k}={v:.4f}" for k, v in sorted(m0940.items())[:6])
+                    )
+                else:
+                    log("marks_0940 unavailable — keeping snapshot/close")
+            except Exception as exc:  # noqa: BLE001
+                log(f"marks_0940 failed: {exc}")
 
         cash = broker.get_cash()
         eq = broker.get_equity(marks)
@@ -478,6 +505,7 @@ def main() -> int:
             "paper_only": True,
             "positions": positions,
             "marks": marks,
+            "mark_source": mark_source,
             "sleeve_equity_usd": eq,
             "cash_usd": cash,
             "generated_at_utc": str(ts),

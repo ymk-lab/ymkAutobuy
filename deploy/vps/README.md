@@ -77,25 +77,34 @@ sudo systemctl status qresearch-opend qresearch-api
 
 對外建議：Cloudflare Named Tunnel / reverse proxy，**不要**把 `11111` 開到防火牆。
 
-## 5. 排程（對齊回測：收盤算、開盤送）
+## 5. 排程（收盤算訊號 → 次日 09:40 送單）
 
 ```bash
 crontab -e
-# 貼上 deploy/vps/crontab.example
+# 貼上 deploy/vps/crontab.example（必須含 CRON_TZ=America/New_York）
 ```
 
 | 時間（美東） | 動作 |
 |--------------|------|
 | 16:30 Mon–Fri | `run-paper.sh signal` |
-| 09:40 Mon–Fri | `run-paper.sh once`（僅當 `QRESEARCH_SG_PAPER_SUBMIT=1`） |
+| 09:40 Mon–Fri | `run-paper.sh once`（`QRESEARCH_SG_PAPER_SUBMIT=1`；成交估價用 09:40 分鐘/5分 K） |
 
-確認多日 `latest_signal.json` 後，再把 `app.env` 的 `SUBMIT` 改 `1`。
+確認多日 `latest_signal.json` 後再開送單。UI 開關會寫 `.env`（並覆蓋 `app.env`）。
+
+### 更新 systemd（勿 raw-cp）
+
+```bash
+# 會把 REPLACE_USER 換成實際使用者（預設目前 sudo 使用者）
+sudo QRESEARCH_USER=root bash deploy/vps/bin/sync-systemd.sh
+sudo systemctl restart qresearch-api
+```
 
 ## 檔案一覽
 
 | 路徑 | 用途 |
 |------|------|
 | `install.sh` | venv、目錄、systemd |
+| `bin/sync-systemd.sh` | **正確**安裝/更新 unit（取代手動 cp） |
 | `secrets/*.example` | 範本（可進 git） |
 | `secrets/local/*` | **真密**（gitignore） |
 | `bin/require-secrets.sh` | 缺密則失敗 |

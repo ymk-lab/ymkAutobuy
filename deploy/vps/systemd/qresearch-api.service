@@ -6,6 +6,8 @@ Requires=qresearch-opend.service
 
 [Service]
 Type=simple
+# Placeholder — always install via: sudo bash deploy/vps/bin/sync-systemd.sh
+# (or deploy/vps/install.sh). Do NOT raw-cp this file or User stays REPLACE_USER.
 User=REPLACE_USER
 Group=REPLACE_USER
 WorkingDirectory=/opt/qresearch
