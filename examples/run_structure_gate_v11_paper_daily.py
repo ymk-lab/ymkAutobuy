@@ -373,18 +373,30 @@ def write_paper_state(
     ts: object,
     preset: str,
     extra: dict | None = None,
+    replace_submitted: bool = False,
 ) -> None:
-    """Persist paper state without wiping a prior successful submit for same asof."""
+    """Persist paper state without wiping a prior successful submit for same asof.
+
+    ``replace_submitted=True`` (submit path) writes ``submitted`` as-is so a
+    partial/phantom failure can clear the flag and remain retryable. Plan-only
+    refreshes keep the previous successful submit for the same asof.
+    """
     prev: dict = {}
     if state_path.is_file():
         try:
             prev = json.loads(state_path.read_text())
         except Exception:
             prev = {}
-    keep_submitted = bool(prev.get("submitted")) and str(prev.get("asof")) == str(asof)
+    keep_submitted = (
+        (not replace_submitted)
+        and bool(prev.get("submitted"))
+        and str(prev.get("asof")) == str(asof)
+        and not bool((extra or {}).get("partial"))
+        and not (extra or {}).get("submit_error")
+    )
     payload = {
         "asof": asof,
-        "submitted": bool(submitted) or keep_submitted,
+        "submitted": bool(submitted) if (replace_submitted or not keep_submitted) else True,
         "at": str(ts),
         "preset": preset,
     }
@@ -397,6 +409,9 @@ def write_paper_state(
         payload["at"] = str(prev.get("at") or ts)
     if extra:
         payload.update(extra)
+        # Extra may carry partial/submit_error; never let OR-keep revive submitted.
+        if extra.get("partial") or extra.get("submit_error"):
+            payload["submitted"] = bool(submitted)
     state_path.write_text(json.dumps(payload, indent=2, default=float) + "\n")
 
 def already_ran_today(state_path: Path, asof: str) -> bool:
@@ -680,6 +695,7 @@ def main() -> int:
         live = FutuBrokerAdapter.from_opend(dry_run=False, simulate=True, default_market="US")
         submit_error: str | None = None
         try:
+            positions_before_submit = live.get_positions()
             try:
                 fills = TargetWeightExecutor(live, min_trade_notional=25.0).rebalance(
                     target, marks, ts, equity=eq
@@ -718,15 +734,15 @@ def main() -> int:
 
             positions_after = live.get_positions()
             verified_rows, phantoms = verify_fills_against_positions(
-                fill_rows, positions, positions_after
+                fill_rows, positions_before_submit, positions_after
             )
-            for _try in range(8):
+            for _try in range(20):
                 if not phantoms:
                     break
-                _time.sleep(0.5)
+                _time.sleep(0.75)
                 positions_after = live.get_positions()
                 verified_rows, phantoms = verify_fills_against_positions(
-                    fill_rows, positions, positions_after
+                    fill_rows, positions_before_submit, positions_after
                 )
             if phantoms:
                 msg = "phantom fill (order FILLED but position unchanged): " + "; ".join(phantoms)
@@ -743,6 +759,7 @@ def main() -> int:
                 "fills": fill_rows,
                 "fills_verified": verified_rows,
                 "phantom_fills": phantoms,
+                "positions": positions_before_submit,
                 "positions_after": positions_after,
                 "cash_after": cash_after,
             }
@@ -757,7 +774,7 @@ def main() -> int:
             audit = reconcile_fills(
                 preview_orders=plan.get("preview_orders") or [],
                 fills=fill_rows,
-                positions_before=positions,
+                positions_before=positions_before_submit,
                 positions_after=positions_after,
                 asof=str(asof),
                 run_at=str(ts),
@@ -768,6 +785,7 @@ def main() -> int:
                 asof=str(asof),
                 # Partial failure must stay retryable (e.g. QQQ filled, SPY timed out).
                 submitted=not bool(submit_error),
+                replace_submitted=True,
                 ts=ts,
                 preset="v11",
                 extra={
