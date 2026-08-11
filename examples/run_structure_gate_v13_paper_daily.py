@@ -677,10 +677,18 @@ def main() -> int:
             return 3
 
         live = FutuBrokerAdapter.from_opend(dry_run=False, simulate=True, default_market="US")
+        submit_error: str | None = None
         try:
-            fills = TargetWeightExecutor(live, min_trade_notional=25.0).rebalance(
-                target, marks, ts, equity=eq
-            )
+            try:
+                fills = TargetWeightExecutor(live, min_trade_notional=25.0).rebalance(
+                    target, marks, ts, equity=eq
+                )
+            except Exception as exc:  # noqa: BLE001
+                # Keep any legs that already filled (e.g. QQQ before SPY timed out).
+                fills = list(live.fills())
+                submit_error = str(exc)
+                log(f"WARN: rebalance interrupted after {len(fills)} fill(s): {exc}")
+
             fill_rows = _annotate_fill_costs(
                 [
                     {
@@ -730,7 +738,8 @@ def main() -> int:
             write_paper_state(
                 state_path,
                 asof=str(asof),
-                submitted=True,
+                # Partial failure must stay retryable (e.g. QQQ filled, SPY timed out).
+                submitted=not bool(submit_error),
                 ts=ts,
                 preset="v13",
                 extra={
@@ -738,8 +747,13 @@ def main() -> int:
                     "broker": "futu",
                     "n_fills": len(fills),
                     "fill_audit": audit.get("status"),
+                    "partial": bool(submit_error),
+                    **({"submit_error": submit_error} if submit_error else {}),
                 },
             )
+            if submit_error:
+                result["submit_error"] = submit_error
+                (base / "latest_run.json").write_text(json.dumps(result, indent=2, default=float) + "\n")
             log(f"futu paper fills={len(fills)} → {log_path}")
             log(f"fill_audit={audit.get('status')} issues={audit.get('n_issues')}")
             for line in audit.get("lines") or []:
@@ -750,6 +764,9 @@ def main() -> int:
                 )
             for issue in audit.get("issues") or []:
                 log(f"  !! {issue}")
+            if submit_error:
+                log(f"REFUSE complete: partial submit — {submit_error}")
+                return 4
         finally:
             live.close()
         return 0

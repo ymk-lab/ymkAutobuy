@@ -39,8 +39,10 @@ class FutuBrokerAdapter(BrokerAdapter):
     acc_id: int = 0
     remark_prefix: str = "qresearch"
     initial_cash: float = 100_000.0
-    poll_fills: int = 5
-    poll_interval_sec: float = 0.35
+    # SIMULATE/US market orders can sit briefly; short polls caused false timeouts
+    # after the first leg filled (e.g. QQQ ok, SPY aborted).
+    poll_fills: int = 40
+    poll_interval_sec: float = 0.5
     fills_log: list[Fill] = field(default_factory=list)
     _local_cash: float = field(init=False, repr=False)
     _local_positions: dict[str, float] = field(init=False, repr=False, default_factory=dict)
