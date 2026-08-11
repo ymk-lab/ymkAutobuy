@@ -13,6 +13,8 @@ Priority (highest wins):
 Defaults = v8. Use ``StructureGateConfig.v9()`` for hysteresis / mild-top /
 split-slippage variant. ``v10()`` is the cross-book preset (SPY regime +
 union stock sleeve + best-of ETF bench) used with ``simulate_structure_gate_cross``.
+``v11()`` / ``v13()`` share the SPY/QQQ/SMH blend capital split; v13 adds
+mode hysteresis + risk-override cooldown pierce (see ``stabilize_modes_v13``).
 """
 
 from __future__ import annotations
@@ -104,6 +106,17 @@ class StructureGateConfig:
     book_peak_dd_stop: float | None = None
     book_dd_reentry_confirm: int = 3
     ers_config: EmergingRSWaveConfig | None = None
+    # --- v13: mode hysteresis + risk-override pierce ---
+    # Prefer price/RS hysteresis over pure time cooldown for soft switches
+    # (ers/strong ↔ bench). Enter needs trail >= mode_enter_trail; exit needs
+    # trail <= mode_exit_trail. Soft switches also respect cooldown_days, but
+    # harsh_defense / held-stock crash pierce immediately to cash.
+    mode_hysteresis_enabled: bool = False
+    mode_enter_trail: float = 0.025
+    mode_exit_trail: float = -0.01
+    mode_switch_cooldown_days: int = 2
+    risk_override_enabled: bool = False
+    risk_override_stock_1d: float = 0.08
 
     @classmethod
     def v8(cls) -> "StructureGateConfig":
@@ -149,9 +162,38 @@ class StructureGateConfig:
         """
         return cls()
 
+    @classmethod
+    def v13(cls) -> "StructureGateConfig":
+        """v13 blend: v8/v11 base + mode hysteresis + risk-override pierce.
 
-# Default v11 capital weights (must sum to 1.0).
+        Soft mode switches (ers/strong ↔ bench) use asymmetric trail hysteresis
+        and a short cooldown. ``harsh_defense`` or a held-stock 1d crash pierces
+        stickiness and allows immediate cash.
+
+        Knobs below = best of 36-trial random tune on windows
+        2023-01-01→2024-01-01 and 2025-08-07→2026-08-07
+        (see ``examples/run_structure_gate_v13_vs_v11.py``).
+        """
+        return cls(
+            mode_hysteresis_enabled=True,
+            mode_enter_trail=0.035,
+            mode_exit_trail=-0.015,
+            mode_switch_cooldown_days=3,
+            risk_override_enabled=True,
+            risk_override_stock_1d=0.08,
+            mild_defense_dd=0.06,
+            mild_defense_ret20=-0.05,
+            harsh_defense_dd=0.20,
+            harsh_defense_ret20=-0.12,
+            stock_led_min_trail=0.03,
+            index_lean_max_trail=-0.03,
+            sma50_hysteresis=0.0,
+        )
+
+
+# Default v11/v13 capital weights (must sum to 1.0).
 V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
+V13_BOOK_WEIGHTS: dict[str, float] = dict(V11_BOOK_WEIGHTS)
 
 
 def blend_structure_gate_books(
@@ -606,6 +648,112 @@ def mild_topping_mask(
     return ((breadth_hit | down_hit) & not_freefall.fillna(False)).rename("mild_top")
 
 
+def stabilize_modes_v13(
+    raw_mode: pd.Series,
+    lead_trail: pd.Series,
+    harsh_ret: pd.Series,
+    harsh_dd: pd.Series,
+    *,
+    config: StructureGateConfig | None = None,
+) -> tuple[pd.Series, pd.DataFrame]:
+    """Stick soft mode flips via hysteresis (+ optional cooldown).
+
+    - Enter stock sleeves (bench/cash → ers/strong) only if
+      ``lead_trail >= mode_enter_trail`` (default +2.5%).
+    - Exit stock → bench only if ``lead_trail <= mode_exit_trail`` (default −1%).
+    - Soft switches also respect ``mode_switch_cooldown_days``.
+    - Risk override: ``harsh_ret`` / ``harsh_dd`` always allow immediate cash
+      (cooldown + hysteresis pierced for liquidation).
+    - Mild (non-harsh) cash is still allowed immediately (defensive).
+    """
+    cfg = config or StructureGateConfig()
+    idx = raw_mode.index
+    trail = lead_trail.reindex(idx).astype(float)
+    h_ret = harsh_ret.reindex(idx).fillna(False).astype(bool)
+    h_dd = harsh_dd.reindex(idx).fillna(False).astype(bool)
+    use_hyst = bool(cfg.mode_hysteresis_enabled)
+    cooldown = max(0, int(cfg.mode_switch_cooldown_days))
+    enter_thr = float(cfg.mode_enter_trail)
+    exit_thr = float(cfg.mode_exit_trail)
+
+    out: list[str] = []
+    blocked: list[float] = []
+    risk_pierce: list[float] = []
+    cur: str | None = None
+    days_since = 10**9
+
+    for i in range(len(idx)):
+        desired = str(raw_mode.iat[i])
+        t = trail.iat[i]
+        t_ok = bool(np.isfinite(t))
+        t_val = float(t) if t_ok else 0.0
+        risk = bool(h_ret.iat[i] or h_dd.iat[i])
+
+        if cur is None:
+            cur = desired
+            out.append(cur)
+            blocked.append(0.0)
+            risk_pierce.append(0.0)
+            # Seeded mode does not start a cooldown clock.
+            days_since = 10**9
+            continue
+
+        allow = True
+        pierce = 0.0
+
+        # Risk override: always allow forced cash.
+        if risk and desired == "cash":
+            allow = True
+            pierce = 1.0 if cur != "cash" else 0.0
+        elif desired == "cash":
+            # Mild / other defensive cash — allow (do not trap in stocks).
+            allow = True
+        else:
+            stock_cur = cur in ("ers", "strong")
+            stock_des = desired in ("ers", "strong")
+            if use_hyst and t_ok:
+                if (cur in ("bench", "cash")) and stock_des:
+                    allow = t_val >= enter_thr
+                elif stock_cur and desired == "bench":
+                    allow = t_val <= exit_thr
+                elif stock_cur and stock_des and cur != desired:
+                    # ers ↔ strong: require clear leadership, not noise.
+                    allow = t_val >= enter_thr
+                elif cur == "cash" and desired == "bench":
+                    allow = True
+            # Soft-switch cooldown (secondary). Risk already handled above.
+            if allow and cooldown > 0 and desired != cur:
+                soft = (cur in ("ers", "strong", "bench")) and (
+                    desired in ("ers", "strong", "bench")
+                )
+                if soft and days_since < cooldown:
+                    allow = False
+
+        if allow and desired != cur:
+            cur = desired
+            days_since = 0
+            blocked.append(0.0)
+        else:
+            if desired != cur:
+                blocked.append(1.0)
+            else:
+                blocked.append(0.0)
+            days_since += 1
+        risk_pierce.append(pierce)
+        out.append(cur)
+
+    mode = pd.Series(out, index=idx, dtype=object, name="mode")
+    audit = pd.DataFrame(
+        {
+            "mode_raw": raw_mode.reindex(idx).astype(object),
+            "mode_switch_blocked": blocked,
+            "risk_override_pierce": risk_pierce,
+        },
+        index=idx,
+    )
+    return mode, audit
+
+
 def label_structure_modes(
     bench_close: pd.Series,
     member_closes: pd.DataFrame,
@@ -621,6 +769,9 @@ def label_structure_modes(
 
     When ``mild_top`` is on and Mild is active, sticky/thrust lose their
     ability to override Mild (demote lock → allow cash).
+
+    When v13 hysteresis / risk-override flags are on, soft mode flips are
+    stabilized via ``stabilize_modes_v13`` after the raw priority assignment.
     """
     cfg = config or StructureGateConfig()
     feat = structure_features(bench_close, member_closes, config=cfg)
@@ -707,6 +858,13 @@ def label_structure_modes(
     meta["mild"] = mild.astype(float)
     meta["harsh_ret"] = harsh_ret.astype(float)
     meta["harsh_dd"] = harsh_dd.astype(float)
+    meta["mode_raw"] = mode.astype(object)
+    if cfg.mode_hysteresis_enabled or cfg.risk_override_enabled:
+        mode, audit = stabilize_modes_v13(
+            mode, lead_trail20, harsh_ret, harsh_dd, config=cfg
+        )
+        meta["mode_switch_blocked"] = audit["mode_switch_blocked"]
+        meta["risk_override_pierce"] = audit["risk_override_pierce"]
     meta["mode"] = mode
     return mode.rename("mode"), meta
 
@@ -788,6 +946,7 @@ def simulate_structure_gate(
     reentry_need = max(1, int(cfg.book_dd_reentry_confirm))
     mode_exec = mode.copy()
     halt_flags: list[float] = []
+    crash_flags: list[float] = []
 
     equity_rows: list[float] = []
     trades: list[dict] = []
@@ -902,7 +1061,13 @@ def simulate_structure_gate(
     for dt in dates:
         if dt >= start:
             if pending == "cash":
-                _sell_all(dt, "to_cash" if not dd_halt else "book_dd_stop")
+                reason = "to_cash"
+                if dd_halt:
+                    reason = "book_dd_stop"
+                elif crash_flags and crash_flags[-1] >= 1.0:
+                    # previous close marked crash → this open flattens
+                    reason = "risk_override_stock"
+                _sell_all(dt, reason)
             elif pending == "bench":
                 if pos_kind != "bench":
                     _sell_all(dt, "switch_to_bench")
@@ -948,6 +1113,25 @@ def simulate_structure_gate(
             sym, w = _active(ers_w.loc[dt])
             pending, target_sym, target_w = "ers", sym, w
 
+        # v13 risk override: held-stock 1d crash pierces soft stickiness → cash.
+        stock_crash = False
+        if (
+            cfg.risk_override_enabled
+            and pos_kind in ("ers", "strong")
+            and pos_sym is not None
+            and pos_sym in px.columns
+        ):
+            loc = px.index.get_loc(dt)
+            if isinstance(loc, int) and loc > 0:
+                prev = float(px.iloc[loc - 1][pos_sym])
+                now = float(px.iloc[loc][pos_sym])
+                if np.isfinite(prev) and prev > 0 and np.isfinite(now):
+                    if now / prev - 1.0 <= -abs(float(cfg.risk_override_stock_1d)):
+                        stock_crash = True
+                        pending, target_sym, target_w = "cash", None, 0.0
+                        mode_exec.at[dt] = "cash"
+        crash_flags.append(1.0 if stock_crash else 0.0)
+
         # Book DD hard stop: flatten and stay cash until non-cash signal confirms.
         if dd_halt:
             if m != "cash":
@@ -973,6 +1157,9 @@ def simulate_structure_gate(
     idx = pd.DatetimeIndex(eq_index)
     meta = meta.copy()
     meta["book_dd_halt"] = pd.Series(halt_flags, index=mode.index, dtype=float).reindex(meta.index)
+    meta["stock_crash_override"] = pd.Series(
+        crash_flags, index=mode.index, dtype=float
+    ).reindex(meta.index)
     meta["mode_signal"] = mode
     meta["mode"] = mode_exec
     return StructureSimResult(

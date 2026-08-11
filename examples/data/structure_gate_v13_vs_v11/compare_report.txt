@@ -1,0 +1,14 @@
+=== Structure Gate v13 vs v11 bakeoff ===
+tune_trials=36 seed=13
+best_knobs={"mode_enter_trail": 0.035, "mode_exit_trail": -0.015, "mode_switch_cooldown_days": 3, "risk_override_stock_1d": 0.08, "mild_defense_dd": 0.06, "mild_defense_ret20": -0.05, "harsh_defense_dd": 0.2, "harsh_defense_ret20": -0.12, "stock_led_min_trail": 0.03, "sma50_hysteresis": 0.0}
+
+## 2023-01-01 → 2024-01-01
+v11: ret=27.94% maxDD=-13.81% sharpe=1.57 vsSPY=+2.4pp vsStatic=-19.0pp trades=127
+v13: ret=73.51% maxDD=-7.80% sharpe=2.88 vsSPY=+48.0pp vsStatic=+26.6pp trades=69
+Δ(v13-v11): ret=+45.58pp maxDD=+6.01pp trades=-58
+
+## 2025-08-07 → 2026-08-07
+v11: ret=98.14% maxDD=-13.25% sharpe=2.40 vsSPY=+75.4pp vsStatic=+51.6pp trades=136
+v13: ret=113.43% maxDD=-13.99% sharpe=2.63 vsSPY=+90.7pp vsStatic=+66.9pp trades=92
+Δ(v13-v11): ret=+15.29pp maxDD=-0.74pp trades=-44
+
