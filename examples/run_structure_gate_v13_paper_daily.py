@@ -710,11 +710,38 @@ def main() -> int:
                     f"broker≈{row['broker_fee_usd']:.4f} slip≈{row['slippage_usd']:.4f} "
                     f"total≈{row['research_cost_usd']:.4f} (SIMULATE cash may omit synthetic slip)"
                 )
+
+            # Re-query positions — SIMULATE can ack FILLED before book updates.
+            import time as _time
+            from qresearch.paper.fill_audit import verify_fills_against_positions
+
             positions_after = live.get_positions()
+            verified_rows, phantoms = verify_fills_against_positions(
+                fill_rows, positions, positions_after
+            )
+            for _try in range(8):
+                if not phantoms:
+                    break
+                _time.sleep(0.5)
+                positions_after = live.get_positions()
+                verified_rows, phantoms = verify_fills_against_positions(
+                    fill_rows, positions, positions_after
+                )
+            if phantoms:
+                msg = "phantom fill (order FILLED but position unchanged): " + "; ".join(phantoms)
+                log(f"WARN: {msg}")
+                submit_error = f"{submit_error} | {msg}" if submit_error else msg
+                # Only ledger position-verified legs; keep claimed rows in run for audit.
+                ledger_rows = verified_rows
+            else:
+                ledger_rows = fill_rows
             cash_after = live.get_cash()
+
             result = {
                 **plan,
                 "fills": fill_rows,
+                "fills_verified": verified_rows,
+                "phantom_fills": phantoms,
                 "positions_after": positions_after,
                 "cash_after": cash_after,
             }
@@ -723,7 +750,7 @@ def main() -> int:
             (base / "latest_run.json").write_text(json.dumps(result, indent=2, default=float) + "\n")
             append_fills_ledger(
                 base,
-                fill_rows,
+                ledger_rows,
                 meta={"asof": str(asof), "run_at": str(ts), "broker": "futu", "preset": "v13"},
             )
             audit = reconcile_fills(

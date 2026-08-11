@@ -91,3 +91,15 @@ def test_signal_only_with_holdings_is_pending_not_missing_fill(tmp_path: Path) -
     assert audit["n_preview"] == 2
     assert audit["n_fills"] == 0
     assert all(x["status"] == "pending" for x in audit["lines"])
+
+
+def test_verify_detects_phantom_spy_fill() -> None:
+    from qresearch.paper.fill_audit import verify_fills_against_positions
+
+    verified, phantoms = verify_fills_against_positions(
+        [{"symbol": "SPY.US", "side": "buy", "quantity": 7, "price": 773.63, "order_id": "7653019"}],
+        {"QQQ.US": 34.0, "SPY.US": 25.0},
+        {"QQQ.US": 34.0, "SPY.US": 25.0},
+    )
+    assert verified == []
+    assert phantoms and "SPY.US" in phantoms[0]

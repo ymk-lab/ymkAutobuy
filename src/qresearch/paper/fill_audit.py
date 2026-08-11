@@ -66,6 +66,39 @@ def signed_qty_delta(fills: list[dict[str, Any]]) -> dict[str, float]:
     return out
 
 
+def verify_fills_against_positions(
+    fills: list[dict[str, Any]] | None,
+    positions_before: dict[str, Any] | None,
+    positions_after: dict[str, Any] | None,
+    *,
+    tolerance_qty: float = 1e-6,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Split broker-reported fills into position-verified vs phantom rows.
+
+    Futu SIMULATE occasionally reports FILLED while ``position_list_query``
+    still shows the old qty. Those rows must not mark the day submitted.
+    """
+    rows = [normalize_fill_row(r, source="fill") for r in (fills or [])]
+    before = {_sym(k): _f(v) for k, v in (positions_before or {}).items() if _sym(k)}
+    after = {_sym(k): _f(v) for k, v in (positions_after or {}).items() if _sym(k)}
+    if not rows:
+        return [], []
+    if not after and not before:
+        return rows, ["cannot verify fills: empty positions before/after"]
+
+    claimed = signed_qty_delta(rows)
+    phantoms: list[str] = []
+    bad_syms: set[str] = set()
+    for sym, dq in claimed.items():
+        actual = after.get(sym, 0.0) - before.get(sym, 0.0)
+        if abs(actual - dq) > tolerance_qty:
+            bad_syms.add(sym)
+            phantoms.append(f"{sym}: fillΔ={dq:g} accountΔ={actual:g}")
+
+    verified = [r for r in rows if r["symbol"] not in bad_syms]
+    return verified, phantoms
+
+
 def reconcile_fills(
     *,
     preview_orders: list[dict[str, Any]] | None,
@@ -283,10 +316,13 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
             fills = [r for r in fills if str(r.get("asof") or "") == asof_hint]
 
     positions_before = run.get("positions") or signal.get("positions") or {}
-    positions_after = run.get("positions_after") if run_path.is_file() else None
-    # Only treat live account as post-fill when a submit has been recorded.
-    if positions_after is None and bool(state.get("submitted")) and account.get("positions") is not None:
+    # Live account is source of truth for "after" whenever present.
+    if account.get("positions") is not None:
         positions_after = account.get("positions") or {}
+    elif run_path.is_file():
+        positions_after = run.get("positions_after")
+    else:
+        positions_after = None
 
     audit = reconcile_fills(
         preview_orders=preview,
@@ -296,6 +332,18 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
         asof=str(run.get("asof") or signal.get("asof") or state.get("asof") or ""),
         run_at=str(run.get("generated_at_utc") or state.get("at") or ""),
     )
+    verified, phantoms = verify_fills_against_positions(
+        fills, positions_before, positions_after
+    )
+    if phantoms:
+        audit["ok"] = False
+        audit["status"] = "fail"
+        audit["issues"] = list(audit.get("issues") or []) + [
+            f"phantom fill (order reported filled but position unchanged): {p}" for p in phantoms
+        ]
+        audit["n_issues"] = len(audit["issues"])
+        audit["verified_fills"] = verified
+        audit["phantom_fills"] = phantoms
     # Submitted but no run/fills artifact → real problem; keep fail.
     if audit.get("status") == "pending" and bool(state.get("submitted")) and not run.get("fills"):
         audit["ok"] = False
