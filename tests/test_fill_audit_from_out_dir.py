@@ -59,3 +59,35 @@ def test_audit_ignores_ledger_when_latest_run_has_empty_fills(tmp_path: Path) ->
     assert audit["n_fills"] == 0
     assert audit["n_preview"] == 0
     assert audit["ok"] is True
+
+
+def test_signal_only_with_holdings_is_pending_not_missing_fill(tmp_path: Path) -> None:
+    base = tmp_path / "paper"
+    base.mkdir()
+    (base / "latest_signal.json").write_text(
+        json.dumps(
+            {
+                "asof": "2026-08-11",
+                "preview_orders": [
+                    {"symbol": "QQQ.US", "side": "buy", "quantity": 14, "price": 721.91},
+                    {"symbol": "SPY.US", "side": "buy", "quantity": 6, "price": 773.63},
+                ],
+                "positions": {"SPY.US": 25.0, "QQQ.US": 20.0},
+                "target": {"SPY.US": 0.5, "QQQ.US": 0.5},
+            }
+        )
+        + "\n"
+    )
+    (base / "state.json").write_text(
+        json.dumps({"asof": "2026-08-11", "submitted": False}) + "\n"
+    )
+    (base / "account_live.json").write_text(
+        json.dumps({"positions": {"SPY.US": 25.0, "QQQ.US": 20.0}}) + "\n"
+    )
+
+    audit = audit_from_out_dir(base)
+    assert audit["status"] == "pending"
+    assert audit["ok"] is True
+    assert audit["n_preview"] == 2
+    assert audit["n_fills"] == 0
+    assert all(x["status"] == "pending" for x in audit["lines"])

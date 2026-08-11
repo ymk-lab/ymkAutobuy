@@ -186,13 +186,22 @@ def reconcile_fills(
         x["status"] in {"missing_fill", "extra_fill", "qty_mismatch"} for x in lines
     ) or (not pos_ok and bool(after))
     warn = any(x["status"] == "price_warn" for x in lines)
+    # Plan-only: preview exists and no fills yet. Do NOT require empty account —
+    # live holdings are common before the next 09:40 submit, and treating that
+    # as missing_fill caused false FAIL after signal-only runs.
     pending = bool(preview) and not actual
 
-    if pending and not after:
-        # Plan-only: preview exists but nothing submitted yet.
+    if pending:
         status = "pending"
         ok = True
-        issues = [f"pending fill {x['side']} {x.get('preview_qty')} {x['symbol']}" for x in lines]
+        issues = [
+            f"pending fill {x['side']} {x.get('preview_qty')} {x['symbol']}" for x in lines
+        ]
+        for x in lines:
+            if x["status"] == "missing_fill":
+                x["status"] = "pending"
+                x["qty_ok"] = None
+                x["price_ok"] = None
         hard_fail = False
     else:
         status = "fail" if hard_fail else ("warn" if warn else "pass")
@@ -274,8 +283,9 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
             fills = [r for r in fills if str(r.get("asof") or "") == asof_hint]
 
     positions_before = run.get("positions") or signal.get("positions") or {}
-    positions_after = run.get("positions_after")
-    if positions_after is None and account.get("positions") is not None:
+    positions_after = run.get("positions_after") if run_path.is_file() else None
+    # Only treat live account as post-fill when a submit has been recorded.
+    if positions_after is None and bool(state.get("submitted")) and account.get("positions") is not None:
         positions_after = account.get("positions") or {}
 
     audit = reconcile_fills(
@@ -286,8 +296,7 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
         asof=str(run.get("asof") or signal.get("asof") or state.get("asof") or ""),
         run_at=str(run.get("generated_at_utc") or state.get("at") or ""),
     )
-    # If account already shows the expected post-fill positions but latest_run
-    # is missing (e.g. copied signal only), mark as needs_run_file rather than pass.
+    # Submitted but no run/fills artifact → real problem; keep fail.
     if audit.get("status") == "pending" and bool(state.get("submitted")) and not run.get("fills"):
         audit["ok"] = False
         audit["status"] = "fail"
@@ -295,6 +304,9 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
             "state.submitted=true but latest_run.json fills missing — copy run log from paper host"
         ]
         audit["n_issues"] = len(audit["issues"])
+        for x in audit.get("lines") or []:
+            if x.get("status") == "pending":
+                x["status"] = "missing_fill"
     audit["sources"] = {
         "signal": bool(signal),
         "latest_run": bool(run),
