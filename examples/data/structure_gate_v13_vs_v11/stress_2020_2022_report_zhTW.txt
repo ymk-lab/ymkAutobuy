@@ -1,0 +1,34 @@
+=== Structure Gate v11 vs v13 — 壓力窗 2020 & 2022 ===
+資料：Yahoo 2019-01-01→2023-06-01（symbols_ok=483/537）
+設定：$50k｜SPY40/QQQ30/SMH30｜Futu fees+3bps｜次日 open
+說明：兩窗對 v13 調參皆為 OOS（v13 在 2023/2025 窗 tune）
+
+## 2020（疫情大波動年）
+基準：SPY B&H +17.63%｜靜態 40/30/30 +36.83%
+
+v11: +46.27%｜maxDD -13.80%｜Sharpe 1.73｜vsSPY +28.6pp｜vsStatic +9.4pp｜trades 93
+v13: +59.51%｜maxDD -13.24%｜Sharpe 1.97｜vsSPY +41.9pp｜vsStatic +22.7pp｜trades 67
+Δ(v13−v11): ret +13.24pp｜maxDD 改善 0.56pp｜trades −26
+
+sleeve：
+  v11: SPY +1.3% / QQQ +108.3% / SMH +44.2%
+  v13: SPY +2.8% / QQQ +159.2% / SMH +35.4%
+
+## 2022（升息熊市年）
+基準：SPY B&H −18.35%｜靜態 40/30/30 −27.11%
+
+v11: −25.52%｜maxDD −26.89%｜Sharpe −1.80｜vsSPY −7.2pp｜vsStatic +1.6pp｜trades 57
+v13: −24.98%｜maxDD −26.56%｜Sharpe −1.75｜vsSPY −6.6pp｜vsStatic +2.1pp｜trades 41
+Δ(v13−v11): ret +0.54pp｜maxDD 改善 0.33pp｜trades −16
+
+sleeve：
+  v11: SPY −22.0% / QQQ −28.1% / SMH −27.7%
+  v13: SPY −22.0% / QQQ −26.9% / SMH −27.1%
+
+## 解讀
+1. 2020：v13 明顯優於 v11（報酬 +13pp、交易更少），且兩者都贏 SPY 與靜態 ETF。
+2. 2022：兩者都虧且輸 SPY；v13 僅微幅優於 v11（~0.5pp），防守沒有本質性翻盤。
+3. v13 的遲滯/冷靜期在「暴漲年減少雜訊輪動」有效；在「持續熊市」主要只是少做一點，無法避免大回撤。
+4. 部分標的因 IPO/下市/Yahoo OHLC 異常未進 universe（~54 檔），與完整現貨名單略有差異。
+
+=== END ===
