@@ -364,6 +364,41 @@ def merge_targets(book_targets: dict[str, dict[str, float]], weights: dict[str, 
     return {k: v for k, v in merged.items() if abs(v) > 1e-6}
 
 
+
+def write_paper_state(
+    state_path: Path,
+    *,
+    asof: str,
+    submitted: bool,
+    ts: object,
+    preset: str,
+    extra: dict | None = None,
+) -> None:
+    """Persist paper state without wiping a prior successful submit for same asof."""
+    prev: dict = {}
+    if state_path.is_file():
+        try:
+            prev = json.loads(state_path.read_text())
+        except Exception:
+            prev = {}
+    keep_submitted = bool(prev.get("submitted")) and str(prev.get("asof")) == str(asof)
+    payload = {
+        "asof": asof,
+        "submitted": bool(submitted) or keep_submitted,
+        "at": str(ts),
+        "preset": preset,
+    }
+    if keep_submitted and not submitted:
+        # Preserve prior submit metadata when signal/dry-run refreshes the plan.
+        for k in ("paper_only", "broker", "n_fills", "fill_audit"):
+            if k in prev:
+                payload[k] = prev[k]
+        payload["plan_refreshed_at"] = str(ts)
+        payload["at"] = str(prev.get("at") or ts)
+    if extra:
+        payload.update(extra)
+    state_path.write_text(json.dumps(payload, indent=2, default=float) + "\n")
+
 def already_ran_today(state_path: Path, asof: str) -> bool:
     if not state_path.is_file():
         return False
@@ -613,11 +648,26 @@ def main() -> int:
         if mode == "signal" or not submit:
             if not submit:
                 log("SUBMIT=0 — plan only. Set QRESEARCH_SG_PAPER_SUBMIT=1 for Futu paper.")
-            state_path.write_text(
-                json.dumps({"asof": asof, "submitted": False, "at": str(ts), "preset": "v11"}, indent=2)
-                + "\n"
+            write_paper_state(
+                state_path,
+                asof=str(asof),
+                submitted=False,
+                ts=ts,
+                preset="v11",
             )
             return 0
+
+
+        # Guard: empty position query + fat equity usually means OpenD glitched.
+        # Without this we re-issue the full target buys (duplicate buy signal).
+        if not positions and eq > 0 and cash >= 0:
+            invested_hint = float(eq) - float(cash)
+            if invested_hint > max(500.0, 0.05 * float(eq)):
+                log(
+                    f"REFUSE submit: positions empty but equity={eq:.2f} cash={cash:.2f} "
+                    f"(invested_hint={invested_hint:.2f}) — likely position_list_query miss; retry later"
+                )
+                return 3
 
         if already_ran_today(state_path, str(asof)) and not force:
             log(f"already submitted asof={asof}; QRESEARCH_FORCE=1 to override")
@@ -678,21 +728,18 @@ def main() -> int:
                 run_at=str(ts),
             )
             write_audit(base, audit)
-            state_path.write_text(
-                json.dumps(
-                    {
-                        "asof": asof,
-                        "submitted": True,
-                        "paper_only": True,
-                        "broker": "futu",
-                        "preset": "v11",
-                        "at": str(ts),
-                        "n_fills": len(fills),
-                        "fill_audit": audit.get("status"),
-                    },
-                    indent=2,
-                )
-                + "\n"
+            write_paper_state(
+                state_path,
+                asof=str(asof),
+                submitted=True,
+                ts=ts,
+                preset="v11",
+                extra={
+                    "paper_only": True,
+                    "broker": "futu",
+                    "n_fills": len(fills),
+                    "fill_audit": audit.get("status"),
+                },
             )
             log(f"futu paper fills={len(fills)} → {log_path}")
             log(f"fill_audit={audit.get('status')} issues={audit.get('n_issues')}")

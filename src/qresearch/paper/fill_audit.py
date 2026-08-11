@@ -260,10 +260,18 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
     state = _read("state.json")
 
     preview = run.get("preview_orders") or signal.get("preview_orders") or []
-    fills = run.get("fills") or []
-    if not fills:
-        # Fall back to ledger for display/audit when latest_run missing.
+    # Prefer latest_run fills even when empty (means this run placed 0 orders).
+    # Only fall back to the historical ledger when latest_run.json is missing —
+    # otherwise "recheck" aggregates old buys against today's empty preview
+    # and falsely reports extra_fill / position mismatch.
+    run_path = base / "latest_run.json"
+    if run_path.is_file():
+        fills = list(run.get("fills") or [])
+    else:
         fills = load_fills_ledger(base, limit=50)
+        asof_hint = str(signal.get("asof") or state.get("asof") or "")
+        if asof_hint:
+            fills = [r for r in fills if str(r.get("asof") or "") == asof_hint]
 
     positions_before = run.get("positions") or signal.get("positions") or {}
     positions_after = run.get("positions_after")
