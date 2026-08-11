@@ -408,9 +408,9 @@
 
     $("#sg-mode-hero") && ($("#sg-mode-hero").textContent = mode);
     $("#sg-target-hero") && ($("#sg-target-hero").textContent = tgtS);
-    const weights = data.weights || sig.weights || { SPY: 0.4, QQQ: 0.3, SMH: 0.3 };
+    const weights = data.weights || sig.weights || { SPY: 0.5, QQQ: 0.5 };
     const bookLabel =
-      "V11 · " +
+      "V13 · " +
       Object.entries(weights)
         .map(([k, v]) => `${k}${(Number(v) * 100).toFixed(0)}`)
         .join(" / ");
@@ -568,7 +568,7 @@
   }
 
   function bookParam() {
-    return "V11";
+    return "V13";
   }
 
   function isoDate(d) {
@@ -662,7 +662,7 @@
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=signal&submit=0&refresh=1&book=${bookParam()}`,
-            "重算 v11 訊號"
+            "重算 v13 訊號"
           )
         );
       } else if (action === "once") {
@@ -687,7 +687,7 @@
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=backtest&submit=0&refresh=0&book=${bookParam()}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
-            `v11 blend 回測 ${start}→${end}`
+            `v13 blend 回測 ${start}→${end}`
           )
         );
       } else if (action === "toggle-submit") {

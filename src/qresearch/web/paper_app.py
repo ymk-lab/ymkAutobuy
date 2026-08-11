@@ -1,4 +1,4 @@
-"""FastAPI control panel for Structure Gate v11 Futu paper trading."""
+"""FastAPI control panel for Structure Gate v13 Futu paper trading."""
 
 from __future__ import annotations
 
@@ -22,13 +22,13 @@ from qresearch.paper.fill_audit import audit_from_out_dir, load_fills_ledger, wr
 ROOT = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parent / "static"
 DEFAULT_OUT = ROOT / "examples" / "data" / "emerging_rs_g1_paper"
-DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v11_paper"
+DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v13_paper"
 DAILY = ROOT / "examples" / "run_emerging_rs_g1_paper_daily.py"
-SG_DAILY = ROOT / "examples" / "run_structure_gate_v11_paper_daily.py"
-SG_BLEND = ROOT / "examples" / "run_structure_gate_v11_blend.py"
-BLEND_SUMMARY = ROOT / "examples" / "data" / "structure_gate_v11_blend" / "summary.json"
+SG_DAILY = ROOT / "examples" / "run_structure_gate_v13_paper_daily.py"
+SG_BLEND = ROOT / "examples" / "run_structure_gate_v13_blend.py"
+BLEND_SUMMARY = ROOT / "examples" / "data" / "structure_gate_v13_blend" / "summary.json"
 
-app = FastAPI(title="qresearch Structure Gate v11 · Futu Paper", version="0.4.0")
+app = FastAPI(title="qresearch Structure Gate v13 · Futu Paper", version="0.5.0")
 _lock = threading.Lock()
 
 
@@ -219,7 +219,7 @@ def _account_snapshot() -> dict[str, Any]:
 
         quotes: dict[str, float] = {}
         quote_meta: dict[str, dict[str, float]] = {}
-        syms = sorted(set(positions) | {"SPY.US", "QQQ.US", "SMH.US"})
+        syms = sorted(set(positions) | {"SPY.US", "QQQ.US"})
         quote_warning = None
         try:
             quotes = broker.snapshot_quotes(syms)
@@ -433,22 +433,22 @@ def structure_gate_page() -> FileResponse:
 
 @app.get("/api/structure-gate/v8")
 def structure_gate_v8_config() -> JSONResponse:
-    """Expose Structure Gate knobs (v11 == v8) for the rules UI."""
+    """Expose Structure Gate knobs (v13) for the rules UI."""
     sys.path.insert(0, str(ROOT / "src"))
     from dataclasses import asdict
 
-    from qresearch.strategy.structure_gate import V11_BOOK_WEIGHTS, StructureGateConfig
+    from qresearch.strategy.structure_gate import V13_BOOK_WEIGHTS, StructureGateConfig
 
-    cfg = StructureGateConfig.v11()
+    cfg = StructureGateConfig.v13()
     payload = asdict(cfg)
     # EmergingRSWaveConfig is nested; keep JSON-safe primitives only.
     if payload.get("ers_config") is not None:
         payload["ers_config"] = str(payload["ers_config"])
     return JSONResponse(
         {
-            "preset": "v11",
-            "rule": "structure_gate_v11_blend",
-            "weights": dict(V11_BOOK_WEIGHTS),
+            "preset": "v13",
+            "rule": "structure_gate_v13_blend",
+            "weights": dict(V13_BOOK_WEIGHTS),
             "priority": [
                 "harsh_ret",
                 "thrust",
@@ -477,8 +477,8 @@ def structure_gate_v8_config() -> JSONResponse:
     )
 
 
-def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
-    """Map v11 blend summary → UI latest_backtest fields."""
+def _flatten_v13_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
+    """Map v13 blend summary → UI latest_backtest fields."""
     if not summary:
         return {}
     windows = summary.get("windows") or []
@@ -496,8 +496,8 @@ def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
     spy = w.get("spy_bh") or {}
     return {
         "ok": True,
-        "book": "V11",
-        "preset": "v11_blend",
+        "book": "V13",
+        "preset": "v13_blend",
         "start": w.get("start"),
         "end": w.get("end"),
         "structure_gate_total_return": blend.get("total_return"),
@@ -510,9 +510,9 @@ def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def _publish_v11_backtest() -> dict[str, Any]:
+def _publish_v13_backtest() -> dict[str, Any]:
     summary = _read_json(BLEND_SUMMARY) or {}
-    flat = _flatten_v11_backtest(summary)
+    flat = _flatten_v13_backtest(summary)
     if flat:
         (_sg_out_dir() / "latest_backtest.json").write_text(
             json.dumps(flat, indent=2, default=float) + "\n"
@@ -536,13 +536,13 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         )
     else:
         account = _account_from_files(sg=True)
-    weights = signal.get("weights") or {"SPY": 0.4, "QQQ": 0.3, "SMH": 0.3}
+    weights = signal.get("weights") or {"SPY": 0.5, "QQQ": 0.5}
     audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
     return {
         "ok": True,
         "out_dir": str(out),
-        "book": "V11",
-        "preset": signal.get("preset") or "v11",
+        "book": "V13",
+        "preset": signal.get("preset") or "v13",
         "broker": "futu",
         "weights": weights,
         "submit_enabled": _env_sg_submit(),
@@ -773,12 +773,12 @@ async def api_sg_run(
     mode: str = Query("once", pattern="^(signal|once|backtest)$"),
     submit: int = Query(0, ge=0, le=1),
     refresh: int = Query(1, ge=0, le=1),
-    book: str = Query("V11"),
+    book: str = Query("V13"),
     start: str | None = Query(None, description="Backtest start YYYY-MM-DD"),
     end: str | None = Query(None, description="Backtest end YYYY-MM-DD"),
 ) -> StreamingResponse:
     async def gen() -> AsyncIterator[str]:
-        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v11…", "level": "info"})
+        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v13…", "level": "info"})
         if not _lock.acquire(blocking=False):
             yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
@@ -810,7 +810,7 @@ async def api_sg_run(
             env["QRESEARCH_LB_SUBMIT"] = "0"  # never couple to G1 live submit
             env["QRESEARCH_REFRESH_CACHE"] = "1" if refresh else "0"
             env["QRESEARCH_SG_PAPER_OUT"] = str(_sg_out_dir())
-            env["QRESEARCH_SG_BOOK"] = "V11"
+            env["QRESEARCH_SG_BOOK"] = "V13"
             env["FUTU_TRD_ENV"] = env.get("FUTU_TRD_ENV") or "SIMULATE"
             env["PYTHONUNBUFFERED"] = "1"
             env["PYTHONIOENCODING"] = "utf-8"
@@ -820,7 +820,7 @@ async def api_sg_run(
             )
 
             if mode == "backtest":
-                label = "v11 blend 回測（不下單）"
+                label = "v13 blend 回測（不下單）"
             elif want_submit:
                 label = "送單到富途模擬盤（paper only）"
             else:
@@ -829,7 +829,7 @@ async def api_sg_run(
                 {
                     "phase": "progress",
                     "message": (
-                        f"處理中：mode={mode} book=V11，{label}，"
+                        f"處理中：mode={mode} book=V13，{label}，"
                         f"refresh={bool(refresh)}"
                     ),
                     "level": "info",
@@ -839,9 +839,9 @@ async def api_sg_run(
                 {
                     "phase": "progress",
                     "message": (
-                        "處理中：v11 blend 回測…"
+                        "處理中：v13 blend 回測…"
                         if mode == "backtest"
-                        else "處理中：快取／OpenD 日 K + 計算 Structure Gate v11…"
+                        else "處理中：快取／OpenD 日 K + 計算 Structure Gate v13…"
                     ),
                     "level": "info",
                 }
@@ -902,7 +902,7 @@ async def api_sg_run(
 
             code = await proc.wait()
             if mode == "backtest" and code == 0:
-                await asyncio.to_thread(_publish_v11_backtest)
+                await asyncio.to_thread(_publish_v13_backtest)
 
             try:
                 status = await asyncio.to_thread(lambda: _sg_status_payload(live=True))
@@ -913,7 +913,7 @@ async def api_sg_run(
             if code == 0:
                 if mode == "backtest":
                     msg = (
-                        f"完成 v11 回測：{backtest.get('start')}→{backtest.get('end')} "
+                        f"完成 v13 回測：{backtest.get('start')}→{backtest.get('end')} "
                         f"SG={float(backtest.get('structure_gate_total_return') or 0)*100:.1f}% "
                         f"SPY_BH={float(backtest.get('bench_bh_total_return') or 0)*100:.1f}%"
                     )

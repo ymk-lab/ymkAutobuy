@@ -191,9 +191,10 @@ class StructureGateConfig:
         )
 
 
-# Default v11/v13 capital weights (must sum to 1.0).
+# Default capital weights (must sum to 1.0).
 V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
-V13_BOOK_WEIGHTS: dict[str, float] = dict(V11_BOOK_WEIGHTS)
+# Production / paper default for v13: two-sleeve SPY/QQQ (no SMH).
+V13_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.50, "QQQ": 0.50}
 
 
 def blend_structure_gate_books(

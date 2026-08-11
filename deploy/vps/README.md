@@ -1,4 +1,4 @@
-# Linux VPS：OpenD + Structure Gate v11（24×7）
+# Linux VPS：OpenD + Structure Gate v13（24×7）
 
 便宜小機（建議 **Ubuntu 22.04/24.04 x86_64、≥2GB RAM**）上常駐：
 
@@ -114,4 +114,4 @@ sudo systemctl restart qresearch-api
 | `crontab.example` | 美東 cron |
 | `doctor.sh` | 健康檢查 |
 
-舊的 `deploy/vps-cron/` 仍可用於長橋 G1；**Futu v11 請用本目錄**。
+舊的 `deploy/vps-cron/` 仍可用於長橋 G1；**Futu v13 請用本目錄**。

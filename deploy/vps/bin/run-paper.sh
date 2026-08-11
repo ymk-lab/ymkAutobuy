@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Structure Gate v11 paper job. Usage: run-paper.sh signal|once
+# Structure Gate v13 paper job. Usage: run-paper.sh signal|once
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ export PYTHONPATH="${ROOT}/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONUNBUFFERED=1
 export QRESEARCH_SG_PAPER_ONLY="${QRESEARCH_SG_PAPER_ONLY:-1}"
 export FUTU_TRD_ENV="${FUTU_TRD_ENV:-SIMULATE}"
-export QRESEARCH_SG_PAPER_OUT="${QRESEARCH_SG_PAPER_OUT:-$ROOT/examples/data/structure_gate_v11_paper}"
+export QRESEARCH_SG_PAPER_OUT="${QRESEARCH_SG_PAPER_OUT:-$ROOT/examples/data/structure_gate_v13_paper}"
 
 if [[ "$MODE" == "once" || "$MODE" == "submit" ]]; then
   MODE="once"
@@ -55,5 +55,5 @@ LOG_FILE="$LOG_DIR/vps_${MODE}_${STAMP}.log"
 {
   echo "=== vps paper mode=$MODE submit=${QRESEARCH_SG_PAPER_SUBMIT:-0} utc=$STAMP et=$ET_STAMP cron_tz=${CRON_TZ:-unset} ==="
   bash "$HERE/wait-opend.sh" "${FUTU_OPEND_HOST:-127.0.0.1}" "${FUTU_OPEND_PORT:-11111}" 30
-  python3 "$ROOT/examples/run_structure_gate_v11_paper_daily.py" "$MODE"
+  python3 "$ROOT/examples/run_structure_gate_v13_paper_daily.py" "$MODE"
 } 2>&1 | tee -a "$LOG_FILE"

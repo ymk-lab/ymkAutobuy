@@ -36,7 +36,7 @@ source .venv/bin/activate
 pip install -U pip wheel
 pip install -e ".[futu,web]"
 
-mkdir -p "$LOCAL" examples/data/structure_gate_v11_paper/logs "$VPS/logs"
+mkdir -p "$LOCAL" examples/data/structure_gate_v13_paper/logs "$VPS/logs"
 chmod 700 "$LOCAL"
 chmod +x "$VPS"/bin/*.sh "$VPS/install.sh" "$VPS/doctor.sh"
 
