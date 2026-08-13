@@ -60,6 +60,14 @@ def _f(x: object) -> float | None:
     return v if np.isfinite(v) else None
 
 
+def _num(x: object, digits: int = 2) -> str:
+    """Format a float for display; never raise on None/NaN."""
+    v = _f(x)
+    if v is None:
+        return "—"
+    return f"{v:.{digits}f}"
+
+
 def _bool(x: object) -> bool:
     try:
         return bool(float(x))  # type: ignore[arg-type]
@@ -203,7 +211,7 @@ def explain_mode(row: pd.Series, cfg: StructureGateConfig) -> list[str]:
         )
     if on("mild"):
         reasons.append(
-            f"mild 開：風險未開（above50={_f(row.get('above50')):.2f} "
+            f"mild 開：風險未開（above50={_num(row.get('above50'))} "
             f"dd60={_pct(_f(row.get('dd60')))} ret20={_pct(_f(row.get('ret20')))}）"
             " → 非鎖定時傾向 cash，不會開 ers"
         )
@@ -220,9 +228,9 @@ def explain_mode(row: pd.Series, cfg: StructureGateConfig) -> list[str]:
     if on("crowded"):
         reasons.append(
             "crowded 開：集中／重疊偏高 → 若 risk_on 且 stock_led 則原始為 strong"
-            f"；top3_conc20={_f(row.get('top3_conc20')):.2f} "
-            f"overlap={_f(row.get('overlap')):.2f} "
-            f"strong_share={_f(row.get('strong_share')):.2f}"
+            f"；top3_conc20={_num(row.get('top3_conc20'))} "
+            f"overlap={_num(row.get('overlap'))} "
+            f"strong_share={_num(row.get('strong_share'))}"
         )
 
     if mode == "bench":
@@ -389,7 +397,7 @@ def render_zh(report: dict) -> str:
             f"trail20={_pct(blk['leader_vs_bench_trail20'])}  "
             f"trail60={_pct(blk['leader_vs_bench_trail60'])}  "
             f"ret20={_pct(blk['ret20'])}  dd60={_pct(blk['dd60'])}  "
-            f"above50={blk['above50']:.2f}  pct_beat60={_pct(blk['pct_beat60'])}  "
+            f"above50={_num(blk.get('above50'))}  pct_beat60={_pct(blk['pct_beat60'])}  "
             f"ers_excess60={_pct(blk['ers_excess60'])}"
         )
         lines.append("解釋：")
