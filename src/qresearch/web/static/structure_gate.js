@@ -359,6 +359,101 @@
       .join("");
   }
 
+  function pctNum(x, digits = 2) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    return `${(Number(x) * 100).toFixed(digits)}%`;
+  }
+
+  function renderNameTable(rows, emptyText) {
+    if (!rows || !rows.length) {
+      return `<p class="empty">${emptyText}</p>`;
+    }
+    const body = rows
+      .slice(0, 10)
+      .map((r, i) => {
+        const miss = [];
+        if (r.just_turned === false) miss.push("缺just_turned");
+        if (r.persist3 === false) miss.push("缺persist3");
+        if (r.excess_mid_ok === false) miss.push("缺mid+");
+        if (r.not_already_strong === false) miss.push("已過強");
+        const note = r.entry_ok
+          ? "合格"
+          : miss.length
+            ? miss.join(",")
+            : `legs=${r.legs_pass ?? "—"}/4`;
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${r.symbol || "—"}</td>
+          <td>${pctNum(r.excess_20)}</td>
+          <td>${pctNum(r.excess_10)}</td>
+          <td>${pctNum(r.excess_60)}</td>
+          <td>${note}</td>
+        </tr>`;
+      })
+      .join("");
+    return `<div class="table-scroll"><table class="sg-table">
+      <thead><tr><th>#</th><th>標的</th><th>ex20</th><th>ex10</th><th>ex60</th><th>狀態</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
+
+  function renderDiagnose(diagnose, diagnoseText) {
+    const body = $("#sg-diagnose-body");
+    const asofBadge = $("#sg-diagnose-asof");
+    const textEl = $("#sg-diagnose-text");
+    if (textEl) textEl.textContent = diagnoseText || "—";
+    if (!body) return;
+
+    if (!diagnose || !diagnose.books || !Object.keys(diagnose.books).length) {
+      body.innerHTML =
+        `<p class="empty">尚無診斷。請按「重新診斷」（約需數十秒讀 cache）。</p>`;
+      if (asofBadge) {
+        asofBadge.textContent = "尚未診斷";
+        asofBadge.className = "badge badge-idle";
+      }
+      return;
+    }
+
+    if (asofBadge) {
+      asofBadge.textContent = `asof ${diagnose.asof || "—"}`;
+      asofBadge.className = "badge badge-on";
+    }
+
+    const blocks = Object.entries(diagnose.books)
+      .map(([book, blk]) => {
+        const flags = Object.entries(blk.flags || {})
+          .filter(([, v]) => !!v)
+          .map(([k]) => k)
+          .join(" · ");
+        const reasons = (blk.reasons || [])
+          .map((r) => `<li>${r}</li>`)
+          .join("");
+        const ers = blk.would_hold_if_ers || {};
+        const strong = blk.would_hold_if_strong || {};
+        const sc = blk.ers_scorecard || {};
+        const entryRows = sc.entry_ok_ranked || [];
+        const nearRows = sc.near_miss_ranked || [];
+        return `<article class="sg-diagnose-book">
+          <h3>${book} · ${blk.mode || "—"}</h3>
+          <p class="sg-diagnose-meta">
+            flags：${flags || "—"} ·
+            trail20=${pctNum(blk.leader_vs_bench_trail20)} ·
+            trail60=${pctNum(blk.leader_vs_bench_trail60)} ·
+            若ers→${ers.symbol || "無"} ·
+            若strong→${strong.symbol || "無"} ·
+            新ERS合格=${sc.n_entry_ok ?? 0}
+          </p>
+          <ul class="sg-diagnose-reasons">${reasons || "<li>無解釋</li>"}</ul>
+          <h3 class="sg-mini">今日 ERS 合格</h3>
+          ${renderNameTable(entryRows, "無合格股")}
+          <h3 class="sg-mini">接近 ERS（≥2/4 條件）</h3>
+          ${renderNameTable(nearRows, "無接近名單")}
+        </article>`;
+      })
+      .join("");
+    body.innerHTML = blocks;
+  }
+
   function renderSgStatus(data) {
     if (!data) return;
     statusCache = data;
@@ -440,6 +535,7 @@
 
     renderFillAudit(data.fill_audit || null);
     renderHoldings(account);
+    renderDiagnose(data.diagnose || null, data.diagnose_text || "");
 
     $("#sg-bt-sg") && ($("#sg-bt-sg").textContent = pct(bt.structure_gate_total_return));
     $("#sg-bt-bh") && ($("#sg-bt-bh").textContent = pct(bt.bench_bh_total_return));
@@ -533,7 +629,13 @@
         }
         if (evt.phase === "done") ok = !!evt.ok;
         if (evt.data) {
-          if (evt.data.signal || evt.data.backtest || evt.data.account) {
+          if (
+            evt.data.signal ||
+            evt.data.backtest ||
+            evt.data.account ||
+            evt.data.diagnose ||
+            evt.data.diagnose_text
+          ) {
             renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
           }
           if (evt.data.submit_enabled != null) {
@@ -718,6 +820,8 @@
             setBusy(false);
           }
         });
+      } else if (action === "diagnose") {
+        withAction(() => consumeSSE("/api/sg/run-diagnose", "袖口診斷（為何 BENCH／近 ERS）"));
       }
     });
   });

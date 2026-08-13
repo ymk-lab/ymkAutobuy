@@ -26,6 +26,7 @@ DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v13_paper"
 DAILY = ROOT / "examples" / "run_emerging_rs_g1_paper_daily.py"
 SG_DAILY = ROOT / "examples" / "run_structure_gate_v13_paper_daily.py"
 SG_BLEND = ROOT / "examples" / "run_structure_gate_v13_blend.py"
+SG_DIAGNOSE = ROOT / "examples" / "diagnose_structure_gate_v13_sleeves.py"
 BLEND_SUMMARY = ROOT / "examples" / "data" / "structure_gate_v13_blend" / "summary.json"
 
 app = FastAPI(title="qresearch Structure Gate v13 · Futu Paper", version="0.5.0")
@@ -538,6 +539,13 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         account = _account_from_files(sg=True)
     weights = signal.get("weights") or {"SPY": 0.5, "QQQ": 0.5}
     audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
+    diagnose = _read_json(out / "latest_sleeve_diagnose.json") or {}
+    diagnose_txt_path = out / "latest_sleeve_diagnose.txt"
+    diagnose_text = (
+        diagnose_txt_path.read_text(encoding="utf-8", errors="replace")
+        if diagnose_txt_path.is_file()
+        else ""
+    )
     return {
         "ok": True,
         "out_dir": str(out),
@@ -556,6 +564,8 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "state": state,
         "backtest": backtest,
         "fill_audit": audit,
+        "diagnose": diagnose,
+        "diagnose_text": diagnose_text,
         "server_time_utc": datetime.now(timezone.utc).isoformat(),
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
@@ -565,6 +575,104 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
 @app.get("/api/sg/status")
 def api_sg_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
     return _sg_status_payload(live=bool(live))
+
+
+@app.get("/api/sg/diagnose")
+def api_sg_diagnose() -> dict[str, Any]:
+    """Return latest sleeve diagnose JSON/text (why BENCH + near-ERS)."""
+    out = _sg_out_dir()
+    diagnose = _read_json(out / "latest_sleeve_diagnose.json") or {}
+    txt_path = out / "latest_sleeve_diagnose.txt"
+    text = txt_path.read_text(encoding="utf-8", errors="replace") if txt_path.is_file() else ""
+    return {
+        "ok": bool(diagnose) or bool(text),
+        "out_dir": str(out),
+        "diagnose": diagnose,
+        "diagnose_text": text,
+        "path_json": str(out / "latest_sleeve_diagnose.json"),
+        "path_txt": str(txt_path),
+    }
+
+
+@app.get("/api/sg/run-diagnose")
+async def api_sg_run_diagnose() -> StreamingResponse:
+    """Recompute sleeve diagnose from paper OHLCV cache (SSE)."""
+
+    async def gen() -> AsyncIterator[str]:
+        yield _sse({"phase": "start", "message": "處理中：排隊啟動袖口診斷…", "level": "info"})
+        if not _lock.acquire(blocking=False):
+            yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
+            yield _sse({"phase": "done", "ok": False})
+            return
+        try:
+            if not SG_DIAGNOSE.is_file():
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"找不到腳本 {SG_DIAGNOSE}",
+                        "level": "error",
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False})
+                return
+            env = os.environ.copy()
+            env["QRESEARCH_SG_PAPER_OUT"] = str(_sg_out_dir())
+            env["PYTHONUNBUFFERED"] = "1"
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["PYTHONUTF8"] = "1"
+            env["PYTHONPATH"] = str(ROOT / "src") + (
+                os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+            )
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": "處理中：讀取 cache、計算為何 BENCH／近 ERS…",
+                    "level": "info",
+                }
+            )
+            proc = await asyncio.create_subprocess_exec(
+                _python(),
+                str(SG_DIAGNOSE),
+                cwd=str(ROOT),
+                env=env,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            assert proc.stdout is not None
+            while True:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                text = line.decode("utf-8", errors="replace").rstrip()
+                if text:
+                    yield _sse({"phase": "log", "message": text, "level": "log"})
+            code = await proc.wait()
+            status = await asyncio.to_thread(lambda: _sg_status_payload(live=False))
+            diagnose = status.get("diagnose") or {}
+            if code == 0 and (diagnose or status.get("diagnose_text")):
+                asof = diagnose.get("asof") or "—"
+                yield _sse(
+                    {
+                        "phase": "progress",
+                        "message": f"完成：袖口診斷 asof={asof}",
+                        "level": "ok",
+                        "data": status,
+                    }
+                )
+                yield _sse({"phase": "done", "ok": True, "data": status})
+            else:
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"診斷失敗 exit={code}",
+                        "level": "error",
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False, "data": status})
+        finally:
+            _lock.release()
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/api/sg/fills")
