@@ -59,7 +59,7 @@ if [[ "$ENABLE_TIMERS" == "1" ]]; then
   if [[ "${QRESEARCH_CATCHUP_SIGNAL:-1}" == "1" ]]; then
     SIG_JSON="$REPO_ROOT/examples/data/structure_gate_v13_paper/latest_signal.json"
     NEED_CATCHUP="$(
-      python3 - <<'PY' "$SIG_JSON"
+      python3 - "$SIG_JSON" <<'PY'
 import json, sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -84,8 +84,8 @@ if path.is_file():
         asof = str(json.loads(path.read_text()).get("asof") or "")[:10]
     except Exception:
         asof = None
+print(asof or "missing", expect, file=sys.stderr)
 print("1" if (not asof or asof < expect) else "0")
-print(asof or "missing", expect, sep=" ", file=sys.stderr)
 PY
     )" || NEED_CATCHUP="0"
     if [[ "$NEED_CATCHUP" == "1" ]]; then
