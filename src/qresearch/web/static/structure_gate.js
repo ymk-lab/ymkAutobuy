@@ -115,6 +115,8 @@
   let submitEnabled = false;
   let busy = false;
   let statusCache = null;
+  let lastSeenAsof = null;
+  let pollTimer = null;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -461,6 +463,14 @@
     renderSubmitBadge();
 
     const sig = data.signal || {};
+    const prevAsof = lastSeenAsof;
+    if (sig.asof) {
+      if (prevAsof && prevAsof !== sig.asof) {
+        pushActivity(`自動更新：訊號日 ${prevAsof} → ${sig.asof}`, "ok");
+        toast(`訊號已更新：${sig.asof}`, "ok");
+      }
+      lastSeenAsof = sig.asof;
+    }
     const bt = data.backtest || {};
     const account = data.account || {};
     const pnl = account.pnl || {};
@@ -838,6 +848,55 @@
     });
   });
 
+  function etParts(now = new Date()) {
+    // en-US with timeZone gives America/New_York wall clock parts.
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
+    const hour = Number(parts.hour === "24" ? 0 : parts.hour);
+    const minute = Number(parts.minute);
+    const weekday = parts.weekday; // Mon..Sun English short
+    const isWeekday = !["Sat", "Sun"].includes(weekday);
+    return { hour, minute, weekday, isWeekday, mins: hour * 60 + minute };
+  }
+
+  function pollIntervalMs() {
+    const { isWeekday, mins } = etParts();
+    if (!isWeekday) return 120000;
+    // Around official windows: 09:40 and 16:30 ET (±20 min) — poll faster.
+    const nearOnce = Math.abs(mins - (9 * 60 + 40)) <= 20;
+    const nearSignal = Math.abs(mins - (16 * 60 + 30)) <= 25;
+    if (nearOnce || nearSignal) return 15000;
+    return 60000;
+  }
+
+  async function quietPoll() {
+    if (busy || document.hidden) return;
+    try {
+      await refreshStatus({ live: false });
+    } catch {
+      /* ignore transient poll errors */
+    }
+  }
+
+  function schedulePoll() {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = setTimeout(async () => {
+      await quietPoll();
+      schedulePoll();
+    }, pollIntervalMs());
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) quietPoll();
+  });
+  window.addEventListener("focus", () => quietPoll());
+
   paintApiBase();
   const apiBaseEl = $("#sg-api-base");
   if (apiBaseEl) {
@@ -870,6 +929,7 @@
       if (bt.end && $("#sg-bt-end") && !localStorage.getItem("sg_bt_end")) {
         $("#sg-bt-end").value = String(bt.end).slice(0, 10);
       }
+      schedulePoll();
       return refreshStatus({ live: true }).catch(() => null);
     })
     .catch(async (err) => {
@@ -878,6 +938,7 @@
         if (promptApiBase("無法連到 API（Failed to fetch）。")) {
           try {
             await refreshStatus({ live: true });
+            schedulePoll();
           } catch (e2) {
             pushActivity(`狀態載入失敗：${e2.message}`, "error");
           }
