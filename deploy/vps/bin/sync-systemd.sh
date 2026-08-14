@@ -51,6 +51,51 @@ if [[ "$ENABLE_TIMERS" == "1" ]]; then
   systemctl enable --now qresearch-paper-signal.timer qresearch-paper-once.timer
   echo "==> timers enabled"
   systemctl list-timers 'qresearch-paper-*' --no-pager || true
+
+  # First-time / missed windows: Persistent= only helps after a timer has
+  # already fired once. If latest_signal.asof is older than the last completed
+  # US cash session (Mon–Fri), start the oneshot service now (same unit the
+  # timer uses — not a one-off ad-hoc script).
+  if [[ "${QRESEARCH_CATCHUP_SIGNAL:-1}" == "1" ]]; then
+    SIG_JSON="$REPO_ROOT/examples/data/structure_gate_v13_paper/latest_signal.json"
+    NEED_CATCHUP="$(
+      python3 - <<'PY' "$SIG_JSON"
+import json, sys
+from datetime import datetime, timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+path = Path(sys.argv[1])
+et = ZoneInfo("America/New_York")
+now = datetime.now(et)
+# Last session date whose 16:30 signal should already exist.
+# Before 16:30 ET on a weekday → expect previous session; else today (if weekday).
+d = now.date()
+if now.weekday() >= 5:  # Sat/Sun → Friday
+    d = d - timedelta(days=now.weekday() - 4)
+elif (now.hour, now.minute) < (16, 30):
+    d = d - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+expect = d.isoformat()
+asof = None
+if path.is_file():
+    try:
+        asof = str(json.loads(path.read_text()).get("asof") or "")[:10]
+    except Exception:
+        asof = None
+print("1" if (not asof or asof < expect) else "0")
+print(asof or "missing", expect, sep=" ", file=sys.stderr)
+PY
+    )" || NEED_CATCHUP="0"
+    if [[ "$NEED_CATCHUP" == "1" ]]; then
+      echo "==> signal stale vs last US session — starting qresearch-paper-signal.service"
+      systemctl start qresearch-paper-signal.service || echo "WARN: catch-up signal failed"
+      systemctl status qresearch-paper-signal.service --no-pager -l | head -30 || true
+    else
+      echo "==> latest_signal asof is current for last US session — no catch-up"
+    fi
+  fi
 fi
 
 # Best-effort: also install user crontab from example (timers are primary).
