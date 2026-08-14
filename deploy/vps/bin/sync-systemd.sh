@@ -113,6 +113,12 @@ if [[ "${QRESEARCH_INSTALL_CRONTAB:-1}" == "1" ]]; then
   fi
 fi
 
+# Always bounce API so UI/status pick up new code + latest_signal/diagnose files.
+if systemctl list-unit-files qresearch-api.service >/dev/null 2>&1; then
+  systemctl restart qresearch-api.service || echo "WARN: restart qresearch-api failed"
+  systemctl --no-pager --full status qresearch-api.service | head -20 || true
+fi
+
 echo "Start/restart API/OpenD with:"
 echo "  systemctl restart qresearch-opend qresearch-api"
 echo "  systemctl status qresearch-api --no-pager | head -20"

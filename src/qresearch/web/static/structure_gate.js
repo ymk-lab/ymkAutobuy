@@ -821,7 +821,19 @@
           }
         });
       } else if (action === "diagnose") {
-        withAction(() => consumeSSE("/api/sg/run-diagnose", "袖口診斷（為何 BENCH／近 ERS）"));
+        withAction(async () => {
+          try {
+            await consumeSSE("/api/sg/run-diagnose", "袖口診斷（為何 BENCH／近 ERS）");
+          } catch (err) {
+            // Still paint any prior diagnose from status so the pane is not empty.
+            try {
+              await refreshStatus({ live: false });
+            } catch {
+              /* ignore */
+            }
+            throw err;
+          }
+        });
       }
     });
   });

@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -511,17 +510,15 @@ def main() -> int:
             "sticky_exit_trail": cfg.sticky_exit_trail,
         },
         "books": book_reports,
-        "config_full": {k: v for k, v in asdict(cfg).items() if k != "ers_config"},
     }
 
     text = render_zh(report)
     out_json = base / f"sleeve_diagnose_{asof}.json"
     out_txt = base / f"sleeve_diagnose_{asof}.txt"
-    out_json.write_text(json.dumps(report, indent=2, default=float) + "\n", encoding="utf-8")
+    payload = json.dumps(report, indent=2, ensure_ascii=False, default=str) + "\n"
+    out_json.write_text(payload, encoding="utf-8")
     out_txt.write_text(text + "\n", encoding="utf-8")
-    (base / "latest_sleeve_diagnose.json").write_text(
-        json.dumps(report, indent=2, default=float) + "\n", encoding="utf-8"
-    )
+    (base / "latest_sleeve_diagnose.json").write_text(payload, encoding="utf-8")
     (base / "latest_sleeve_diagnose.txt").write_text(text + "\n", encoding="utf-8")
 
     print("\n" + text)

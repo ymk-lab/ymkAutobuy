@@ -601,8 +601,17 @@ async def api_sg_run_diagnose() -> StreamingResponse:
     async def gen() -> AsyncIterator[str]:
         yield _sse({"phase": "start", "message": "處理中：排隊啟動袖口診斷…", "level": "info"})
         if not _lock.acquire(blocking=False):
-            yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
-            yield _sse({"phase": "done", "ok": False})
+            # Still return any existing diagnose so UI can show last good report.
+            status = _sg_status_payload(live=False)
+            yield _sse(
+                {
+                    "phase": "error",
+                    "message": "忙碌中：另一工作執行中（例如 signal）。請稍候再按「重新診斷」。",
+                    "level": "error",
+                    "data": status,
+                }
+            )
+            yield _sse({"phase": "done", "ok": False, "data": status})
             return
         try:
             if not SG_DIAGNOSE.is_file():
@@ -630,23 +639,37 @@ async def api_sg_run_diagnose() -> StreamingResponse:
                     "level": "info",
                 }
             )
-            proc = await asyncio.create_subprocess_exec(
-                _python(),
-                str(SG_DIAGNOSE),
-                cwd=str(ROOT),
-                env=env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
-            assert proc.stdout is not None
-            while True:
-                line = await proc.stdout.readline()
-                if not line:
-                    break
-                text = line.decode("utf-8", errors="replace").rstrip()
-                if text:
-                    yield _sse({"phase": "log", "message": text, "level": "log"})
-            code = await proc.wait()
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    _python(),
+                    str(SG_DIAGNOSE),
+                    cwd=str(ROOT),
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                assert proc.stdout is not None
+                while True:
+                    line = await proc.stdout.readline()
+                    if not line:
+                        break
+                    text = line.decode("utf-8", errors="replace").rstrip()
+                    if text:
+                        yield _sse({"phase": "log", "message": text, "level": "log"})
+                code = await proc.wait()
+            except Exception as exc:  # noqa: BLE001
+                status = await asyncio.to_thread(lambda: _sg_status_payload(live=False))
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"診斷進程異常：{exc}",
+                        "level": "error",
+                        "data": status,
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False, "data": status})
+                return
+
             status = await asyncio.to_thread(lambda: _sg_status_payload(live=False))
             diagnose = status.get("diagnose") or {}
             if code == 0 and (diagnose or status.get("diagnose_text")):
@@ -661,11 +684,13 @@ async def api_sg_run_diagnose() -> StreamingResponse:
                 )
                 yield _sse({"phase": "done", "ok": True, "data": status})
             else:
+                # Prefer surfacing last stderr-ish log via exit code; keep prior report in data.
                 yield _sse(
                     {
                         "phase": "error",
-                        "message": f"診斷失敗 exit={code}",
+                        "message": f"診斷失敗 exit={code}（若下方仍有舊報告可先用）",
                         "level": "error",
+                        "data": status,
                     }
                 )
                 yield _sse({"phase": "done", "ok": False, "data": status})
