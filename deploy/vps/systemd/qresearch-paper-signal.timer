@@ -1,0 +1,13 @@
+[Unit]
+Description=Structure Gate v13 paper signal timer (16:30 America/New_York Mon-Fri)
+Requires=qresearch-paper-signal.service
+
+[Timer]
+# Catch up if VPS was down across the window.
+Persistent=true
+AccuracySec=1min
+OnCalendar=America/New_York Mon..Fri *-*-* 16:30:00
+Unit=qresearch-paper-signal.service
+
+[Install]
+WantedBy=timers.target

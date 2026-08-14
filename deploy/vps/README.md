@@ -79,17 +79,28 @@ sudo systemctl status qresearch-opend qresearch-api
 
 ## 5. 排程（收盤算訊號 → 次日 09:40 送單）
 
+**主排程改用 systemd timer**（比 crontab 可靠；機器當機也能 Persistent 補跑 signal）：
+
 ```bash
-crontab -e
-# 貼上 deploy/vps/crontab.example（必須含 CRON_TZ=America/New_York）
+sudo QRESEARCH_USER=root bash deploy/vps/bin/sync-systemd.sh
+systemctl list-timers 'qresearch-paper-*' --no-pager
 ```
 
-| 時間（美東） | 動作 |
-|--------------|------|
-| 16:30 Mon–Fri | `run-paper.sh signal` |
-| 09:40 Mon–Fri | `run-paper.sh once`（`QRESEARCH_SG_PAPER_SUBMIT=1`；成交估價用 09:40 分鐘/5分 K） |
+| 時間（美東） | unit | 動作 |
+|--------------|------|------|
+| 16:30 Mon–Fri | `qresearch-paper-signal.timer` | `run-paper.sh signal`（可 Persistent 補跑） |
+| 09:40 Mon–Fri | `qresearch-paper-once.timer` | `run-paper.sh once`（不補跑，避免錯時送單） |
 
-確認多日 `latest_signal.json` 後再開送單。UI 開關會寫 `.env`（並覆蓋 `app.env`）。
+`sync-systemd.sh` 也會順便寫入 `crontab.example` 當備份；**以 timer 為準**。
+
+確認：
+
+```bash
+bash deploy/vps/doctor.sh
+journalctl -u qresearch-paper-signal.service -n 50 --no-pager
+```
+
+UI「自動送單」仍寫 `/opt/qresearch/.env`；once 會讀 `.env` 的 `QRESEARCH_SG_PAPER_SUBMIT`。
 
 ### 更新 systemd（勿 raw-cp）
 

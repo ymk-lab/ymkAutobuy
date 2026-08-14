@@ -52,9 +52,18 @@ if grep -q 'run-paper.sh' "$CRON_TMP"; then
   crontab "$CRON_TMP"
   echo "crontab updated"
 else
-  echo "WARN: no run-paper.sh in crontab — install from deploy/vps/crontab.example"
+  echo "WARN: no run-paper.sh in crontab — installing example + systemd timers"
+  if [[ -f "$ROOT/deploy/vps/crontab.example" ]]; then
+    crontab "$ROOT/deploy/vps/crontab.example" || true
+  fi
 fi
 rm -f "$CRON_TMP"
+
+if [[ "$(id -u)" -eq 0 ]] || command -v sudo >/dev/null 2>&1; then
+  echo "==> sync systemd units + enable paper timers"
+  sudo QRESEARCH_USER="${QRESEARCH_USER:-${SUDO_USER:-$USER}}" \
+    bash "$ROOT/deploy/vps/bin/sync-systemd.sh" || echo "WARN: sync-systemd failed"
+fi
 
 echo "==> restart API (pick up new static/UI + defaults)"
 if systemctl is-active --quiet qresearch-api 2>/dev/null; then

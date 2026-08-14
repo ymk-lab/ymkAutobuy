@@ -1,0 +1,13 @@
+[Unit]
+Description=Structure Gate v13 paper once timer (09:40 America/New_York Mon-Fri)
+Requires=qresearch-paper-once.service
+
+[Timer]
+# Do NOT Persistent=true — catch-up submit outside 09:40 is unsafe.
+Persistent=false
+AccuracySec=30s
+OnCalendar=America/New_York Mon..Fri *-*-* 09:40:00
+Unit=qresearch-paper-once.service
+
+[Install]
+WantedBy=timers.target
