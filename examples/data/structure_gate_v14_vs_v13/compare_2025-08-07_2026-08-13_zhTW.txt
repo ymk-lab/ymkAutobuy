@@ -1,0 +1,8 @@
+=== Structure Gate v14 vs v13 ===
+窗：2025-08-07 → 2026-08-13｜資本 $50,000｜權重 SPY50/QQQ50
+
+v13: +102.58%｜maxDD -18.94%｜trades 84｜vsSPY +79.1pp
+v14: +86.39%｜maxDD -19.82%｜trades 112｜vsSPY +62.9pp
+Δ(v14−v13): ret -16.19pp｜maxDD -0.88pp｜trades +28
+
+v14 規則：無鎖即進 ers/strong；進場後最少 hold 3 日（harsh/mild cash 仍可出場）；鎖與 v13 相同。

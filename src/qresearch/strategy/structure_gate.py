@@ -15,6 +15,8 @@ split-slippage variant. ``v10()`` is the cross-book preset (SPY regime +
 union stock sleeve + best-of ETF bench) used with ``simulate_structure_gate_cross``.
 ``v11()`` / ``v13()`` share the SPY/QQQ/SMH blend capital split; v13 adds
 mode hysteresis + risk-override cooldown pierce (see ``stabilize_modes_v13``).
+``v14()`` keeps v13 locks but enters stock immediately when unlocked and
+enforces a minimum hold before soft exit.
 """
 
 from __future__ import annotations
@@ -117,6 +119,12 @@ class StructureGateConfig:
     mode_switch_cooldown_days: int = 2
     risk_override_enabled: bool = False
     risk_override_stock_1d: float = 0.08
+    # --- v14: immediate enter when unlocked + minimum stock-mode hold ---
+    # When True, bench/cash → ers/strong ignores mode_enter_trail (locks still apply).
+    mode_enter_immediate: bool = False
+    # Soft exits from ers/strong blocked until this many days in stock mode
+    # (risk cash still pierces). 0 = disabled (v13 behavior).
+    mode_min_hold_days: int = 0
 
     @classmethod
     def v8(cls) -> "StructureGateConfig":
@@ -188,6 +196,36 @@ class StructureGateConfig:
             stock_led_min_trail=0.03,
             index_lean_max_trail=-0.03,
             sma50_hysteresis=0.0,
+            mode_enter_immediate=False,
+            mode_min_hold_days=0,
+        )
+
+    @classmethod
+    def v14(cls) -> "StructureGateConfig":
+        """v14: same locks/defense as v13; enter stock immediately when unlocked.
+
+        Differences vs v13:
+        - ``mode_enter_immediate=True`` — no +trail gate to enter ers/strong
+        - ``mode_min_hold_days=3`` — soft exit blocked for 3 sessions after entry
+        - ``mode_switch_cooldown_days=0`` — min-hold replaces soft cooldown
+        Sticky/thrust/reentry/harsh locks unchanged. Risk cash still pierces hold.
+        """
+        return cls(
+            mode_hysteresis_enabled=True,
+            mode_enter_trail=0.035,  # unused while mode_enter_immediate
+            mode_exit_trail=-0.015,
+            mode_switch_cooldown_days=0,
+            mode_enter_immediate=True,
+            mode_min_hold_days=3,
+            risk_override_enabled=True,
+            risk_override_stock_1d=0.08,
+            mild_defense_dd=0.06,
+            mild_defense_ret20=-0.05,
+            harsh_defense_dd=0.20,
+            harsh_defense_ret20=-0.12,
+            stock_led_min_trail=0.03,
+            index_lean_max_trail=-0.03,
+            sma50_hysteresis=0.0,
         )
 
 
@@ -195,6 +233,7 @@ class StructureGateConfig:
 V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
 # Production / paper default for v13: two-sleeve SPY/QQQ (no SMH).
 V13_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.50, "QQQ": 0.50}
+V14_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
 
 
 def blend_structure_gate_books(
@@ -657,14 +696,16 @@ def stabilize_modes_v13(
     *,
     config: StructureGateConfig | None = None,
 ) -> tuple[pd.Series, pd.DataFrame]:
-    """Stick soft mode flips via hysteresis (+ optional cooldown).
+    """Stick soft mode flips via hysteresis (+ optional cooldown / min-hold).
 
     - Enter stock sleeves (bench/cash → ers/strong) only if
-      ``lead_trail >= mode_enter_trail`` (default +2.5%).
-    - Exit stock → bench only if ``lead_trail <= mode_exit_trail`` (default −1%).
+      ``lead_trail >= mode_enter_trail`` (default +2.5%), unless
+      ``mode_enter_immediate`` (v14) — then enter as soon as unlocked.
+    - Exit stock → bench only if ``lead_trail <= mode_exit_trail`` (default −1%),
+      and only after ``mode_min_hold_days`` in ers/strong (v14).
     - Soft switches also respect ``mode_switch_cooldown_days``.
     - Risk override: ``harsh_ret`` / ``harsh_dd`` always allow immediate cash
-      (cooldown + hysteresis pierced for liquidation).
+      (cooldown + hysteresis + min-hold pierced for liquidation).
     - Mild (non-harsh) cash is still allowed immediately (defensive).
     """
     cfg = config or StructureGateConfig()
@@ -676,12 +717,15 @@ def stabilize_modes_v13(
     cooldown = max(0, int(cfg.mode_switch_cooldown_days))
     enter_thr = float(cfg.mode_enter_trail)
     exit_thr = float(cfg.mode_exit_trail)
+    enter_imm = bool(cfg.mode_enter_immediate)
+    min_hold = max(0, int(cfg.mode_min_hold_days))
 
     out: list[str] = []
     blocked: list[float] = []
     risk_pierce: list[float] = []
     cur: str | None = None
     days_since = 10**9
+    days_in_stock = 0
 
     for i in range(len(idx)):
         desired = str(raw_mode.iat[i])
@@ -697,6 +741,7 @@ def stabilize_modes_v13(
             risk_pierce.append(0.0)
             # Seeded mode does not start a cooldown clock.
             days_since = 10**9
+            days_in_stock = 1 if cur in ("ers", "strong") else 0
             continue
 
         allow = True
@@ -714,14 +759,34 @@ def stabilize_modes_v13(
             stock_des = desired in ("ers", "strong")
             if use_hyst and t_ok:
                 if (cur in ("bench", "cash")) and stock_des:
-                    allow = t_val >= enter_thr
+                    allow = True if enter_imm else (t_val >= enter_thr)
                 elif stock_cur and desired == "bench":
-                    allow = t_val <= exit_thr
+                    if min_hold > 0 and days_in_stock < min_hold:
+                        allow = False
+                    else:
+                        allow = t_val <= exit_thr
                 elif stock_cur and stock_des and cur != desired:
-                    # ers ↔ strong: require clear leadership, not noise.
-                    allow = t_val >= enter_thr
+                    # ers ↔ strong: require clear leadership, not noise;
+                    # also respect min-hold (treat as soft switch).
+                    if min_hold > 0 and days_in_stock < min_hold:
+                        allow = False
+                    elif enter_imm:
+                        allow = True
+                    else:
+                        allow = t_val >= enter_thr
                 elif cur == "cash" and desired == "bench":
                     allow = True
+            elif use_hyst and not t_ok:
+                # No trail: still honor min-hold / immediate enter.
+                if (cur in ("bench", "cash")) and stock_des:
+                    allow = True if enter_imm else False
+                elif stock_cur and desired == "bench":
+                    allow = not (min_hold > 0 and days_in_stock < min_hold)
+                elif stock_cur and stock_des and cur != desired:
+                    if min_hold > 0 and days_in_stock < min_hold:
+                        allow = False
+                    else:
+                        allow = bool(enter_imm)
             # Soft-switch cooldown (secondary). Risk already handled above.
             if allow and cooldown > 0 and desired != cur:
                 soft = (cur in ("ers", "strong", "bench")) and (
@@ -734,12 +799,17 @@ def stabilize_modes_v13(
             cur = desired
             days_since = 0
             blocked.append(0.0)
+            days_in_stock = 1 if cur in ("ers", "strong") else 0
         else:
             if desired != cur:
                 blocked.append(1.0)
             else:
                 blocked.append(0.0)
             days_since += 1
+            if cur in ("ers", "strong"):
+                days_in_stock += 1
+            else:
+                days_in_stock = 0
         risk_pierce.append(pierce)
         out.append(cur)
 
