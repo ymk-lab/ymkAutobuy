@@ -228,12 +228,45 @@ class StructureGateConfig:
             sma50_hysteresis=0.0,
         )
 
+    @classmethod
+    def v15(cls) -> "StructureGateConfig":
+        """v15: same locks/defense as v13; dual trail 20/50 (was 20/60).
+
+        Differences vs v13:
+        - ``sticky_trail_days=50`` — long leadership / sticky trail (was 60)
+        - ``strong_lookback=50`` — already-strong excess window (was 60)
+        - ``ers_lag_lookback=50`` — ERS lag excess window (was 60)
+        - breadth beat window in ``structure_features`` follows ``sticky_trail_days``
+        Short trail stays ``leadership_trail_days=20``. Mode hysteresis unchanged.
+        """
+        return cls(
+            mode_hysteresis_enabled=True,
+            mode_enter_trail=0.035,
+            mode_exit_trail=-0.015,
+            mode_switch_cooldown_days=3,
+            risk_override_enabled=True,
+            risk_override_stock_1d=0.08,
+            mild_defense_dd=0.06,
+            mild_defense_ret20=-0.05,
+            harsh_defense_dd=0.20,
+            harsh_defense_ret20=-0.12,
+            stock_led_min_trail=0.03,
+            index_lean_max_trail=-0.03,
+            sma50_hysteresis=0.0,
+            mode_enter_immediate=False,
+            mode_min_hold_days=0,
+            sticky_trail_days=50,
+            strong_lookback=50,
+            ers_lag_lookback=50,
+        )
+
 
 # Default capital weights (must sum to 1.0).
 V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
 # Production / paper default for v13: two-sleeve SPY/QQQ (no SMH).
 V13_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.50, "QQQ": 0.50}
 V14_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
+V15_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
 
 
 def blend_structure_gate_books(
@@ -298,9 +331,12 @@ def structure_features(
     r20 = px / px.shift(20) - 1.0
     conc = top_concentration(r20, k=cfg.top_k_conc)
     bc = bench_close.astype(float).reindex(px.index).ffill()
-    stock60 = px / px.shift(60) - 1.0
-    bench60 = bc / bc.shift(60) - 1.0
-    pct_beat60 = stock60.gt(bench60, axis=0).sum(axis=1) / px.notna().sum(axis=1).clip(lower=1)
+    # Long breadth-beat window tracks sticky_trail_days (v13=60, v15=50).
+    # Column kept as pct_beat60 for downstream compatibility.
+    lb = int(cfg.sticky_trail_days)
+    stock_lb = px / px.shift(lb) - 1.0
+    bench_lb = bc / bc.shift(lb) - 1.0
+    pct_beat60 = stock_lb.gt(bench_lb, axis=0).sum(axis=1) / px.notna().sum(axis=1).clip(lower=1)
     low20 = bc.rolling(20, min_periods=5).min()
     bounce20 = bc / low20 - 1.0
     return pd.DataFrame(
