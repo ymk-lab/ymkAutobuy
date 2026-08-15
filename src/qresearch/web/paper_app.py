@@ -213,14 +213,20 @@ def _account_snapshot() -> dict[str, Any]:
     if not has_futu_opend():
         return {
             "ok": False,
-            "error": "無法連線富途 OpenD（檢查 FUTU_OPEND_HOST/PORT，預設 127.0.0.1:11111）",
+            "error": "無法連線富途 OpenD（檢查 FUTU_OPEND_HOST/PORT，預設 127.0.0.1:11111；或 systemctl status qresearch-opend）",
         }
-    broker = FutuBrokerAdapter.from_opend(
-        dry_run=True,
-        currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
-        default_market="US",
-        simulate=True,
-    )
+    try:
+        broker = FutuBrokerAdapter.from_opend(
+            dry_run=True,
+            currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
+            default_market="US",
+            simulate=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "error": f"OpenD 已開埠但建立交易連線失敗：{exc}（若 signal 正在拉 K 線，請等它結束再同步）",
+        }
     try:
         cash = broker.get_cash()
         holdings: list[dict[str, Any]] = []
