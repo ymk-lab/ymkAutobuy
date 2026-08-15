@@ -9,8 +9,12 @@ import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import math
 from typing import Any, AsyncIterator
+
+_HKT = ZoneInfo("Asia/Hong_Kong")
+_ET = ZoneInfo("America/New_York")
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,6 +59,46 @@ def _read_json(path: Path) -> dict[str, Any] | None:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def _parse_ts(raw: object) -> datetime | None:
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _fmt_hkt(dt: datetime | None) -> str | None:
+    """YYYY-MM-DD HH:MM HKT — always include hour and minute."""
+    if dt is None:
+        return None
+    local = dt.astimezone(_HKT)
+    return local.strftime("%Y-%m-%d %H:%M HKT")
+
+
+def _file_mtime_utc(path: Path) -> datetime | None:
+    if not path.is_file():
+        return None
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _best_updated_at(*candidates: object) -> datetime | None:
+    parsed = [_parse_ts(c) for c in candidates]
+    ok = [p for p in parsed if p is not None]
+    return max(ok) if ok else None
 
 
 def _env_truthy(name: str, default: str = "0") -> bool:
@@ -546,6 +590,22 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         if diagnose_txt_path.is_file()
         else ""
     )
+    sig_path = out / "latest_signal.json"
+    diag_path = out / "latest_sleeve_diagnose.json"
+    sig_mtime = _file_mtime_utc(sig_path)
+    diag_mtime = _file_mtime_utc(diag_path)
+    signal_updated = _best_updated_at(
+        signal.get("generated_at_utc"),
+        sig_mtime.isoformat() if sig_mtime else None,
+    )
+    if sig_mtime is not None:
+        signal_updated = sig_mtime if signal_updated is None else max(signal_updated, sig_mtime)
+    diagnose_updated = _best_updated_at(
+        diagnose.get("generated_at_utc"),
+        diag_mtime.isoformat() if diag_mtime else None,
+    )
+    account_updated = _best_updated_at(account.get("updated_at_utc"))
+    now_utc = datetime.now(timezone.utc)
     return {
         "ok": True,
         "out_dir": str(out),
@@ -566,7 +626,13 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "fill_audit": audit,
         "diagnose": diagnose,
         "diagnose_text": diagnose_text,
-        "server_time_utc": datetime.now(timezone.utc).isoformat(),
+        "server_time_utc": now_utc.isoformat(),
+        "server_time_hkt": _fmt_hkt(now_utc),
+        "signal_asof": signal.get("asof"),
+        "signal_updated_at_utc": signal_updated.isoformat() if signal_updated else None,
+        "signal_updated_at_hkt": _fmt_hkt(signal_updated),
+        "account_updated_at_hkt": _fmt_hkt(account_updated),
+        "diagnose_updated_at_hkt": _fmt_hkt(diagnose_updated),
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
     }

@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -498,6 +499,7 @@ def main() -> int:
 
     report = {
         "asof": asof,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "weights": dict(V13_BOOK_WEIGHTS),
         "cfg": {
             "mode_enter_trail": cfg.mode_enter_trail,

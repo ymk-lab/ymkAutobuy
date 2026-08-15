@@ -130,6 +130,34 @@
     return String(v);
   }
 
+  function fmtHktClock(raw) {
+    /** Prefer API HKT string; else parse ISO → Asia/Hong_Kong YYYY-MM-DD HH:MM. */
+    if (raw == null || raw === "") return null;
+    const s = String(raw).trim();
+    if (/HKT\s*$/i.test(s) && /\d{2}:\d{2}/.test(s)) return s;
+    const ms = Date.parse(s);
+    if (!Number.isFinite(ms)) {
+      // date-only → show as midnight mark is misleading; keep date + ask for better field
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s} （僅日期）`;
+      return s;
+    }
+    try {
+      const fmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hong_Kong",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const parts = Object.fromEntries(fmt.formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
+      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute} HKT`;
+    } catch {
+      return s;
+    }
+  }
+
   function money(x) {
     if (x == null || Number.isNaN(Number(x))) return "—";
     return Number(x).toLocaleString("en-US", {
@@ -417,7 +445,13 @@
     }
 
     if (asofBadge) {
-      asofBadge.textContent = `asof ${diagnose.asof || "—"}`;
+      const when =
+        (statusCache && statusCache.diagnose_updated_at_hkt) ||
+        fmtHktClock(diagnose.generated_at_utc) ||
+        null;
+      asofBadge.textContent = when
+        ? `${when}${diagnose.asof ? ` · asof ${diagnose.asof}` : ""}`
+        : `asof ${diagnose.asof || "—"}`;
       asofBadge.className = "badge badge-on";
     }
 
@@ -466,8 +500,12 @@
     const prevAsof = lastSeenAsof;
     if (sig.asof) {
       if (prevAsof && prevAsof !== sig.asof) {
-        pushActivity(`自動更新：訊號日 ${prevAsof} → ${sig.asof}`, "ok");
-        toast(`訊號已更新：${sig.asof}`, "ok");
+        const when = data.signal_updated_at_hkt || fmtHktClock(sig.generated_at_utc) || "";
+        pushActivity(
+          `自動更新：訊號日 ${prevAsof} → ${sig.asof}${when ? ` @ ${when}` : ""}`,
+          "ok"
+        );
+        toast(`訊號已更新：${sig.asof}${when ? `（${when}）` : ""}`, "ok");
       }
       lastSeenAsof = sig.asof;
     }
@@ -509,7 +547,11 @@
       dayEl.textContent = signedMoney(pnl.day_pnl);
       dayEl.className = pnlClass(pnl.day_pnl);
     }
-    $("#m-asof") && ($("#m-asof").textContent = sig.asof || "—");
+    const updatedHkt =
+      data.signal_updated_at_hkt ||
+      fmtHktClock(sig.generated_at_utc) ||
+      fmtHktClock(data.signal_updated_at_utc);
+    $("#m-asof") && ($("#m-asof").textContent = updatedHkt || sig.asof || "—");
 
     $("#sg-mode-hero") && ($("#sg-mode-hero").textContent = mode);
     $("#sg-target-hero") && ($("#sg-target-hero").textContent = tgtS);
@@ -531,7 +573,9 @@
     const sub = $("#sg-monitor-sub");
     if (sub) {
       const submitTxt = submitEnabled ? "送單開啟（模擬盤）" : "只計畫、不送單";
-      sub.textContent = `asof ${sig.asof || "—"} · ${submitTxt} · paper only`;
+      const asofPart = sig.asof ? `asof ${sig.asof}` : "asof —";
+      const updPart = updatedHkt ? `更新 ${updatedHkt}` : "更新 —";
+      sub.textContent = `${asofPart} · ${updPart} · ${submitTxt} · paper only`;
     }
 
     renderOrders($("#preview-list"), sig.preview_orders || [], "尚無預覽單");
@@ -564,8 +608,11 @@
     if (sig.mode) setMode(sig.mode);
 
     const clock = $("#sg-badge-clock");
-    if (clock && data.server_time_utc) {
-      clock.textContent = String(data.server_time_utc).slice(11, 19) + "Z";
+    if (clock) {
+      clock.textContent =
+        data.server_time_hkt ||
+        fmtHktClock(data.server_time_utc) ||
+        (data.server_time_utc ? String(data.server_time_utc).slice(11, 19) + "Z" : "—");
     }
   }
 
