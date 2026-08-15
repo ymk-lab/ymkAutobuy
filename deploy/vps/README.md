@@ -89,7 +89,10 @@ systemctl list-timers 'qresearch-paper-*' --no-pager
 | 時間（美東） | unit | 動作 |
 |--------------|------|------|
 | 16:30 Mon–Fri | `qresearch-paper-signal.timer` | `run-paper.sh signal`（可 Persistent 補跑） |
+| 每 15 分鐘 | `qresearch-paper-signal-watchdog.timer` | `ensure-paper-signal.sh`：若 `asof` 落後上一交易日收盤，自動 `systemctl start` 同一支 signal service |
 | 09:40 Mon–Fri | `qresearch-paper-once.timer` | `run-paper.sh once`（不補跑，避免錯時送單） |
+
+**為何需要 watchdog**：16:30 timer 若當下 OpenD 未起、或 calendar 漏觸發，`Persistent=` 不會在服務失敗後重試。watchdog 只看 `latest_signal.asof` 是否已覆蓋「上一完整美股交易日」，過期就自動啟動 `qresearch-paper-signal.service`（不是手動跑 python）。
 
 `sync-systemd.sh` 也會順便寫入 `crontab.example` 當備份；**以 timer 為準**。
 
@@ -98,6 +101,7 @@ systemctl list-timers 'qresearch-paper-*' --no-pager
 ```bash
 bash deploy/vps/doctor.sh
 journalctl -u qresearch-paper-signal.service -n 50 --no-pager
+journalctl -u qresearch-paper-signal-watchdog.service -n 20 --no-pager
 ```
 
 UI「自動送單」仍寫 `/opt/qresearch/.env`；once 會讀 `.env` 的 `QRESEARCH_SG_PAPER_SUBMIT`。
