@@ -658,6 +658,7 @@
     const decoder = new TextDecoder();
     let buffer = "";
     let ok = false;
+    let lastError = "";
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -682,6 +683,9 @@
           pushActivity(evt.message, level);
           if (level === "ok" || level === "error" || evt.phase === "start") {
             toast(evt.message, level === "log" ? "info" : level);
+          }
+          if (level === "error" || evt.phase === "error") {
+            lastError = String(evt.message);
           }
         }
         if (evt.phase === "done") ok = !!evt.ok;
@@ -708,7 +712,9 @@
     } catch {
       /* ignore */
     }
-    if (!ok) throw new Error(`${actionLabel}未成功完成`);
+    if (!ok) {
+      throw new Error(lastError || `${actionLabel}未成功完成（未收到成功回報；請看活動紀錄上一行）`);
+    }
   }
 
   async function withAction(fn) {

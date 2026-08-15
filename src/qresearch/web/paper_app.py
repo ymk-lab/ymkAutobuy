@@ -809,12 +809,23 @@ async def api_sg_sync_account() -> StreamingResponse:
                 else "無持倉"
             )
             pnl = saved.get("pnl") or {}
+
             def _refresh_audit() -> dict[str, Any]:
                 a = audit_from_out_dir(_sg_out_dir())
                 write_audit(_sg_out_dir(), a)
                 return a
 
-            audit = await asyncio.to_thread(_refresh_audit)
+            audit: dict[str, Any] = {}
+            try:
+                audit = await asyncio.to_thread(_refresh_audit)
+            except Exception as audit_exc:  # noqa: BLE001
+                yield _sse(
+                    {
+                        "phase": "progress",
+                        "message": f"警告：帳戶已同步，成交查核略過（{audit_exc}）",
+                        "level": "info",
+                    }
+                )
             audit_st = (audit and audit.get("status")) or "—"
             yield _sse(
                 {
@@ -830,10 +841,11 @@ async def api_sg_sync_account() -> StreamingResponse:
             )
             status = _sg_status_payload(live=False)
             status["account"] = saved
-            status["fill_audit"] = audit
+            if audit:
+                status["fill_audit"] = audit
             yield _sse({"phase": "done", "ok": True, "data": status})
         except Exception as exc:  # noqa: BLE001
-            yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
+            yield _sse({"phase": "error", "message": f"失敗：同步帳戶例外 — {exc}", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
         finally:
             _lock.release()
