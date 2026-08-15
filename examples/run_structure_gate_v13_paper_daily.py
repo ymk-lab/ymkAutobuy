@@ -238,6 +238,31 @@ def _cache_last_date(cache: Path, sym: str) -> date | None:
         return None
 
 
+def expected_us_bar_date(now: datetime | None = None) -> date:
+    """Latest US cash-session date whose daily bar should already exist.
+
+    Uses America/New_York (not the VPS local calendar). Sat/Sun → prior Friday.
+    Before 16:00 ET on a weekday → prior session (today's bar not closed yet).
+    """
+    from datetime import timedelta
+
+    et = ZoneInfo("America/New_York")
+    if now is None:
+        now = datetime.now(et)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=et)
+    else:
+        now = now.astimezone(et)
+    d = now.date()
+    if now.weekday() >= 5:  # Sat/Sun → Friday
+        d = d - timedelta(days=now.weekday() - 4)
+    elif (now.hour, now.minute) < (16, 0):
+        d = d - timedelta(days=1)
+        while d.weekday() >= 5:
+            d -= timedelta(days=1)
+    return d
+
+
 def _refresh_symbol_yfinance(cache: Path, sym: str) -> bool:
     try:
         import yfinance as yf
@@ -274,11 +299,11 @@ def _refresh_symbol_yfinance(cache: Path, sym: str) -> bool:
 def ensure_market_data(cache: Path, *, refresh: bool) -> None:
     """Ensure sleeve benches stay current; bootstrap missing members once.
 
-    A warm cache used to skip *all* history refresh, so ``asof`` could stick on
-    an old session and the next ``once`` cron would no-op (already submitted).
+    Stale rule: last bar date must be >= ``expected_us_bar_date()`` (ET session).
+    Weekend used to use ``today-3``, which wrongly treated Thu/Fri bars as fresh
+    on Saturday and skipped refresh — leaving ``asof`` stuck while wall-clock
+    ``generated_at`` / file mtime still advanced.
     """
-    from datetime import timedelta
-
     benches = list(WEIGHTS)
     light = sorted(set(benches) | set(book_members("QQQ")) | set(book_members("SPY")))
     cache.mkdir(parents=True, exist_ok=True)
@@ -292,38 +317,45 @@ def ensure_market_data(cache: Path, *, refresh: bool) -> None:
 
     missing = [s for s in light if _needed(s)]
     force = _env_bool("QRESEARCH_FORCE_REFRESH", False)
-    today = date.today()
-    # Benches older than 3 calendar days are always stale (covers long weekends).
-    # On weekdays, also refresh if last bar is before yesterday.
-    stale_cutoff = today - timedelta(days=3 if today.weekday() >= 5 else 1)
-    stale_benches = [
-        b
-        for b in benches
-        if (refresh or force)
-        and ((_cache_last_date(cache, b) or date(1970, 1, 1)) < stale_cutoff)
-    ]
+    expect = expected_us_bar_date()
+    et_now = datetime.now(ZoneInfo("America/New_York"))
+    log(f"cache expect_us_bar={expect} et_now={et_now.isoformat(timespec='minutes')}")
+
+    def _is_stale(sym: str) -> bool:
+        last = _cache_last_date(cache, sym) or date(1970, 1, 1)
+        return last < expect
+
+    stale_benches = [b for b in benches if (refresh or force) and _is_stale(b)]
+    # When any bench lags the last US session, also refresh members behind that bar.
+    stale_members: list[str] = []
+    if stale_benches or force:
+        stale_members = [s for s in light if s not in benches and (force or _is_stale(s))]
 
     if not missing and not force and not stale_benches:
         lasts = {b: str(_cache_last_date(cache, b)) for b in benches}
-        log(f"cache warm — benches fresh {lasts}; skip bulk refresh")
+        log(f"cache warm — benches fresh vs {expect}: {lasts}; skip bulk refresh")
         return
 
-    want_futu = list(dict.fromkeys([*stale_benches, *(light if force else missing)]))
+    want_futu = list(
+        dict.fromkeys(
+            [*stale_benches, *missing, *(stale_members if stale_benches or force else [])]
+        )
+    )
     if want_futu:
         log(
-            f"refresh futu n={len(want_futu)} stale_benches={stale_benches} "
+            f"refresh futu n={len(want_futu)} expect={expect} "
+            f"stale_benches={stale_benches} stale_members={len(stale_members)} "
             f"missing={len(missing)} force={int(force)}"
         )
         n_futu = refresh_via_futu(want_futu, cache)
         log(f"futu refreshed ok={n_futu}")
 
-    # Yahoo fallback for still-missing members and still-stale benches.
+    # Yahoo fallback for still-missing members and still-stale names.
     still_missing = [s for s in light if _needed(s)]
     still_stale = [
-        b
-        for b in benches
-        if (refresh or force)
-        and ((_cache_last_date(cache, b) or date(1970, 1, 1)) < stale_cutoff)
+        s
+        for s in ([*benches, *stale_members] if (stale_benches or force) else benches)
+        if (refresh or force) and _is_stale(s)
     ]
     for sym in list(dict.fromkeys([*still_stale, *still_missing])):
         if sym in still_stale or load_cache(cache, sym) is None:
@@ -334,6 +366,12 @@ def ensure_market_data(cache: Path, *, refresh: bool) -> None:
             continue
         if load_cache(cache, sym) is None and not _skip_path(cache, sym).is_file():
             _skip_path(cache, sym).write_text("skip\n", encoding="utf-8")
+
+    lasts = {b: str(_cache_last_date(cache, b)) for b in benches}
+    log(f"cache after refresh expect={expect} benches={lasts}")
+    behind = [b for b in benches if _is_stale(b)]
+    if behind:
+        log(f"WARN: benches still behind expect={expect}: {behind}")
 
 
 def build_book_panel(
