@@ -1,0 +1,120 @@
+{
+  "n_days": 27,
+  "cash_share": 0.5925925925925926,
+  "bench_share": 0.4074074074074074,
+  "defense_share": 1.0,
+  "ers_strong_share": 0.0,
+  "pass_defense": true,
+  "risk_override_pierce_days": 0,
+  "stock_crash_override_days": 0,
+  "mode_daily": [
+    {
+      "date": "2024-07-10",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-11",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-12",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-15",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-16",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-17",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-18",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-19",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-22",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-23",
+      "mode": "bench"
+    },
+    {
+      "date": "2024-07-24",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-07-25",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-07-26",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-07-29",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-07-30",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-07-31",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-01",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-02",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-05",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-06",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-07",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-08",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-09",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-12",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-13",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-14",
+      "mode": "cash"
+    },
+    {
+      "date": "2024-08-15",
+      "mode": "bench"
+    }
+  ]
+}
