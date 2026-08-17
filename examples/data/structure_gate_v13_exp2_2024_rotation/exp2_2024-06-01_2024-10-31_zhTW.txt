@@ -1,0 +1,20 @@
+=== 實驗 2：v13 2024 科技輪動 / 快速回撤壓力測 ===
+窗：2024-06-01 → 2024-10-31｜核心壓力：2024-07-10 → 2024-08-15
+資本 $50,000｜權重 SPY50/QQQ50｜參數不變 v13
+資料：Yahoo 2023-01-01→2024-11-15｜symbols_ok=505
+
+Blend：ret +9.32%｜maxDD -8.38%｜Sharpe 1.28｜trades 22
+QQQ B&H：+6.71%｜SPY B&H：+8.13%｜靜態 SPY50/QQQ50：+7.34%
+vsQQQ +2.6pp｜vsSPY +1.2pp｜vsStatic +2.0pp
+
+袖口：
+  SPY: +7.58%｜maxDD -7.28%｜trades 5｜核心 defense 100% (cash 19/bench 81/ers+strong 0)｜pierce 0｜crash8% 0
+  QQQ: +11.06%｜maxDD -16.22%｜trades 17｜核心 defense 100% (cash 59/bench 41/ers+strong 0)｜pierce 0｜crash8% 0
+
+判準：
+  1) 核心期成功坐 cash/bench（≥70%）：PASS (加權 defense 100%)
+  2) vs QQQ alpha ≥ +5pp：FAIL (實際 +2.6pp)
+總判決：FAIL
+
+預期失效模式：遲滯 3.5%/−1.5% 頂部鎖利太慢；底部冷靜期無法及時回補。
+註：相對 v13 調參窗為 OOS。

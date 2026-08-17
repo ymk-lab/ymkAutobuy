@@ -1,4 +1,4 @@
-"""FastAPI control panel for Structure Gate v11 Futu paper trading."""
+"""FastAPI control panel for Structure Gate v13 Futu paper trading."""
 
 from __future__ import annotations
 
@@ -9,8 +9,12 @@ import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import math
 from typing import Any, AsyncIterator
+
+_HKT = ZoneInfo("Asia/Hong_Kong")
+_ET = ZoneInfo("America/New_York")
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,13 +26,14 @@ from qresearch.paper.fill_audit import audit_from_out_dir, load_fills_ledger, wr
 ROOT = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parent / "static"
 DEFAULT_OUT = ROOT / "examples" / "data" / "emerging_rs_g1_paper"
-DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v11_paper"
+DEFAULT_SG_OUT = ROOT / "examples" / "data" / "structure_gate_v13_paper"
 DAILY = ROOT / "examples" / "run_emerging_rs_g1_paper_daily.py"
-SG_DAILY = ROOT / "examples" / "run_structure_gate_v11_paper_daily.py"
-SG_BLEND = ROOT / "examples" / "run_structure_gate_v11_blend.py"
-BLEND_SUMMARY = ROOT / "examples" / "data" / "structure_gate_v11_blend" / "summary.json"
+SG_DAILY = ROOT / "examples" / "run_structure_gate_v13_paper_daily.py"
+SG_BLEND = ROOT / "examples" / "run_structure_gate_v13_blend.py"
+SG_DIAGNOSE = ROOT / "examples" / "diagnose_structure_gate_v13_sleeves.py"
+BLEND_SUMMARY = ROOT / "examples" / "data" / "structure_gate_v13_blend" / "summary.json"
 
-app = FastAPI(title="qresearch Structure Gate v11 · Futu Paper", version="0.4.0")
+app = FastAPI(title="qresearch Structure Gate v13 · Futu Paper", version="0.5.0")
 _lock = threading.Lock()
 
 
@@ -56,6 +61,46 @@ def _read_json(path: Path) -> dict[str, Any] | None:
         return None
 
 
+def _parse_ts(raw: object) -> datetime | None:
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _fmt_hkt(dt: datetime | None) -> str | None:
+    """YYYY-MM-DD HH:MM HKT — always include hour and minute."""
+    if dt is None:
+        return None
+    local = dt.astimezone(_HKT)
+    return local.strftime("%Y-%m-%d %H:%M HKT")
+
+
+def _file_mtime_utc(path: Path) -> datetime | None:
+    if not path.is_file():
+        return None
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _best_updated_at(*candidates: object) -> datetime | None:
+    parsed = [_parse_ts(c) for c in candidates]
+    ok = [p for p in parsed if p is not None]
+    return max(ok) if ok else None
+
+
 def _env_truthy(name: str, default: str = "0") -> bool:
     return os.getenv(name, default).strip().lower() in {
         "1",
@@ -67,6 +112,32 @@ def _env_truthy(name: str, default: str = "0") -> bool:
 
 def _env_submit() -> bool:
     return _env_truthy("QRESEARCH_LB_SUBMIT", "0")
+
+
+def _upsert_env_file(path: Path, updates: dict[str, str]) -> None:
+    """Create/update KEY=value lines in an env file (preserves other lines)."""
+    existing = _read_text(path).splitlines() if path.is_file() else []
+    found = {k: False for k in updates}
+    lines: list[str] = []
+    for line in existing:
+        replaced = False
+        for key, val in updates.items():
+            if line.startswith(f"{key}="):
+                lines.append(f"{key}={val}")
+                found[key] = True
+                replaced = True
+                break
+        if not replaced:
+            lines.append(line)
+    for key, val in updates.items():
+        if not found[key]:
+            lines.append(f"{key}={val}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_text(path, "\n".join(lines) + "\n")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
 
 
 def _env_sg_submit() -> bool:
@@ -142,14 +213,20 @@ def _account_snapshot() -> dict[str, Any]:
     if not has_futu_opend():
         return {
             "ok": False,
-            "error": "無法連線富途 OpenD（檢查 FUTU_OPEND_HOST/PORT，預設 127.0.0.1:11111）",
+            "error": "無法連線富途 OpenD（檢查 FUTU_OPEND_HOST/PORT，預設 127.0.0.1:11111；或 systemctl status qresearch-opend）",
         }
-    broker = FutuBrokerAdapter.from_opend(
-        dry_run=True,
-        currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
-        default_market="US",
-        simulate=True,
-    )
+    try:
+        broker = FutuBrokerAdapter.from_opend(
+            dry_run=True,
+            currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
+            default_market="US",
+            simulate=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "error": f"OpenD 已開埠但建立交易連線失敗：{exc}（若 signal 正在拉 K 線，請等它結束再同步）",
+        }
     try:
         cash = broker.get_cash()
         holdings: list[dict[str, Any]] = []
@@ -193,7 +270,7 @@ def _account_snapshot() -> dict[str, Any]:
 
         quotes: dict[str, float] = {}
         quote_meta: dict[str, dict[str, float]] = {}
-        syms = sorted(set(positions) | {"SPY.US", "QQQ.US", "SMH.US"})
+        syms = sorted(set(positions) | {"SPY.US", "QQQ.US"})
         quote_warning = None
         try:
             quotes = broker.snapshot_quotes(syms)
@@ -407,22 +484,22 @@ def structure_gate_page() -> FileResponse:
 
 @app.get("/api/structure-gate/v8")
 def structure_gate_v8_config() -> JSONResponse:
-    """Expose Structure Gate knobs (v11 == v8) for the rules UI."""
+    """Expose Structure Gate knobs (v13) for the rules UI."""
     sys.path.insert(0, str(ROOT / "src"))
     from dataclasses import asdict
 
-    from qresearch.strategy.structure_gate import V11_BOOK_WEIGHTS, StructureGateConfig
+    from qresearch.strategy.structure_gate import V13_BOOK_WEIGHTS, StructureGateConfig
 
-    cfg = StructureGateConfig.v11()
+    cfg = StructureGateConfig.v13()
     payload = asdict(cfg)
     # EmergingRSWaveConfig is nested; keep JSON-safe primitives only.
     if payload.get("ers_config") is not None:
         payload["ers_config"] = str(payload["ers_config"])
     return JSONResponse(
         {
-            "preset": "v11",
-            "rule": "structure_gate_v11_blend",
-            "weights": dict(V11_BOOK_WEIGHTS),
+            "preset": "v13",
+            "rule": "structure_gate_v13_blend",
+            "weights": dict(V13_BOOK_WEIGHTS),
             "priority": [
                 "harsh_ret",
                 "thrust",
@@ -451,8 +528,8 @@ def structure_gate_v8_config() -> JSONResponse:
     )
 
 
-def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
-    """Map v11 blend summary → UI latest_backtest fields."""
+def _flatten_v13_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
+    """Map v13 blend summary → UI latest_backtest fields."""
     if not summary:
         return {}
     windows = summary.get("windows") or []
@@ -470,8 +547,8 @@ def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
     spy = w.get("spy_bh") or {}
     return {
         "ok": True,
-        "book": "V11",
-        "preset": "v11_blend",
+        "book": "V13",
+        "preset": "v13_blend",
         "start": w.get("start"),
         "end": w.get("end"),
         "structure_gate_total_return": blend.get("total_return"),
@@ -484,9 +561,9 @@ def _flatten_v11_backtest(summary: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def _publish_v11_backtest() -> dict[str, Any]:
+def _publish_v13_backtest() -> dict[str, Any]:
     summary = _read_json(BLEND_SUMMARY) or {}
-    flat = _flatten_v11_backtest(summary)
+    flat = _flatten_v13_backtest(summary)
     if flat:
         (_sg_out_dir() / "latest_backtest.json").write_text(
             json.dumps(flat, indent=2, default=float) + "\n"
@@ -510,17 +587,42 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         )
     else:
         account = _account_from_files(sg=True)
-    weights = signal.get("weights") or {"SPY": 0.4, "QQQ": 0.3, "SMH": 0.3}
+    weights = signal.get("weights") or {"SPY": 0.5, "QQQ": 0.5}
     audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
+    diagnose = _read_json(out / "latest_sleeve_diagnose.json") or {}
+    diagnose_txt_path = out / "latest_sleeve_diagnose.txt"
+    diagnose_text = (
+        diagnose_txt_path.read_text(encoding="utf-8", errors="replace")
+        if diagnose_txt_path.is_file()
+        else ""
+    )
+    sig_path = out / "latest_signal.json"
+    diag_path = out / "latest_sleeve_diagnose.json"
+    sig_mtime = _file_mtime_utc(sig_path)
+    diag_mtime = _file_mtime_utc(diag_path)
+    signal_updated = _best_updated_at(
+        signal.get("generated_at_utc"),
+        sig_mtime.isoformat() if sig_mtime else None,
+    )
+    if sig_mtime is not None:
+        signal_updated = sig_mtime if signal_updated is None else max(signal_updated, sig_mtime)
+    diagnose_updated = _best_updated_at(
+        diagnose.get("generated_at_utc"),
+        diag_mtime.isoformat() if diag_mtime else None,
+    )
+    account_updated = _best_updated_at(account.get("updated_at_utc"))
+    now_utc = datetime.now(timezone.utc)
     return {
         "ok": True,
         "out_dir": str(out),
-        "book": "V11",
-        "preset": signal.get("preset") or "v11",
+        "book": "V13",
+        "preset": signal.get("preset") or "v13",
         "broker": "futu",
         "weights": weights,
         "submit_enabled": _env_sg_submit(),
         "paper_only": _env_truthy("QRESEARCH_SG_PAPER_ONLY", "1"),
+        "execution": "rth_0940_et",
+        "execution_note": "signal at prior close; submit at 09:40 America/New_York",
         "sleeve_usd": os.getenv("QRESEARCH_SLEEVE_USD", ""),
         "signal": signal,
         "account": account,
@@ -528,13 +630,146 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "state": state,
         "backtest": backtest,
         "fill_audit": audit,
-        "server_time_utc": datetime.now(timezone.utc).isoformat(),
+        "diagnose": diagnose,
+        "diagnose_text": diagnose_text,
+        "server_time_utc": now_utc.isoformat(),
+        "server_time_hkt": _fmt_hkt(now_utc),
+        "signal_asof": signal.get("asof"),
+        "signal_updated_at_utc": signal_updated.isoformat() if signal_updated else None,
+        "signal_updated_at_hkt": _fmt_hkt(signal_updated),
+        "account_updated_at_hkt": _fmt_hkt(account_updated),
+        "diagnose_updated_at_hkt": _fmt_hkt(diagnose_updated),
+        "recent_logs": _recent_sg_log_meta(8),
+        "log_view": _default_sg_log_view(),
     }
 
 
 @app.get("/api/sg/status")
 def api_sg_status(live: int = Query(0, ge=0, le=1)) -> dict[str, Any]:
     return _sg_status_payload(live=bool(live))
+
+
+@app.get("/api/sg/diagnose")
+def api_sg_diagnose() -> dict[str, Any]:
+    """Return latest sleeve diagnose JSON/text (why BENCH + near-ERS)."""
+    out = _sg_out_dir()
+    diagnose = _read_json(out / "latest_sleeve_diagnose.json") or {}
+    txt_path = out / "latest_sleeve_diagnose.txt"
+    text = txt_path.read_text(encoding="utf-8", errors="replace") if txt_path.is_file() else ""
+    return {
+        "ok": bool(diagnose) or bool(text),
+        "out_dir": str(out),
+        "diagnose": diagnose,
+        "diagnose_text": text,
+        "path_json": str(out / "latest_sleeve_diagnose.json"),
+        "path_txt": str(txt_path),
+    }
+
+
+@app.get("/api/sg/run-diagnose")
+async def api_sg_run_diagnose() -> StreamingResponse:
+    """Recompute sleeve diagnose from paper OHLCV cache (SSE)."""
+
+    async def gen() -> AsyncIterator[str]:
+        yield _sse({"phase": "start", "message": "處理中：排隊啟動袖口診斷…", "level": "info"})
+        if not _lock.acquire(blocking=False):
+            # Still return any existing diagnose so UI can show last good report.
+            status = _sg_status_payload(live=False)
+            yield _sse(
+                {
+                    "phase": "error",
+                    "message": "忙碌中：另一工作執行中（例如 signal）。請稍候再按「重新診斷」。",
+                    "level": "error",
+                    "data": status,
+                }
+            )
+            yield _sse({"phase": "done", "ok": False, "data": status})
+            return
+        try:
+            if not SG_DIAGNOSE.is_file():
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"找不到腳本 {SG_DIAGNOSE}",
+                        "level": "error",
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False})
+                return
+            env = os.environ.copy()
+            env["QRESEARCH_SG_PAPER_OUT"] = str(_sg_out_dir())
+            env["PYTHONUNBUFFERED"] = "1"
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["PYTHONUTF8"] = "1"
+            env["PYTHONPATH"] = str(ROOT / "src") + (
+                os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+            )
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": "處理中：讀取 cache、計算為何 BENCH／近 ERS…",
+                    "level": "info",
+                }
+            )
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    _python(),
+                    str(SG_DIAGNOSE),
+                    cwd=str(ROOT),
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                assert proc.stdout is not None
+                while True:
+                    line = await proc.stdout.readline()
+                    if not line:
+                        break
+                    text = line.decode("utf-8", errors="replace").rstrip()
+                    if text:
+                        yield _sse({"phase": "log", "message": text, "level": "log"})
+                code = await proc.wait()
+            except Exception as exc:  # noqa: BLE001
+                status = await asyncio.to_thread(lambda: _sg_status_payload(live=False))
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"診斷進程異常：{exc}",
+                        "level": "error",
+                        "data": status,
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False, "data": status})
+                return
+
+            status = await asyncio.to_thread(lambda: _sg_status_payload(live=False))
+            diagnose = status.get("diagnose") or {}
+            if code == 0 and (diagnose or status.get("diagnose_text")):
+                asof = diagnose.get("asof") or "—"
+                yield _sse(
+                    {
+                        "phase": "progress",
+                        "message": f"完成：袖口診斷 asof={asof}",
+                        "level": "ok",
+                        "data": status,
+                    }
+                )
+                yield _sse({"phase": "done", "ok": True, "data": status})
+            else:
+                # Prefer surfacing last stderr-ish log via exit code; keep prior report in data.
+                yield _sse(
+                    {
+                        "phase": "error",
+                        "message": f"診斷失敗 exit={code}（若下方仍有舊報告可先用）",
+                        "level": "error",
+                        "data": status,
+                    }
+                )
+                yield _sse({"phase": "done", "ok": False, "data": status})
+        finally:
+            _lock.release()
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/api/sg/fills")
@@ -580,12 +815,23 @@ async def api_sg_sync_account() -> StreamingResponse:
                 else "無持倉"
             )
             pnl = saved.get("pnl") or {}
+
             def _refresh_audit() -> dict[str, Any]:
                 a = audit_from_out_dir(_sg_out_dir())
                 write_audit(_sg_out_dir(), a)
                 return a
 
-            audit = await asyncio.to_thread(_refresh_audit)
+            audit: dict[str, Any] = {}
+            try:
+                audit = await asyncio.to_thread(_refresh_audit)
+            except Exception as audit_exc:  # noqa: BLE001
+                yield _sse(
+                    {
+                        "phase": "progress",
+                        "message": f"警告：帳戶已同步，成交查核略過（{audit_exc}）",
+                        "level": "info",
+                    }
+                )
             audit_st = (audit and audit.get("status")) or "—"
             yield _sse(
                 {
@@ -601,10 +847,11 @@ async def api_sg_sync_account() -> StreamingResponse:
             )
             status = _sg_status_payload(live=False)
             status["account"] = saved
-            status["fill_audit"] = audit
+            if audit:
+                status["fill_audit"] = audit
             yield _sse({"phase": "done", "ok": True, "data": status})
         except Exception as exc:  # noqa: BLE001
-            yield _sse({"phase": "error", "message": f"錯誤：{exc}", "level": "error"})
+            yield _sse({"phase": "error", "message": f"失敗：同步帳戶例外 — {exc}", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
         finally:
             _lock.release()
@@ -612,20 +859,130 @@ async def api_sg_sync_account() -> StreamingResponse:
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
+def _sg_log_files(log_dir: Path) -> list[Path]:
+    if not log_dir.is_dir():
+        return []
+    return sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def _score_sg_log(path: Path) -> tuple[int, float]:
+    """Higher is better: prefer successful once submits over dry submit=0 plans."""
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        return (-100, path.stat().st_mtime)
+    head = "\n".join(text.splitlines()[:40]).lower()
+    score = 0
+    name = path.name.lower()
+    if "once" in name or "submit" in name:
+        score += 5
+    if "signal" in name and "once" not in name:
+        score -= 1
+    if "submit=1" in head or "submit=true" in head:
+        score += 10
+    if "submit=0" in head or "submit=false" in head:
+        score -= 8
+    if "plan only" in head or "submit=0 — plan only" in head:
+        score -= 12
+    if "futu paper fills=" in head or "fill_audit=pass" in text.lower():
+        score += 20
+    if "already submitted" in head:
+        score += 3
+    if "error" in head or "refuse" in head:
+        score -= 4
+    return (score, path.stat().st_mtime)
+
+
+def _pick_sg_log(files: list[Path], *, prefer: str = "smart") -> Path | None:
+    if not files:
+        return None
+    if prefer == "latest":
+        return files[0]
+    ranked = sorted(files, key=_score_sg_log, reverse=True)
+    return ranked[0]
+
+
+def _recent_sg_log_meta(n: int = 8) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for p in _sg_log_files(_sg_out_dir() / "logs")[:n]:
+        sc, mtime = _score_sg_log(p)
+        out.append(
+            {
+                "name": p.name,
+                "mtime_utc": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
+                "score": sc,
+            }
+        )
+    return out
+
+
+def _default_sg_log_view() -> dict[str, Any] | None:
+    p = _pick_sg_log(_sg_log_files(_sg_out_dir() / "logs"))
+    if p is None:
+        return None
+    return {"file": p.name, "score": _score_sg_log(p)[0]}
+
+
 @app.get("/api/sg/logs")
-def api_sg_logs(tail: int = Query(80, ge=1, le=500)) -> dict[str, Any]:
+def api_sg_logs(
+    tail: int = Query(80, ge=1, le=500),
+    file: str | None = Query(None, description="Exact log file name under logs/"),
+    prefer: str = Query("smart", pattern="^(smart|latest)$"),
+) -> dict[str, Any]:
     log_dir = _sg_out_dir() / "logs"
-    files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+    files = _sg_log_files(log_dir)
     json_runs = sorted(log_dir.glob("run_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if files:
-        path = files[0]
-        lines = path.read_text(errors="replace").splitlines()
-        return {"ok": True, "file": path.name, "lines": lines[-tail:]}
-    if json_runs:
+
+    catalog: list[dict[str, Any]] = []
+    for p in files[:30]:
+        sc, mtime = _score_sg_log(p)
+        catalog.append(
+            {
+                "name": p.name,
+                "mtime_utc": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
+                "bytes": p.stat().st_size,
+                "score": sc,
+            }
+        )
+
+    path: Path | None = None
+    if file:
+        cand = log_dir / Path(file).name
+        if cand.is_file() and cand.suffix == ".log" and cand.resolve().parent == log_dir.resolve():
+            path = cand
+        else:
+            return {
+                "ok": False,
+                "error": f"log file not found: {file}",
+                "file": None,
+                "lines": [],
+                "files": catalog,
+            }
+    elif files:
+        path = _pick_sg_log(files, prefer=prefer)
+    elif json_runs:
         path = json_runs[0]
         text = path.read_text(errors="replace")
-        return {"ok": True, "file": path.name, "lines": text.splitlines()[-tail:]}
-    return {"ok": True, "file": None, "lines": []}
+        return {
+            "ok": True,
+            "file": path.name,
+            "lines": text.splitlines()[-tail:],
+            "files": catalog,
+            "prefer": prefer,
+        }
+
+    if path is None:
+        return {"ok": True, "file": None, "lines": [], "files": catalog, "prefer": prefer}
+
+    lines = path.read_text(errors="replace").splitlines()
+    return {
+        "ok": True,
+        "file": path.name,
+        "lines": lines[-tail:],
+        "files": catalog,
+        "prefer": prefer,
+        "score": _score_sg_log(path)[0],
+    }
 
 
 @app.get("/api/sg/run")
@@ -633,12 +990,12 @@ async def api_sg_run(
     mode: str = Query("once", pattern="^(signal|once|backtest)$"),
     submit: int = Query(0, ge=0, le=1),
     refresh: int = Query(1, ge=0, le=1),
-    book: str = Query("V11"),
+    book: str = Query("V13"),
     start: str | None = Query(None, description="Backtest start YYYY-MM-DD"),
     end: str | None = Query(None, description="Backtest end YYYY-MM-DD"),
 ) -> StreamingResponse:
     async def gen() -> AsyncIterator[str]:
-        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v11…", "level": "info"})
+        yield _sse({"phase": "start", "message": "處理中：排隊啟動 Structure Gate v13…", "level": "info"})
         if not _lock.acquire(blocking=False):
             yield _sse({"phase": "error", "message": "忙碌中：請稍候再試", "level": "error"})
             yield _sse({"phase": "done", "ok": False})
@@ -670,7 +1027,7 @@ async def api_sg_run(
             env["QRESEARCH_LB_SUBMIT"] = "0"  # never couple to G1 live submit
             env["QRESEARCH_REFRESH_CACHE"] = "1" if refresh else "0"
             env["QRESEARCH_SG_PAPER_OUT"] = str(_sg_out_dir())
-            env["QRESEARCH_SG_BOOK"] = "V11"
+            env["QRESEARCH_SG_BOOK"] = "V13"
             env["FUTU_TRD_ENV"] = env.get("FUTU_TRD_ENV") or "SIMULATE"
             env["PYTHONUNBUFFERED"] = "1"
             env["PYTHONIOENCODING"] = "utf-8"
@@ -680,7 +1037,7 @@ async def api_sg_run(
             )
 
             if mode == "backtest":
-                label = "v11 blend 回測（不下單）"
+                label = "v13 blend 回測（不下單）"
             elif want_submit:
                 label = "送單到富途模擬盤（paper only）"
             else:
@@ -689,7 +1046,7 @@ async def api_sg_run(
                 {
                     "phase": "progress",
                     "message": (
-                        f"處理中：mode={mode} book=V11，{label}，"
+                        f"處理中：mode={mode} book=V13，{label}，"
                         f"refresh={bool(refresh)}"
                     ),
                     "level": "info",
@@ -699,9 +1056,9 @@ async def api_sg_run(
                 {
                     "phase": "progress",
                     "message": (
-                        "處理中：v11 blend 回測…"
+                        "處理中：v13 blend 回測…"
                         if mode == "backtest"
-                        else "處理中：快取／OpenD 日 K + 計算 Structure Gate v11…"
+                        else "處理中：快取／OpenD 日 K + 計算 Structure Gate v13…"
                     ),
                     "level": "info",
                 }
@@ -762,7 +1119,7 @@ async def api_sg_run(
 
             code = await proc.wait()
             if mode == "backtest" and code == 0:
-                await asyncio.to_thread(_publish_v11_backtest)
+                await asyncio.to_thread(_publish_v13_backtest)
 
             try:
                 status = await asyncio.to_thread(lambda: _sg_status_payload(live=True))
@@ -773,7 +1130,7 @@ async def api_sg_run(
             if code == 0:
                 if mode == "backtest":
                     msg = (
-                        f"完成 v11 回測：{backtest.get('start')}→{backtest.get('end')} "
+                        f"完成 v13 回測：{backtest.get('start')}→{backtest.get('end')} "
                         f"SG={float(backtest.get('structure_gate_total_return') or 0)*100:.1f}% "
                         f"SPY_BH={float(backtest.get('bench_bh_total_return') or 0)*100:.1f}%"
                     )
@@ -821,39 +1178,28 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
             return
         try:
             env_path = ROOT / ".env"
-            if not env_path.is_file():
-                yield _sse({"phase": "error", "message": "找不到 .env", "level": "error"})
+            app_env = ROOT / "deploy" / "vps" / "secrets" / "local" / "app.env"
+            if not env_path.is_file() and not app_env.is_file():
+                yield _sse({"phase": "error", "message": "找不到 .env / app.env", "level": "error"})
                 yield _sse({"phase": "done", "ok": False})
                 return
 
             def _write() -> None:
-                lines = []
-                found_submit = False
-                found_only = False
-                for line in _read_text(env_path).splitlines():
-                    if line.startswith("QRESEARCH_SG_PAPER_SUBMIT="):
-                        lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
-                        found_submit = True
-                    elif line.startswith("QRESEARCH_SG_PAPER_ONLY="):
-                        lines.append("QRESEARCH_SG_PAPER_ONLY=1")
-                        found_only = True
-                    else:
-                        lines.append(line)
-                if not found_submit:
-                    lines.append(f"QRESEARCH_SG_PAPER_SUBMIT={enabled}")
-                if not found_only:
-                    lines.append("QRESEARCH_SG_PAPER_ONLY=1")
-                _write_text(env_path, "\n".join(lines) + "\n")
-                try:
-                    env_path.chmod(0o600)
-                except OSError:
-                    pass
+                updates = {
+                    "QRESEARCH_SG_PAPER_SUBMIT": str(enabled),
+                    "QRESEARCH_SG_PAPER_ONLY": "1",
+                }
+                # UI toggle must reach cron: write both repo .env and VPS app.env.
+                if env_path.is_file() or not app_env.is_file():
+                    _upsert_env_file(env_path, updates)
+                if app_env.is_file():
+                    _upsert_env_file(app_env, updates)
                 os.environ["QRESEARCH_SG_PAPER_SUBMIT"] = str(enabled)
                 os.environ["QRESEARCH_SG_PAPER_ONLY"] = "1"
 
             await asyncio.to_thread(_write)
             msg = (
-                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1）"
+                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1；含 cron）"
                 if enabled
                 else "已關閉 Structure Gate 送單（只計畫）"
             )

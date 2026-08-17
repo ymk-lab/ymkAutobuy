@@ -1,0 +1,14 @@
+[Unit]
+Description=Watchdog: ensure post-close signal asof is current
+
+[Timer]
+# Primary 16:30 timer can miss if OpenD was down or calendar misfired.
+# Re-check often; ensure-paper-signal.sh is a no-op when asof is fresh.
+OnBootSec=3min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Persistent=true
+Unit=qresearch-paper-signal-watchdog.service
+
+[Install]
+WantedBy=timers.target

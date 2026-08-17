@@ -48,7 +48,12 @@ crontab -e
 # 貼上 deploy/vps-cron/crontab.example 內容，路徑改成你的 clone
 ```
 
-預設：**美東 16:30（週一至五）** 跑一次（美股現金收盤後）。
+Structure Gate v11（Futu）預設兩段式（`CRON_TZ=America/New_York`）：
+
+- **16:30** `signal`（只算目標）
+- **09:40** `once`（送單；官方成交時點，不用 09:30）
+
+舊的 G1／長橋單行 cron 仍可對照 `crontab.example` 註解。
 
 ## 4. 開啟自動下單（模擬盤）
 
@@ -111,10 +116,10 @@ cat examples/data/structure_gate_v8_paper/latest_signal.json
 
 # 確認 target / preview_orders 後：
 # 把 QRESEARCH_SG_PAPER_SUBMIT=1 寫進 .env
-crontab -e   # 貼上 crontab.example 裡 Structure Gate 那一行（美東 16:35）
+crontab -e   # 貼上 crontab.example：16:30 signal + 09:40 once
 ```
 
-之後每個美股交易日收盤後，cron 會：抓長橋日 K → 算 v8 mode → 對**模擬盤**市價調倉。  
+每個美股交易日：收盤後算 mode／目標，**次日 09:40 ET** 對模擬盤調倉。  
 同一 `asof` 不會重複下單（`state.json`）；要重送設 `QRESEARCH_FORCE=1`。
 
 | 路徑 | 說明 |

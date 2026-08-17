@@ -1,0 +1,19 @@
+[Unit]
+Description=Futu OpenD (qresearch VPS, loopback)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=REPLACE_USER
+Group=REPLACE_USER
+WorkingDirectory=/opt/futuopend
+Environment=FUTU_OPEND_BIN=/opt/futuopend/FutuOpenD
+Environment=FUTU_OPEND_XML=/opt/futuopend/FutuOpenD.xml
+Environment=QRESEARCH_OPEND_LOG=/var/log/qresearch
+ExecStart=/opt/qresearch/deploy/vps/bin/start-opend.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

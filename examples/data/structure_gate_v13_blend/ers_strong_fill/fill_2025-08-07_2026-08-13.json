@@ -1,0 +1,262 @@
+{
+  "start": "2025-08-07",
+  "end": "2026-08-13",
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "rule": "StructureGateConfig.v13()",
+  "note": "mode=ers/strong 只代表鎖開；若當日 G1/strong 權重為空，引擎不會 BUY（或 ers_flat/strong_flat 清倉），帳上等同現金。",
+  "sleeves": {
+    "SPY": {
+      "book": "SPY",
+      "n_days_total": 256,
+      "mode_share": {
+        "ers": 0.34765625,
+        "bench": 0.2890625,
+        "strong": 0.1875,
+        "cash": 0.17578125
+      },
+      "stock_mode_days": 137,
+      "stock_mode_days_with_target": 137,
+      "stock_mode_days_empty": 0,
+      "empty_share_of_stock_mode": 0.0,
+      "by_mode": {
+        "ers": {
+          "days": 89,
+          "days_with_target": 89,
+          "days_empty": 0,
+          "empty_share": 0.0,
+          "top_targets": [
+            [
+              "CVS",
+              27
+            ],
+            [
+              "BRK-B",
+              15
+            ],
+            [
+              "EG",
+              13
+            ],
+            [
+              "MTD",
+              11
+            ],
+            [
+              "PWR",
+              7
+            ],
+            [
+              "MGM",
+              4
+            ],
+            [
+              "PODD",
+              4
+            ],
+            [
+              "STZ",
+              3
+            ]
+          ]
+        },
+        "strong": {
+          "days": 48,
+          "days_with_target": 48,
+          "days_empty": 0,
+          "empty_share": 0.0,
+          "top_targets": [
+            [
+              "SNDK",
+              42
+            ],
+            [
+              "ECHO",
+              3
+            ],
+            [
+              "LITE",
+              3
+            ]
+          ]
+        }
+      },
+      "buys_enter": 22,
+      "buys_by_reason": {
+        "ers_enter": 12,
+        "strong_enter": 10
+      },
+      "buys_by_symbol": [
+        [
+          "SNDK",
+          8
+        ],
+        [
+          "CVS",
+          2
+        ],
+        [
+          "AES",
+          1
+        ],
+        [
+          "MTD",
+          1
+        ],
+        [
+          "BRK-B",
+          1
+        ],
+        [
+          "OXY",
+          1
+        ],
+        [
+          "APO",
+          1
+        ],
+        [
+          "ECHO",
+          1
+        ],
+        [
+          "MGM",
+          1
+        ],
+        [
+          "EG",
+          1
+        ],
+        [
+          "STZ",
+          1
+        ],
+        [
+          "PWR",
+          1
+        ],
+        [
+          "LITE",
+          1
+        ],
+        [
+          "PODD",
+          1
+        ]
+      ],
+      "flat_events": 0,
+      "flat_by_reason": {},
+      "rotate_events": 7,
+      "empty_dates_sample": [],
+      "n_trades": 57,
+      "weight": 0.5,
+      "n_members": 500
+    },
+    "QQQ": {
+      "book": "QQQ",
+      "n_days_total": 256,
+      "mode_share": {
+        "bench": 0.5859375,
+        "cash": 0.203125,
+        "ers": 0.15234375,
+        "strong": 0.05859375
+      },
+      "stock_mode_days": 54,
+      "stock_mode_days_with_target": 50,
+      "stock_mode_days_empty": 4,
+      "empty_share_of_stock_mode": 0.07407407407407407,
+      "by_mode": {
+        "ers": {
+          "days": 39,
+          "days_with_target": 35,
+          "days_empty": 4,
+          "empty_share": 0.10256410256410253,
+          "top_targets": [
+            [
+              "LRCX",
+              20
+            ],
+            [
+              "CDNS",
+              7
+            ],
+            [
+              "PEP",
+              4
+            ],
+            [
+              "MAR",
+              4
+            ]
+          ]
+        },
+        "strong": {
+          "days": 15,
+          "days_with_target": 15,
+          "days_empty": 0,
+          "empty_share": 0.0,
+          "top_targets": [
+            [
+              "MU",
+              15
+            ]
+          ]
+        }
+      },
+      "buys_enter": 6,
+      "buys_by_reason": {
+        "ers_enter": 4,
+        "strong_enter": 2
+      },
+      "buys_by_symbol": [
+        [
+          "MU",
+          2
+        ],
+        [
+          "CDNS",
+          1
+        ],
+        [
+          "LRCX",
+          1
+        ],
+        [
+          "PEP",
+          1
+        ],
+        [
+          "MAR",
+          1
+        ]
+      ],
+      "flat_events": 0,
+      "flat_by_reason": {},
+      "rotate_events": 0,
+      "empty_dates_sample": [
+        {
+          "date": "2025-09-04",
+          "mode": "ers"
+        },
+        {
+          "date": "2025-09-05",
+          "mode": "ers"
+        },
+        {
+          "date": "2025-11-06",
+          "mode": "ers"
+        },
+        {
+          "date": "2026-02-25",
+          "mode": "ers"
+        }
+      ],
+      "n_trades": 27,
+      "weight": 0.5,
+      "n_members": 97
+    }
+  }
+}

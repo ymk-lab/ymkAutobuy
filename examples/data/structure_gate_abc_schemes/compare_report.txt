@@ -1,0 +1,55 @@
+=== Structure Gate ABC schemes × v11/v13 × 2020/2022/2024/2026 ===
+A: SPY50/QQQ30/DIA20 | B: SPY40/QQQ30/IWM30 | C: SPY40/QQQ25/XLF35
+costs: Futu+3bps | exec: next-open | capital: $50k
+
+## 2020-01-01 → 2021-01-01
+SPY B&H (ref): +17.63%
+scheme var      ret%   maxDD%  sharpe    vsSPY  vsStatic  trades  hard
+A      v11     32.44   -10.19    1.41    +14.8      +7.9     135 True 
+A      v13     48.83   -10.81    1.80    +31.2     +24.3     101 True 
+B      v11     59.98   -12.00    2.12    +42.4     +33.2     127 True 
+B      v13     74.48    -9.47    2.37    +56.9     +47.8      89 True 
+C      v11     21.17   -11.30    1.04     +3.5      +3.3     151 True 
+C      v13     33.84   -11.98    1.43    +16.2     +15.9     101 True 
+best_ret: B/v13 +74.48% (maxDD -9.47%)
+
+## 2022-01-01 → 2023-01-01
+SPY B&H (ref): -18.35%
+scheme var      ret%   maxDD%  sharpe    vsSPY  vsStatic  trades  hard
+A      v11    -19.83   -21.02   -1.51     -1.5      +0.4      54 False
+A      v13    -18.89   -20.09   -1.43     -0.5      +1.3      46 False
+B      v11    -20.53   -21.43   -1.54     -2.2      +2.6      53 False
+B      v13    -22.05   -22.88   -1.70     -3.7      +1.1      39 False
+C      v11    -21.16   -22.78   -1.43     -2.8      -1.8      38 False
+C      v13    -20.83   -22.45   -1.41     -2.5      -1.4      32 False
+best_ret: A/v13 -18.89% (maxDD -20.09%)
+
+## 2024-01-01 → 2025-01-01
+SPY B&H (ref): +25.66%
+scheme var      ret%   maxDD%  sharpe    vsSPY  vsStatic  trades  hard
+A      v11     10.90    -9.97    0.76    -14.8     -12.7     189 False
+A      v13     25.29    -7.67    1.52     -0.4      +1.7      93 False
+B      v11      1.90   -10.13    0.21    -23.8     -19.7     225 False
+B      v13     14.51    -9.52    0.79    -11.2      -7.1     117 False
+C      v11     15.43    -9.98    1.09    -10.2     -12.1     185 False
+C      v13     21.70    -6.76    1.62     -4.0      -5.8     107 False
+best_ret: A/v13 +25.29% (maxDD -7.67%)
+
+## 2026-01-01 → 2026-08-07
+SPY B&H (ref): +13.28%
+scheme var      ret%   maxDD%  sharpe    vsSPY  vsStatic  trades  hard
+A      v11     19.20    -8.76    1.75     +5.9      +5.2     107 True 
+A      v13     19.29   -10.96    1.59     +6.0      +5.3      77 True 
+B      v11     25.25    -8.61    2.32    +12.0      +8.4      55 True 
+B      v13     25.03   -10.16    2.10    +11.7      +8.2      37 True 
+C      v11     19.42    -9.45    2.02     +6.1      +7.9      55 True 
+C      v13     18.77   -11.07    1.81     +5.5      +7.3      37 True 
+best_ret: B/v11 +25.25% (maxDD -8.61%)
+
+## Average ret% across 4 windows
+  B/v13: avg_ret=+22.99% avg_maxDD=-13.01%
+  A/v13: avg_ret=+18.63% avg_maxDD=-12.38%
+  B/v11: avg_ret=+16.65% avg_maxDD=-13.04%
+  C/v13: avg_ret=+13.37% avg_maxDD=-13.07%
+  A/v11: avg_ret=+10.68% avg_maxDD=-12.49%
+  C/v11: avg_ret=+8.71% avg_maxDD=-13.38%
