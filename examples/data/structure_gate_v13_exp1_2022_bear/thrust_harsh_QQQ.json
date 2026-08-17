@@ -1,0 +1,751 @@
+{
+  "n_thrust_triggers": 57,
+  "n_failures": 1,
+  "max_consecutive_failures": 1,
+  "events": [
+    {
+      "thrust_date": "2022-03-22",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-23",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-24",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-25",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-28",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-29",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-30",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-03-31",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-04-01",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-04-04",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-04-05",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "cash",
+        "cash",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-04-06",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "cash",
+        "cash",
+        "cash",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-04-07",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "cash",
+        "cash",
+        "cash",
+        "cash",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-19",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-20",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-21",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "cash",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-22",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "cash",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-25",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "cash",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-27",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-28",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-07-29",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-01",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-02",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-03",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-04",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-05",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-08",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-09",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-10",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-11",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-12",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-15",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-16",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-17",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-18",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-19",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-08-22",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-09-12",
+      "failed": true,
+      "harsh_hit_dates": [
+        "2022-09-16"
+      ],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "cash",
+        "cash"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-10",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-11",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-14",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-15",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-16",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-17",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-18",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-21",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-22",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-23",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-25",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-28",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-29",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-11-30",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-12-01",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-12-02",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-12-05",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-12-06",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    },
+    {
+      "thrust_date": "2022-12-07",
+      "failed": false,
+      "harsh_hit_dates": [],
+      "modes_in_window": [
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench",
+        "bench"
+      ]
+    }
+  ],
+  "pass_no_double_streak": true
+}
