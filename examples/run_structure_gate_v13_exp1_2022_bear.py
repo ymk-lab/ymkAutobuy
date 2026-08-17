@@ -197,7 +197,8 @@ def _flag(series: pd.Series) -> pd.Series:
 
 def dead_cat_mask(meta: pd.DataFrame) -> pd.Series:
     """Short bounce while still structurally weak (below SMA50 or deep dd60)."""
-    below50 = meta["above_sma50"].fillna(1.0).astype(float) < 0.5
+    above_col = "above50" if "above50" in meta.columns else "above_sma50"
+    below50 = meta[above_col].fillna(1.0).astype(float) < 0.5
     deep_dd = meta["dd60"].fillna(0.0).astype(float) <= -0.10
     weak = below50 | deep_dd
     bounce = (
@@ -337,7 +338,7 @@ def run_variant(
                     "ret20",
                     "bounce20",
                     "dd60",
-                    "above_sma50",
+                    "above50",
                 )
                 if c in meta.columns
             ]
