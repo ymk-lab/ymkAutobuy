@@ -36,7 +36,8 @@ PYTHONPATH=src python3 -m uvicorn qresearch.web.paper_app:app --host 0.0.0.0 --p
 bash deploy/cloudflare/run-named-tunnel.sh
 ```
 
-每日 cron：`deploy/vps-cron/run-sg.sh`。
+每日 cron（美東）：**16:30 `signal`**（只算目標）→ **09:40 `once`**（送單）。  
+成交時點已定為 **09:40 ET**（見 `deploy/vps/crontab.example`）。
 
 ## 架構摘要
 

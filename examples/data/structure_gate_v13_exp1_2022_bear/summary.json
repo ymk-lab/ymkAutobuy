@@ -1,0 +1,866 @@
+{
+  "ok": true,
+  "experiment": "v13_exp1_2022_bear",
+  "goal_zh": "驗證單邊下跌與多次死貓跳中，防禦與 thrust 優先序是否造成巨額回撤",
+  "window": {
+    "start": "2022-01-01",
+    "end": "2023-01-01"
+  },
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "capital": 50000.0,
+  "data": {
+    "cache": "/workspace/examples/data/structure_gate_v13_exp1_2022_bear/cache_ohlcv_2019",
+    "yf_start": "2019-01-01",
+    "yf_end": "2023-06-01",
+    "n_symbols": 472
+  },
+  "note": "OOS vs v13 tune (2023 / 2025-08→2026-08); production SPY50/QQQ50",
+  "variants": {
+    "v13_baseline": {
+      "label": "v13_baseline",
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "weights": {
+        "SPY": 0.5,
+        "QQQ": 0.5
+      },
+      "config": {
+        "thrust_overrides_dd_harsh": true,
+        "thrust_force_bench": true,
+        "preset": "v13"
+      },
+      "blend": {
+        "total_return": -0.225825222694104,
+        "max_drawdown": -0.23478191379333602,
+        "sharpe": -1.7457908537178122,
+        "end_equity": 38708.7388652948,
+        "vs_spy_bh_pp": -4.236065915010212,
+        "vs_static_etf_blend_pp": 2.8173959160595285,
+        "n_trades": 23
+      },
+      "spy_bh": {
+        "total_return": -0.18346456354400187,
+        "max_drawdown": -0.24380571872373125,
+        "sharpe": -0.7362533443349889,
+        "end_equity": 40826.77182279991
+      },
+      "static_etf_blend": {
+        "total_return": -0.2539991818546993,
+        "max_drawdown": -0.29261126524822967,
+        "sharpe": -0.9528591258373681,
+        "end_equity": 37300.04090726504
+      },
+      "soft_pass": {
+        "soft_pass": true,
+        "beat_worse_baseline": true,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": 4.236065915010212,
+        "hard_pass_beat_both": false,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 461,
+          "total_return": -0.2442581596822775,
+          "max_drawdown": -0.2573971344092294,
+          "sharpe": -1.516214463749877,
+          "bh_total_return": -0.18185188819675868,
+          "n_trades": 11,
+          "mode_distribution": {
+            "bench": 0.6812749003984063,
+            "cash": 0.3187250996015936
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.3187250996015936,
+            "bench_share": 0.6812749003984063,
+            "ers_share": 0.0,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.2350597609561753,
+            "thrust_raw_share": 0.2350597609561753,
+            "harsh_dd_share": 0.00796812749003984,
+            "harsh_ret_share": 0.00398406374501992,
+            "sticky_share": 0.5976095617529881,
+            "dead_cat_share": 0.20717131474103587,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.01195219123505976,
+            "bench_on_dead_cat_share": 0.055776892430278883,
+            "n_thrust_dead_cat_episodes": 2,
+            "mean_fwd10_after_thrust_dcb_episode": 0.03743125157687177,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": 0.025513438670163535,
+            "mean_fwd5_on_dcb": -0.005297978097558244,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": 0.040573761879571256,
+            "mean_fwd10_on_dcb": -0.008280686989477466,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": 0.04199222713182701,
+            "mean_fwd20_on_dcb": 0.013175558285706882,
+            "mode_distribution": {
+              "bench": 0.6812749003984063,
+              "cash": 0.3187250996015936
+            }
+          }
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 92,
+          "total_return": -0.2073922857059307,
+          "max_drawdown": -0.21224822847078384,
+          "sharpe": -1.5362610035012592,
+          "bh_total_return": -0.32614647551263987,
+          "n_trades": 12,
+          "mode_distribution": {
+            "cash": 0.6693227091633466,
+            "bench": 0.33067729083665337
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.6693227091633466,
+            "bench_share": 0.33067729083665337,
+            "ers_share": 0.0,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.22709163346613545,
+            "thrust_raw_share": 0.22709163346613545,
+            "harsh_dd_share": 0.11952191235059761,
+            "harsh_ret_share": 0.07171314741035857,
+            "sticky_share": 0.07569721115537849,
+            "dead_cat_share": 0.2788844621513944,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.035856573705179286,
+            "bench_on_dead_cat_share": 0.035856573705179286,
+            "n_thrust_dead_cat_episodes": 3,
+            "mean_fwd10_after_thrust_dcb_episode": 0.018451186912589252,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": 0.011269372155175674,
+            "mean_fwd5_on_dcb": -0.012633339286354982,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": 0.0008316867778747813,
+            "mean_fwd10_on_dcb": -0.013759556299248403,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": -0.037667913869016356,
+            "mean_fwd20_on_dcb": -0.002934446615469401,
+            "mode_distribution": {
+              "cash": 0.6693227091633466,
+              "bench": 0.33067729083665337
+            }
+          }
+        }
+      ],
+      "audits": {
+        "SPY": {
+          "n_days": 251,
+          "cash_share": 0.3187250996015936,
+          "bench_share": 0.6812749003984063,
+          "ers_share": 0.0,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.2350597609561753,
+          "thrust_raw_share": 0.2350597609561753,
+          "harsh_dd_share": 0.00796812749003984,
+          "harsh_ret_share": 0.00398406374501992,
+          "sticky_share": 0.5976095617529881,
+          "dead_cat_share": 0.20717131474103587,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.01195219123505976,
+          "bench_on_dead_cat_share": 0.055776892430278883,
+          "n_thrust_dead_cat_episodes": 2,
+          "mean_fwd10_after_thrust_dcb_episode": 0.03743125157687177,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": 0.025513438670163535,
+          "mean_fwd5_on_dcb": -0.005297978097558244,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": 0.040573761879571256,
+          "mean_fwd10_on_dcb": -0.008280686989477466,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": 0.04199222713182701,
+          "mean_fwd20_on_dcb": 0.013175558285706882,
+          "mode_distribution": {
+            "bench": 0.6812749003984063,
+            "cash": 0.3187250996015936
+          }
+        },
+        "QQQ": {
+          "n_days": 251,
+          "cash_share": 0.6693227091633466,
+          "bench_share": 0.33067729083665337,
+          "ers_share": 0.0,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.22709163346613545,
+          "thrust_raw_share": 0.22709163346613545,
+          "harsh_dd_share": 0.11952191235059761,
+          "harsh_ret_share": 0.07171314741035857,
+          "sticky_share": 0.07569721115537849,
+          "dead_cat_share": 0.2788844621513944,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.035856573705179286,
+          "bench_on_dead_cat_share": 0.035856573705179286,
+          "n_thrust_dead_cat_episodes": 3,
+          "mean_fwd10_after_thrust_dcb_episode": 0.018451186912589252,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": 0.011269372155175674,
+          "mean_fwd5_on_dcb": -0.012633339286354982,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": 0.0008316867778747813,
+          "mean_fwd10_on_dcb": -0.013759556299248403,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": -0.037667913869016356,
+          "mean_fwd20_on_dcb": -0.002934446615469401,
+          "mode_distribution": {
+            "cash": 0.6693227091633466,
+            "bench": 0.33067729083665337
+          }
+        }
+      }
+    },
+    "no_thrust_over_harsh": {
+      "label": "no_thrust_over_harsh",
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "weights": {
+        "SPY": 0.5,
+        "QQQ": 0.5
+      },
+      "config": {
+        "thrust_overrides_dd_harsh": false,
+        "thrust_force_bench": true,
+        "preset": "v13"
+      },
+      "blend": {
+        "total_return": -0.225825222694104,
+        "max_drawdown": -0.23478191379333602,
+        "sharpe": -1.7457908537178122,
+        "end_equity": 38708.7388652948,
+        "vs_spy_bh_pp": -4.236065915010212,
+        "vs_static_etf_blend_pp": 2.8173959160595285,
+        "n_trades": 23
+      },
+      "spy_bh": {
+        "total_return": -0.18346456354400187,
+        "max_drawdown": -0.24380571872373125,
+        "sharpe": -0.7362533443349889,
+        "end_equity": 40826.77182279991
+      },
+      "static_etf_blend": {
+        "total_return": -0.2539991818546993,
+        "max_drawdown": -0.29261126524822967,
+        "sharpe": -0.9528591258373681,
+        "end_equity": 37300.04090726504
+      },
+      "soft_pass": {
+        "soft_pass": true,
+        "beat_worse_baseline": true,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": 4.236065915010212,
+        "hard_pass_beat_both": false,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 461,
+          "total_return": -0.2442581596822775,
+          "max_drawdown": -0.2573971344092294,
+          "sharpe": -1.516214463749877,
+          "bh_total_return": -0.18185188819675868,
+          "n_trades": 11,
+          "mode_distribution": {
+            "bench": 0.6812749003984063,
+            "cash": 0.3187250996015936
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.3187250996015936,
+            "bench_share": 0.6812749003984063,
+            "ers_share": 0.0,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.2350597609561753,
+            "thrust_raw_share": 0.2350597609561753,
+            "harsh_dd_share": 0.00796812749003984,
+            "harsh_ret_share": 0.00398406374501992,
+            "sticky_share": 0.5976095617529881,
+            "dead_cat_share": 0.20717131474103587,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.01195219123505976,
+            "bench_on_dead_cat_share": 0.055776892430278883,
+            "n_thrust_dead_cat_episodes": 2,
+            "mean_fwd10_after_thrust_dcb_episode": 0.03743125157687177,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": 0.025513438670163535,
+            "mean_fwd5_on_dcb": -0.005297978097558244,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": 0.040573761879571256,
+            "mean_fwd10_on_dcb": -0.008280686989477466,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": 0.04199222713182701,
+            "mean_fwd20_on_dcb": 0.013175558285706882,
+            "mode_distribution": {
+              "bench": 0.6812749003984063,
+              "cash": 0.3187250996015936
+            }
+          }
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 92,
+          "total_return": -0.2073922857059307,
+          "max_drawdown": -0.21224822847078384,
+          "sharpe": -1.5362610035012592,
+          "bh_total_return": -0.32614647551263987,
+          "n_trades": 12,
+          "mode_distribution": {
+            "cash": 0.6693227091633466,
+            "bench": 0.33067729083665337
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.6693227091633466,
+            "bench_share": 0.33067729083665337,
+            "ers_share": 0.0,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.22709163346613545,
+            "thrust_raw_share": 0.22709163346613545,
+            "harsh_dd_share": 0.11952191235059761,
+            "harsh_ret_share": 0.07171314741035857,
+            "sticky_share": 0.07569721115537849,
+            "dead_cat_share": 0.2788844621513944,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.035856573705179286,
+            "bench_on_dead_cat_share": 0.035856573705179286,
+            "n_thrust_dead_cat_episodes": 3,
+            "mean_fwd10_after_thrust_dcb_episode": 0.018451186912589252,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": 0.011269372155175674,
+            "mean_fwd5_on_dcb": -0.012633339286354982,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": 0.0008316867778747813,
+            "mean_fwd10_on_dcb": -0.013759556299248403,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": -0.037667913869016356,
+            "mean_fwd20_on_dcb": -0.002934446615469401,
+            "mode_distribution": {
+              "cash": 0.6693227091633466,
+              "bench": 0.33067729083665337
+            }
+          }
+        }
+      ],
+      "audits": {
+        "SPY": {
+          "n_days": 251,
+          "cash_share": 0.3187250996015936,
+          "bench_share": 0.6812749003984063,
+          "ers_share": 0.0,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.2350597609561753,
+          "thrust_raw_share": 0.2350597609561753,
+          "harsh_dd_share": 0.00796812749003984,
+          "harsh_ret_share": 0.00398406374501992,
+          "sticky_share": 0.5976095617529881,
+          "dead_cat_share": 0.20717131474103587,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.01195219123505976,
+          "bench_on_dead_cat_share": 0.055776892430278883,
+          "n_thrust_dead_cat_episodes": 2,
+          "mean_fwd10_after_thrust_dcb_episode": 0.03743125157687177,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": 0.025513438670163535,
+          "mean_fwd5_on_dcb": -0.005297978097558244,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": 0.040573761879571256,
+          "mean_fwd10_on_dcb": -0.008280686989477466,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": 0.04199222713182701,
+          "mean_fwd20_on_dcb": 0.013175558285706882,
+          "mode_distribution": {
+            "bench": 0.6812749003984063,
+            "cash": 0.3187250996015936
+          }
+        },
+        "QQQ": {
+          "n_days": 251,
+          "cash_share": 0.6693227091633466,
+          "bench_share": 0.33067729083665337,
+          "ers_share": 0.0,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.22709163346613545,
+          "thrust_raw_share": 0.22709163346613545,
+          "harsh_dd_share": 0.11952191235059761,
+          "harsh_ret_share": 0.07171314741035857,
+          "sticky_share": 0.07569721115537849,
+          "dead_cat_share": 0.2788844621513944,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.035856573705179286,
+          "bench_on_dead_cat_share": 0.035856573705179286,
+          "n_thrust_dead_cat_episodes": 3,
+          "mean_fwd10_after_thrust_dcb_episode": 0.018451186912589252,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": 0.011269372155175674,
+          "mean_fwd5_on_dcb": -0.012633339286354982,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": 0.0008316867778747813,
+          "mean_fwd10_on_dcb": -0.013759556299248403,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": -0.037667913869016356,
+          "mean_fwd20_on_dcb": -0.002934446615469401,
+          "mode_distribution": {
+            "cash": 0.6693227091633466,
+            "bench": 0.33067729083665337
+          }
+        }
+      }
+    },
+    "no_thrust_force": {
+      "label": "no_thrust_force",
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "weights": {
+        "SPY": 0.5,
+        "QQQ": 0.5
+      },
+      "config": {
+        "thrust_overrides_dd_harsh": true,
+        "thrust_force_bench": false,
+        "preset": "v13"
+      },
+      "blend": {
+        "total_return": -0.26078666278420215,
+        "max_drawdown": -0.26926231135254064,
+        "sharpe": -2.401562104327985,
+        "end_equity": 36960.66686078989,
+        "vs_spy_bh_pp": -7.732209924020028,
+        "vs_static_etf_blend_pp": -0.6787480929502876,
+        "n_trades": 19
+      },
+      "spy_bh": {
+        "total_return": -0.18346456354400187,
+        "max_drawdown": -0.24380571872373125,
+        "sharpe": -0.7362533443349889,
+        "end_equity": 40826.77182279991
+      },
+      "static_etf_blend": {
+        "total_return": -0.2539991818546993,
+        "max_drawdown": -0.29261126524822967,
+        "sharpe": -0.9528591258373681,
+        "end_equity": 37300.04090726504
+      },
+      "soft_pass": {
+        "soft_pass": false,
+        "beat_worse_baseline": false,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": 7.732209924020028,
+        "hard_pass_beat_both": false,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 461,
+          "total_return": -0.28528481649227655,
+          "max_drawdown": -0.29765958622553057,
+          "sharpe": -1.910881949184148,
+          "bh_total_return": -0.18185188819675868,
+          "n_trades": 7,
+          "mode_distribution": {
+            "bench": 0.6135458167330677,
+            "cash": 0.3665338645418327,
+            "ers": 0.0199203187250996
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.3665338645418327,
+            "bench_share": 0.6135458167330677,
+            "ers_share": 0.0199203187250996,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.0,
+            "thrust_raw_share": 0.2350597609561753,
+            "harsh_dd_share": 0.00796812749003984,
+            "harsh_ret_share": 0.00398406374501992,
+            "sticky_share": 0.5976095617529881,
+            "dead_cat_share": 0.20717131474103587,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.0,
+            "bench_on_dead_cat_share": 0.043824701195219126,
+            "n_thrust_dead_cat_episodes": 0,
+            "mean_fwd10_after_thrust_dcb_episode": NaN,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": NaN,
+            "mean_fwd5_on_dcb": -0.005297978097558244,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": NaN,
+            "mean_fwd10_on_dcb": -0.008280686989477466,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": NaN,
+            "mean_fwd20_on_dcb": 0.013175558285706882,
+            "mode_distribution": {
+              "bench": 0.6135458167330677,
+              "cash": 0.3665338645418327,
+              "ers": 0.0199203187250996
+            }
+          }
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 92,
+          "total_return": -0.23628850907612764,
+          "max_drawdown": -0.24096741797633936,
+          "sharpe": -2.2874663034865246,
+          "bh_total_return": -0.32614647551263987,
+          "n_trades": 12,
+          "mode_distribution": {
+            "cash": 0.796812749003984,
+            "bench": 0.20318725099601595
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.796812749003984,
+            "bench_share": 0.20318725099601595,
+            "ers_share": 0.0,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.0,
+            "thrust_raw_share": 0.22709163346613545,
+            "harsh_dd_share": 0.11952191235059761,
+            "harsh_ret_share": 0.07171314741035857,
+            "sticky_share": 0.07569721115537849,
+            "dead_cat_share": 0.2788844621513944,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.0,
+            "bench_on_dead_cat_share": 0.0,
+            "n_thrust_dead_cat_episodes": 0,
+            "mean_fwd10_after_thrust_dcb_episode": NaN,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": NaN,
+            "mean_fwd5_on_dcb": -0.012633339286354982,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": NaN,
+            "mean_fwd10_on_dcb": -0.013759556299248403,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": NaN,
+            "mean_fwd20_on_dcb": -0.002934446615469401,
+            "mode_distribution": {
+              "cash": 0.796812749003984,
+              "bench": 0.20318725099601595
+            }
+          }
+        }
+      ],
+      "audits": {
+        "SPY": {
+          "n_days": 251,
+          "cash_share": 0.3665338645418327,
+          "bench_share": 0.6135458167330677,
+          "ers_share": 0.0199203187250996,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.0,
+          "thrust_raw_share": 0.2350597609561753,
+          "harsh_dd_share": 0.00796812749003984,
+          "harsh_ret_share": 0.00398406374501992,
+          "sticky_share": 0.5976095617529881,
+          "dead_cat_share": 0.20717131474103587,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.0,
+          "bench_on_dead_cat_share": 0.043824701195219126,
+          "n_thrust_dead_cat_episodes": 0,
+          "mean_fwd10_after_thrust_dcb_episode": NaN,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": NaN,
+          "mean_fwd5_on_dcb": -0.005297978097558244,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": NaN,
+          "mean_fwd10_on_dcb": -0.008280686989477466,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": NaN,
+          "mean_fwd20_on_dcb": 0.013175558285706882,
+          "mode_distribution": {
+            "bench": 0.6135458167330677,
+            "cash": 0.3665338645418327,
+            "ers": 0.0199203187250996
+          }
+        },
+        "QQQ": {
+          "n_days": 251,
+          "cash_share": 0.796812749003984,
+          "bench_share": 0.20318725099601595,
+          "ers_share": 0.0,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.0,
+          "thrust_raw_share": 0.22709163346613545,
+          "harsh_dd_share": 0.11952191235059761,
+          "harsh_ret_share": 0.07171314741035857,
+          "sticky_share": 0.07569721115537849,
+          "dead_cat_share": 0.2788844621513944,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.0,
+          "bench_on_dead_cat_share": 0.0,
+          "n_thrust_dead_cat_episodes": 0,
+          "mean_fwd10_after_thrust_dcb_episode": NaN,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": NaN,
+          "mean_fwd5_on_dcb": -0.012633339286354982,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": NaN,
+          "mean_fwd10_on_dcb": -0.013759556299248403,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": NaN,
+          "mean_fwd20_on_dcb": -0.002934446615469401,
+          "mode_distribution": {
+            "cash": 0.796812749003984,
+            "bench": 0.20318725099601595
+          }
+        }
+      }
+    },
+    "thrust_demoted": {
+      "label": "thrust_demoted",
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "weights": {
+        "SPY": 0.5,
+        "QQQ": 0.5
+      },
+      "config": {
+        "thrust_overrides_dd_harsh": false,
+        "thrust_force_bench": false,
+        "preset": "v13"
+      },
+      "blend": {
+        "total_return": -0.26078666278420215,
+        "max_drawdown": -0.26926231135254064,
+        "sharpe": -2.401562104327985,
+        "end_equity": 36960.66686078989,
+        "vs_spy_bh_pp": -7.732209924020028,
+        "vs_static_etf_blend_pp": -0.6787480929502876,
+        "n_trades": 19
+      },
+      "spy_bh": {
+        "total_return": -0.18346456354400187,
+        "max_drawdown": -0.24380571872373125,
+        "sharpe": -0.7362533443349889,
+        "end_equity": 40826.77182279991
+      },
+      "static_etf_blend": {
+        "total_return": -0.2539991818546993,
+        "max_drawdown": -0.29261126524822967,
+        "sharpe": -0.9528591258373681,
+        "end_equity": 37300.04090726504
+      },
+      "soft_pass": {
+        "soft_pass": false,
+        "beat_worse_baseline": false,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": 7.732209924020028,
+        "hard_pass_beat_both": false,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 461,
+          "total_return": -0.28528481649227655,
+          "max_drawdown": -0.29765958622553057,
+          "sharpe": -1.910881949184148,
+          "bh_total_return": -0.18185188819675868,
+          "n_trades": 7,
+          "mode_distribution": {
+            "bench": 0.6135458167330677,
+            "cash": 0.3665338645418327,
+            "ers": 0.0199203187250996
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.3665338645418327,
+            "bench_share": 0.6135458167330677,
+            "ers_share": 0.0199203187250996,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.0,
+            "thrust_raw_share": 0.2350597609561753,
+            "harsh_dd_share": 0.00796812749003984,
+            "harsh_ret_share": 0.00398406374501992,
+            "sticky_share": 0.5976095617529881,
+            "dead_cat_share": 0.20717131474103587,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.0,
+            "bench_on_dead_cat_share": 0.043824701195219126,
+            "n_thrust_dead_cat_episodes": 0,
+            "mean_fwd10_after_thrust_dcb_episode": NaN,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": NaN,
+            "mean_fwd5_on_dcb": -0.005297978097558244,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": NaN,
+            "mean_fwd10_on_dcb": -0.008280686989477466,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": NaN,
+            "mean_fwd20_on_dcb": 0.013175558285706882,
+            "mode_distribution": {
+              "bench": 0.6135458167330677,
+              "cash": 0.3665338645418327,
+              "ers": 0.0199203187250996
+            }
+          }
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 92,
+          "total_return": -0.23628850907612764,
+          "max_drawdown": -0.24096741797633936,
+          "sharpe": -2.2874663034865246,
+          "bh_total_return": -0.32614647551263987,
+          "n_trades": 12,
+          "mode_distribution": {
+            "cash": 0.796812749003984,
+            "bench": 0.20318725099601595
+          },
+          "audit": {
+            "n_days": 251,
+            "cash_share": 0.796812749003984,
+            "bench_share": 0.20318725099601595,
+            "ers_share": 0.0,
+            "strong_share": 0.0,
+            "thrust_lock_share": 0.0,
+            "thrust_raw_share": 0.22709163346613545,
+            "harsh_dd_share": 0.11952191235059761,
+            "harsh_ret_share": 0.07171314741035857,
+            "sticky_share": 0.07569721115537849,
+            "dead_cat_share": 0.2788844621513944,
+            "thrust_x_harsh_dd_share": 0.0,
+            "thrust_x_dead_cat_share": 0.0,
+            "bench_on_dead_cat_share": 0.0,
+            "n_thrust_dead_cat_episodes": 0,
+            "mean_fwd10_after_thrust_dcb_episode": NaN,
+            "mean_fwd5_on_thrust_harsh": NaN,
+            "mean_fwd5_on_thrust_dcb": NaN,
+            "mean_fwd5_on_dcb": -0.012633339286354982,
+            "mean_fwd10_on_thrust_harsh": NaN,
+            "mean_fwd10_on_thrust_dcb": NaN,
+            "mean_fwd10_on_dcb": -0.013759556299248403,
+            "mean_fwd20_on_thrust_harsh": NaN,
+            "mean_fwd20_on_thrust_dcb": NaN,
+            "mean_fwd20_on_dcb": -0.002934446615469401,
+            "mode_distribution": {
+              "cash": 0.796812749003984,
+              "bench": 0.20318725099601595
+            }
+          }
+        }
+      ],
+      "audits": {
+        "SPY": {
+          "n_days": 251,
+          "cash_share": 0.3665338645418327,
+          "bench_share": 0.6135458167330677,
+          "ers_share": 0.0199203187250996,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.0,
+          "thrust_raw_share": 0.2350597609561753,
+          "harsh_dd_share": 0.00796812749003984,
+          "harsh_ret_share": 0.00398406374501992,
+          "sticky_share": 0.5976095617529881,
+          "dead_cat_share": 0.20717131474103587,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.0,
+          "bench_on_dead_cat_share": 0.043824701195219126,
+          "n_thrust_dead_cat_episodes": 0,
+          "mean_fwd10_after_thrust_dcb_episode": NaN,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": NaN,
+          "mean_fwd5_on_dcb": -0.005297978097558244,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": NaN,
+          "mean_fwd10_on_dcb": -0.008280686989477466,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": NaN,
+          "mean_fwd20_on_dcb": 0.013175558285706882,
+          "mode_distribution": {
+            "bench": 0.6135458167330677,
+            "cash": 0.3665338645418327,
+            "ers": 0.0199203187250996
+          }
+        },
+        "QQQ": {
+          "n_days": 251,
+          "cash_share": 0.796812749003984,
+          "bench_share": 0.20318725099601595,
+          "ers_share": 0.0,
+          "strong_share": 0.0,
+          "thrust_lock_share": 0.0,
+          "thrust_raw_share": 0.22709163346613545,
+          "harsh_dd_share": 0.11952191235059761,
+          "harsh_ret_share": 0.07171314741035857,
+          "sticky_share": 0.07569721115537849,
+          "dead_cat_share": 0.2788844621513944,
+          "thrust_x_harsh_dd_share": 0.0,
+          "thrust_x_dead_cat_share": 0.0,
+          "bench_on_dead_cat_share": 0.0,
+          "n_thrust_dead_cat_episodes": 0,
+          "mean_fwd10_after_thrust_dcb_episode": NaN,
+          "mean_fwd5_on_thrust_harsh": NaN,
+          "mean_fwd5_on_thrust_dcb": NaN,
+          "mean_fwd5_on_dcb": -0.012633339286354982,
+          "mean_fwd10_on_thrust_harsh": NaN,
+          "mean_fwd10_on_thrust_dcb": NaN,
+          "mean_fwd10_on_dcb": -0.013759556299248403,
+          "mean_fwd20_on_thrust_harsh": NaN,
+          "mean_fwd20_on_thrust_dcb": NaN,
+          "mean_fwd20_on_dcb": -0.002934446615469401,
+          "mode_distribution": {
+            "cash": 0.796812749003984,
+            "bench": 0.20318725099601595
+          }
+        }
+      }
+    }
+  },
+  "decision": {
+    "verdict": "PASS",
+    "reasons": [
+      "關閉 thrust 蓋過 harsh_dd 僅改善 maxDD 0.00pp < 3.0pp → 優先序不是巨額回撤主因"
+    ],
+    "metrics": {
+      "baseline_maxdd": -0.23478191379333602,
+      "baseline_ret": -0.225825222694104,
+      "spy_bh_maxdd": -0.24380571872373125,
+      "spy_bh_ret": -0.18346456354400187,
+      "improve_maxdd_no_thrust_over_harsh_pp": 0.0,
+      "improve_maxdd_thrust_demoted_pp": -3.4480397559204623,
+      "baseline_vs_spy_maxdd_pp": 0.902380493039523,
+      "mean_fwd10_on_thrust_harsh": NaN
+    },
+    "thresholds": {
+      "pass_maxdd_improve_lt_pp": 3.0,
+      "fail_maxdd_improve_ge_pp": 5.0,
+      "fail_vs_spy_dd_ge_pp": 20.0
+    },
+    "mechanism_notes_zh": [
+      "全年 thrust∩harsh_dd=0%，優先序衝突面未觸發",
+      "關閉 thrust_force 使 maxDD 變差 3.45pp，thrust 鎖 bench 為減害",
+      "thrust∩死貓跳占比極低且後10日基準均報酬為正",
+      "blend maxDD 優於 SPY B&H 與靜態50/50；剩餘虧損非 thrust>harsh_dd 所致"
+    ],
+    "dead_cat_thrust": {
+      "SPY": {
+        "thrust_x_dead_cat_share": 0.01195219123505976,
+        "n_episodes": 2,
+        "mean_fwd10_on_thrust_dcb": 0.040573761879571256,
+        "mean_fwd10_after_episode": 0.03743125157687177
+      },
+      "QQQ": {
+        "thrust_x_dead_cat_share": 0.035856573705179286,
+        "n_episodes": 3,
+        "mean_fwd10_on_thrust_dcb": 0.0008316867778747813,
+        "mean_fwd10_after_episode": 0.018451186912589252
+      }
+    }
+  }
+}

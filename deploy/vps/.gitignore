@@ -1,0 +1,6 @@
+# Real secrets — never commit
+secrets/local/
+*.local.env
+FutuOpenD.xml
+opend.env
+app.env

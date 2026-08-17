@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Structure Gate · v11 Paper</title>
+    <title>Structure Gate · v13 Paper</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=design-7" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=design-7" />
+    <link rel="stylesheet" href="/static/styles.css?v=design-12" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=design-12" />
     <script src="/config.js"></script>
   </head>
   <body class="sg-page sg-monitor">
@@ -32,7 +32,7 @@
       <!-- First viewport: brand + one signal line + CTA -->
       <section class="sg-hero" aria-label="即時訊號">
         <p class="brand">Structure Gate</p>
-        <p class="brand-sub">v11 paper · Futu SIMULATE · SPY 40 / QQQ 30 / SMH 30</p>
+        <p class="brand-sub">v13 paper · Futu SIMULATE · SPY 50 / QQQ 50</p>
         <h1 class="sg-hero-title">
           <span class="sg-hero-mode" id="sg-mode-hero">—</span>
           <span class="sg-hero-target" id="sg-target-hero">讀取中…</span>
@@ -69,7 +69,7 @@
           <strong id="m-day">—</strong>
         </div>
         <div class="sg-kpi">
-          <span class="sg-kpi-label">訊號日</span>
+          <span class="sg-kpi-label">更新時間</span>
           <strong id="m-asof">—</strong>
         </div>
       </section>
@@ -181,6 +181,26 @@
           </div>
         </div>
 
+        <div class="sg-pane sg-pane-wide" aria-labelledby="diagnose-title">
+          <div class="sg-pane-head">
+            <div>
+              <h2 id="diagnose-title">袖口診斷</h2>
+              <p class="sg-pane-support">為何 BENCH、trail／旗標，以及接近 ERS 的個股。</p>
+            </div>
+            <div class="sg-pane-head-meta">
+              <span id="sg-diagnose-asof" class="badge badge-idle">尚未診斷</span>
+              <button type="button" class="btn btn-ghost" data-sg-action="diagnose">重新診斷</button>
+            </div>
+          </div>
+          <div id="sg-diagnose-body" class="sg-diagnose">
+            <p class="empty">尚無診斷。請按「重新診斷」（約需數十秒讀 cache）。</p>
+          </div>
+          <details class="sg-diagnose-raw">
+            <summary>完整文字報告</summary>
+            <pre id="sg-diagnose-text" class="sg-diagnose-pre">—</pre>
+          </details>
+        </div>
+
         <div class="sg-pane sg-pane-wide" aria-labelledby="analysis-title">
           <h2 id="analysis-title">過程</h2>
           <p class="sg-pane-support">抓數、算 mode、送單日誌。</p>
@@ -190,11 +210,11 @@
 
       <section class="sg-section sg-tools" id="tools" aria-labelledby="tools-title">
         <h2 id="tools-title">操作</h2>
-        <p class="sg-support">確認目標後再開送單。配置固定為 v11 三袖口。</p>
+        <p class="sg-support">確認目標後再開送單。配置固定為 v13 · SPY50/QQQ50。</p>
 
         <div class="sg-tool-row">
           <span class="sg-book-label">配置</span>
-          <strong id="sg-config-label">v11 · SPY 40% / QQQ 30% / SMH 30%</strong>
+          <strong id="sg-config-label">v13 · SPY 50% / QQQ 50%</strong>
         </div>
 
         <div class="sg-actions">
@@ -207,7 +227,7 @@
             <p class="sg-btn-hint">開關模擬盤送單。</p>
           </div>
           <div class="sg-action">
-            <button type="button" class="btn" data-sg-action="backtest">v11 回測</button>
+            <button type="button" class="btn" data-sg-action="backtest">v13 回測</button>
             <p class="sg-btn-hint">用下方區間跑 blend。</p>
           </div>
         </div>
@@ -291,8 +311,8 @@
       </section>
 
       <section class="sg-section" id="params" aria-labelledby="params-title">
-        <h2 id="params-title">v11 參數</h2>
-        <p class="sg-support">來自 <code>StructureGateConfig.v11()</code>。</p>
+        <h2 id="params-title">v13 參數</h2>
+        <p class="sg-support">來自 <code>StructureGateConfig.v13()</code>。</p>
         <div class="table-scroll">
           <table class="sg-table" id="params-table">
             <thead>
@@ -313,10 +333,10 @@
     </main>
 
     <footer class="footer">
-      <span>Structure Gate v11 · Futu OpenD SIMULATE</span>
+      <span>Structure Gate v13 · Futu OpenD SIMULATE</span>
       <button type="button" id="sg-api-base" class="btn btn-ghost">API: 未設定</button>
     </footer>
 
-    <script src="/static/structure_gate.js?v=design-7" defer></script>
+    <script src="/static/structure_gate.js?v=design-12" defer></script>
   </body>
 </html>

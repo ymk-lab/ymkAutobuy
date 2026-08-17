@@ -115,6 +115,8 @@
   let submitEnabled = false;
   let busy = false;
   let statusCache = null;
+  let lastSeenAsof = null;
+  let pollTimer = null;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -126,6 +128,34 @@
     }
     if (v == null) return "—";
     return String(v);
+  }
+
+  function fmtHktClock(raw) {
+    /** Prefer API HKT string; else parse ISO → Asia/Hong_Kong YYYY-MM-DD HH:MM. */
+    if (raw == null || raw === "") return null;
+    const s = String(raw).trim();
+    if (/HKT\s*$/i.test(s) && /\d{2}:\d{2}/.test(s)) return s;
+    const ms = Date.parse(s);
+    if (!Number.isFinite(ms)) {
+      // date-only → show as midnight mark is misleading; keep date + ask for better field
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s} （僅日期）`;
+      return s;
+    }
+    try {
+      const fmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hong_Kong",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const parts = Object.fromEntries(fmt.formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
+      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute} HKT`;
+    } catch {
+      return s;
+    }
   }
 
   function money(x) {
@@ -359,6 +389,107 @@
       .join("");
   }
 
+  function pctNum(x, digits = 2) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    return `${(Number(x) * 100).toFixed(digits)}%`;
+  }
+
+  function renderNameTable(rows, emptyText) {
+    if (!rows || !rows.length) {
+      return `<p class="empty">${emptyText}</p>`;
+    }
+    const body = rows
+      .slice(0, 10)
+      .map((r, i) => {
+        const miss = [];
+        if (r.just_turned === false) miss.push("缺just_turned");
+        if (r.persist3 === false) miss.push("缺persist3");
+        if (r.excess_mid_ok === false) miss.push("缺mid+");
+        if (r.not_already_strong === false) miss.push("已過強");
+        const note = r.entry_ok
+          ? "合格"
+          : miss.length
+            ? miss.join(",")
+            : `legs=${r.legs_pass ?? "—"}/4`;
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${r.symbol || "—"}</td>
+          <td>${pctNum(r.excess_20)}</td>
+          <td>${pctNum(r.excess_10)}</td>
+          <td>${pctNum(r.excess_60)}</td>
+          <td>${note}</td>
+        </tr>`;
+      })
+      .join("");
+    return `<div class="table-scroll"><table class="sg-table">
+      <thead><tr><th>#</th><th>標的</th><th>ex20</th><th>ex10</th><th>ex60</th><th>狀態</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
+
+  function renderDiagnose(diagnose, diagnoseText) {
+    const body = $("#sg-diagnose-body");
+    const asofBadge = $("#sg-diagnose-asof");
+    const textEl = $("#sg-diagnose-text");
+    if (textEl) textEl.textContent = diagnoseText || "—";
+    if (!body) return;
+
+    if (!diagnose || !diagnose.books || !Object.keys(diagnose.books).length) {
+      body.innerHTML =
+        `<p class="empty">尚無診斷。請按「重新診斷」（約需數十秒讀 cache）。</p>`;
+      if (asofBadge) {
+        asofBadge.textContent = "尚未診斷";
+        asofBadge.className = "badge badge-idle";
+      }
+      return;
+    }
+
+    if (asofBadge) {
+      const when =
+        (statusCache && statusCache.diagnose_updated_at_hkt) ||
+        fmtHktClock(diagnose.generated_at_utc) ||
+        null;
+      asofBadge.textContent = when
+        ? `${when}${diagnose.asof ? ` · asof ${diagnose.asof}` : ""}`
+        : `asof ${diagnose.asof || "—"}`;
+      asofBadge.className = "badge badge-on";
+    }
+
+    const blocks = Object.entries(diagnose.books)
+      .map(([book, blk]) => {
+        const flags = Object.entries(blk.flags || {})
+          .filter(([, v]) => !!v)
+          .map(([k]) => k)
+          .join(" · ");
+        const reasons = (blk.reasons || [])
+          .map((r) => `<li>${r}</li>`)
+          .join("");
+        const ers = blk.would_hold_if_ers || {};
+        const strong = blk.would_hold_if_strong || {};
+        const sc = blk.ers_scorecard || {};
+        const entryRows = sc.entry_ok_ranked || [];
+        const nearRows = sc.near_miss_ranked || [];
+        return `<article class="sg-diagnose-book">
+          <h3>${book} · ${blk.mode || "—"}</h3>
+          <p class="sg-diagnose-meta">
+            flags：${flags || "—"} ·
+            trail20=${pctNum(blk.leader_vs_bench_trail20)} ·
+            trail60=${pctNum(blk.leader_vs_bench_trail60)} ·
+            若ers→${ers.symbol || "無"} ·
+            若strong→${strong.symbol || "無"} ·
+            新ERS合格=${sc.n_entry_ok ?? 0}
+          </p>
+          <ul class="sg-diagnose-reasons">${reasons || "<li>無解釋</li>"}</ul>
+          <h3 class="sg-mini">今日 ERS 合格</h3>
+          ${renderNameTable(entryRows, "無合格股")}
+          <h3 class="sg-mini">接近 ERS（≥2/4 條件）</h3>
+          ${renderNameTable(nearRows, "無接近名單")}
+        </article>`;
+      })
+      .join("");
+    body.innerHTML = blocks;
+  }
+
   function renderSgStatus(data) {
     if (!data) return;
     statusCache = data;
@@ -366,6 +497,18 @@
     renderSubmitBadge();
 
     const sig = data.signal || {};
+    const prevAsof = lastSeenAsof;
+    if (sig.asof) {
+      if (prevAsof && prevAsof !== sig.asof) {
+        const when = data.signal_updated_at_hkt || fmtHktClock(sig.generated_at_utc) || "";
+        pushActivity(
+          `自動更新：訊號日 ${prevAsof} → ${sig.asof}${when ? ` @ ${when}` : ""}`,
+          "ok"
+        );
+        toast(`訊號已更新：${sig.asof}${when ? `（${when}）` : ""}`, "ok");
+      }
+      lastSeenAsof = sig.asof;
+    }
     const bt = data.backtest || {};
     const account = data.account || {};
     const pnl = account.pnl || {};
@@ -404,13 +547,17 @@
       dayEl.textContent = signedMoney(pnl.day_pnl);
       dayEl.className = pnlClass(pnl.day_pnl);
     }
-    $("#m-asof") && ($("#m-asof").textContent = sig.asof || "—");
+    const updatedHkt =
+      data.signal_updated_at_hkt ||
+      fmtHktClock(sig.generated_at_utc) ||
+      fmtHktClock(data.signal_updated_at_utc);
+    $("#m-asof") && ($("#m-asof").textContent = updatedHkt || sig.asof || "—");
 
     $("#sg-mode-hero") && ($("#sg-mode-hero").textContent = mode);
     $("#sg-target-hero") && ($("#sg-target-hero").textContent = tgtS);
-    const weights = data.weights || sig.weights || { SPY: 0.4, QQQ: 0.3, SMH: 0.3 };
+    const weights = data.weights || sig.weights || { SPY: 0.5, QQQ: 0.5 };
     const bookLabel =
-      "V11 · " +
+      "V13 · " +
       Object.entries(weights)
         .map(([k, v]) => `${k}${(Number(v) * 100).toFixed(0)}`)
         .join(" / ");
@@ -426,7 +573,9 @@
     const sub = $("#sg-monitor-sub");
     if (sub) {
       const submitTxt = submitEnabled ? "送單開啟（模擬盤）" : "只計畫、不送單";
-      sub.textContent = `asof ${sig.asof || "—"} · ${submitTxt} · paper only`;
+      const asofPart = sig.asof ? `asof ${sig.asof}` : "asof —";
+      const updPart = updatedHkt ? `更新 ${updatedHkt}` : "更新 —";
+      sub.textContent = `${asofPart} · ${updPart} · ${submitTxt} · paper only`;
     }
 
     renderOrders($("#preview-list"), sig.preview_orders || [], "尚無預覽單");
@@ -440,6 +589,7 @@
 
     renderFillAudit(data.fill_audit || null);
     renderHoldings(account);
+    renderDiagnose(data.diagnose || null, data.diagnose_text || "");
 
     $("#sg-bt-sg") && ($("#sg-bt-sg").textContent = pct(bt.structure_gate_total_return));
     $("#sg-bt-bh") && ($("#sg-bt-bh").textContent = pct(bt.bench_bh_total_return));
@@ -458,8 +608,11 @@
     if (sig.mode) setMode(sig.mode);
 
     const clock = $("#sg-badge-clock");
-    if (clock && data.server_time_utc) {
-      clock.textContent = String(data.server_time_utc).slice(11, 19) + "Z";
+    if (clock) {
+      clock.textContent =
+        data.server_time_hkt ||
+        fmtHktClock(data.server_time_utc) ||
+        (data.server_time_utc ? String(data.server_time_utc).slice(11, 19) + "Z" : "—");
     }
   }
 
@@ -505,6 +658,7 @@
     const decoder = new TextDecoder();
     let buffer = "";
     let ok = false;
+    let lastError = "";
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -530,10 +684,19 @@
           if (level === "ok" || level === "error" || evt.phase === "start") {
             toast(evt.message, level === "log" ? "info" : level);
           }
+          if (level === "error" || evt.phase === "error") {
+            lastError = String(evt.message);
+          }
         }
         if (evt.phase === "done") ok = !!evt.ok;
         if (evt.data) {
-          if (evt.data.signal || evt.data.backtest || evt.data.account) {
+          if (
+            evt.data.signal ||
+            evt.data.backtest ||
+            evt.data.account ||
+            evt.data.diagnose ||
+            evt.data.diagnose_text
+          ) {
             renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
           }
           if (evt.data.submit_enabled != null) {
@@ -549,7 +712,9 @@
     } catch {
       /* ignore */
     }
-    if (!ok) throw new Error(`${actionLabel}未成功完成`);
+    if (!ok) {
+      throw new Error(lastError || `${actionLabel}未成功完成（未收到成功回報；請看活動紀錄上一行）`);
+    }
   }
 
   async function withAction(fn) {
@@ -568,7 +733,7 @@
   }
 
   function bookParam() {
-    return "V11";
+    return "V13";
   }
 
   function isoDate(d) {
@@ -662,7 +827,7 @@
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=signal&submit=0&refresh=1&book=${bookParam()}`,
-            "重算 v11 訊號"
+            "重算 v13 訊號"
           )
         );
       } else if (action === "once") {
@@ -687,7 +852,7 @@
         withAction(() =>
           consumeSSE(
             `/api/sg/run?mode=backtest&submit=0&refresh=0&book=${bookParam()}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
-            `v11 blend 回測 ${start}→${end}`
+            `v13 blend 回測 ${start}→${end}`
           )
         );
       } else if (action === "toggle-submit") {
@@ -718,9 +883,72 @@
             setBusy(false);
           }
         });
+      } else if (action === "diagnose") {
+        withAction(async () => {
+          try {
+            await consumeSSE("/api/sg/run-diagnose", "袖口診斷（為何 BENCH／近 ERS）");
+          } catch (err) {
+            // Still paint any prior diagnose from status so the pane is not empty.
+            try {
+              await refreshStatus({ live: false });
+            } catch {
+              /* ignore */
+            }
+            throw err;
+          }
+        });
       }
     });
   });
+
+  function etParts(now = new Date()) {
+    // en-US with timeZone gives America/New_York wall clock parts.
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
+    const hour = Number(parts.hour === "24" ? 0 : parts.hour);
+    const minute = Number(parts.minute);
+    const weekday = parts.weekday; // Mon..Sun English short
+    const isWeekday = !["Sat", "Sun"].includes(weekday);
+    return { hour, minute, weekday, isWeekday, mins: hour * 60 + minute };
+  }
+
+  function pollIntervalMs() {
+    const { isWeekday, mins } = etParts();
+    if (!isWeekday) return 120000;
+    // Around official windows: 09:40 and 16:30 ET (±20 min) — poll faster.
+    const nearOnce = Math.abs(mins - (9 * 60 + 40)) <= 20;
+    const nearSignal = Math.abs(mins - (16 * 60 + 30)) <= 25;
+    if (nearOnce || nearSignal) return 15000;
+    return 60000;
+  }
+
+  async function quietPoll() {
+    if (busy || document.hidden) return;
+    try {
+      await refreshStatus({ live: false });
+    } catch {
+      /* ignore transient poll errors */
+    }
+  }
+
+  function schedulePoll() {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = setTimeout(async () => {
+      await quietPoll();
+      schedulePoll();
+    }, pollIntervalMs());
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) quietPoll();
+  });
+  window.addEventListener("focus", () => quietPoll());
 
   paintApiBase();
   const apiBaseEl = $("#sg-api-base");
@@ -754,6 +982,7 @@
       if (bt.end && $("#sg-bt-end") && !localStorage.getItem("sg_bt_end")) {
         $("#sg-bt-end").value = String(bt.end).slice(0, 10);
       }
+      schedulePoll();
       return refreshStatus({ live: true }).catch(() => null);
     })
     .catch(async (err) => {
@@ -762,6 +991,7 @@
         if (promptApiBase("無法連到 API（Failed to fetch）。")) {
           try {
             await refreshStatus({ live: true });
+            schedulePoll();
           } catch (e2) {
             pushActivity(`狀態載入失敗：${e2.message}`, "error");
           }

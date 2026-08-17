@@ -1,0 +1,164 @@
+{
+  "ok": true,
+  "window": {
+    "start": "2025-08-07",
+    "end": "2026-08-07"
+  },
+  "method": {
+    "bars": "5m open at 09:30 and 09:40 ET",
+    "sources": {
+      "longbridge_symbols": [
+        "QQQ",
+        "SMH"
+      ],
+      "yahoo_symbols": [
+        "SPY"
+      ],
+      "ratio_proxy": {
+        "SPY": "QQQ"
+      }
+    },
+    "0930": "cache daily open (unchanged)",
+    "0940": "daily open * (bench_0940_open / bench_0930_open) per sleeve",
+    "marks": "daily close unchanged; fees/slippage same as v11",
+    "note": "SPY Longbridge history often quota-blocked; Yahoo ~60d + QQQ ratio proxy for older SPY days"
+  },
+  "entry_move_stats": {
+    "per_bench_0940_vs_0930": [
+      {
+        "bench": "SPY",
+        "n": 252,
+        "mean_bps": 0.507837462734813,
+        "abs_mean_bps": 18.918110132927623,
+        "median_bps": 1.5963875151636664,
+        "p05_bps": -36.8462127778163,
+        "p95_bps": 38.606589869743694,
+        "min_bps": -70.37505960504453,
+        "max_bps": 69.85797469607257
+      },
+      {
+        "bench": "QQQ",
+        "n": 252,
+        "mean_bps": 0.15651934469640255,
+        "abs_mean_bps": 21.620036120806624,
+        "median_bps": -0.16428370862964226,
+        "p05_bps": -41.456919383147216,
+        "p95_bps": 44.37901149244031,
+        "min_bps": -70.37505960504453,
+        "max_bps": 69.85797469607257
+      },
+      {
+        "bench": "SMH",
+        "n": 252,
+        "mean_bps": 3.201973858101158,
+        "abs_mean_bps": 49.043862939820066,
+        "median_bps": 5.408250408401871,
+        "p05_bps": -92.66419354146156,
+        "p95_bps": 106.97114712348717,
+        "min_bps": -203.61473347060178,
+        "max_bps": 206.37828541518522
+      }
+    ]
+  },
+  "variants": {
+    "0930": {
+      "label": "0930",
+      "blend": {
+        "total_return": 0.9813696974517012,
+        "max_drawdown": -0.13253647722850215,
+        "sharpe": 2.4020142028697684,
+        "end_equity": 99068.48487258506,
+        "vs_spy_bh_pp": 75.42043326643362
+      },
+      "spy_bh": {
+        "total_return": 0.22716536478736504,
+        "max_drawdown": -0.08841173017092896,
+        "sharpe": 1.7192515880913675,
+        "end_equity": 61358.268239368255
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "total_return": 1.3045121542058067,
+          "max_drawdown": -0.25836187167477787,
+          "sharpe": 1.7937448947231456,
+          "end_equity": 46090.24308411613,
+          "n_trades": 73
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "total_return": 0.7495419867733337,
+          "max_drawdown": -0.1625865837274033,
+          "sharpe": 2.3467808252687603,
+          "end_equity": 26243.129801600007,
+          "n_trades": 53
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "total_return": 0.7823407991245939,
+          "max_drawdown": -0.1802778505681476,
+          "sharpe": 1.8986549710394476,
+          "end_equity": 26735.11198686891,
+          "n_trades": 10
+        }
+      ]
+    },
+    "0940": {
+      "label": "0940",
+      "blend": {
+        "total_return": 0.9794109598337184,
+        "max_drawdown": -0.1338367679303717,
+        "sharpe": 2.4046704686702522,
+        "end_equity": 98970.54799168592,
+        "vs_spy_bh_pp": 75.37594883736077
+      },
+      "spy_bh": {
+        "total_return": 0.22565147146011078,
+        "max_drawdown": -0.08853374483189358,
+        "sharpe": 1.7193174110712721,
+        "end_equity": 61282.57357300554
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "total_return": 1.31130709264847,
+          "max_drawdown": -0.2620579003626501,
+          "sharpe": 1.8009648393842366,
+          "end_equity": 46226.1418529694,
+          "n_trades": 73
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "total_return": 0.7385687059786117,
+          "max_drawdown": -0.1679573179427868,
+          "sharpe": 2.319308564413309,
+          "end_equity": 26078.530589679176,
+          "n_trades": 53
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "total_return": 0.7777250366024899,
+          "max_drawdown": -0.18247857600429185,
+          "sharpe": 1.9005799313103675,
+          "end_equity": 26665.875549037348,
+          "n_trades": 10
+        }
+      ]
+    }
+  },
+  "delta_0940_minus_0930": {
+    "blend_total_return_pp": -0.19587376179828198,
+    "blend_max_drawdown_pp": -0.13002907018695442,
+    "sleeves_pp": {
+      "SPY": 0.6794938442663323,
+      "QQQ": -1.097328079472204,
+      "SMH": -0.4615762522103939
+    }
+  }
+}

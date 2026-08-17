@@ -39,8 +39,10 @@ class FutuBrokerAdapter(BrokerAdapter):
     acc_id: int = 0
     remark_prefix: str = "qresearch"
     initial_cash: float = 100_000.0
-    poll_fills: int = 5
-    poll_interval_sec: float = 0.35
+    # SIMULATE/US market orders can sit briefly; short polls caused false timeouts
+    # after the first leg filled (e.g. QQQ ok, SPY aborted).
+    poll_fills: int = 40
+    poll_interval_sec: float = 0.5
     fills_log: list[Fill] = field(default_factory=list)
     _local_cash: float = field(init=False, repr=False)
     _local_positions: dict[str, float] = field(init=False, repr=False, default_factory=dict)
@@ -304,6 +306,8 @@ class FutuBrokerAdapter(BrokerAdapter):
         assert self.trade_ctx is not None
         from futu import RET_OK
 
+        last_status = ""
+        last_dealt = 0.0
         for _ in range(max(self.poll_fills, 1)):
             ret, data = self.trade_ctx.order_list_query(
                 order_id=order_id, trd_env=self._trd_env()
@@ -313,6 +317,7 @@ class FutuBrokerAdapter(BrokerAdapter):
                 status = str(row.get("order_status", "")).upper()
                 dealt_qty = float(row.get("dealt_qty", 0) or 0)
                 dealt_avg = row.get("dealt_avg_price")
+                last_status, last_dealt = status, dealt_qty
                 if dealt_qty > 0 and status in {
                     "FILLED_ALL",
                     "FILLED_PART",
@@ -321,5 +326,23 @@ class FutuBrokerAdapter(BrokerAdapter):
                 }:
                     px = float(dealt_avg) if dealt_avg not in (None, "") else fallback_price
                     return px, dealt_qty, 0.0
+                if status in {
+                    "CANCELLED_ALL",
+                    "CANCELLED_PART",
+                    "FAILED",
+                    "DISABLED",
+                    "DELETED",
+                }:
+                    raise RuntimeError(
+                        f"futu order {order_id} ended unfilled "
+                        f"(status={status}, dealt_qty={dealt_qty:g}, "
+                        f"fallback_qty={fallback_qty:g})"
+                    )
             time.sleep(self.poll_interval_sec)
-        return float(fallback_price), float(fallback_qty), 0.0
+        # Never invent a fill: doing so wrote phantom ledger rows while the
+        # SIMULATE book stayed unchanged (looks like "duplicate buys").
+        raise RuntimeError(
+            f"futu order {order_id} not filled after poll "
+            f"(status={last_status or 'unknown'}, dealt_qty={last_dealt:g}, "
+            f"fallback_qty={fallback_qty:g} @ {fallback_price})"
+        )

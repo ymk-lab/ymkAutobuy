@@ -1,0 +1,172 @@
+{
+  "window": [
+    "2025-08-07",
+    "2026-08-13"
+  ],
+  "capital": 50000.0,
+  "v13": {
+    "label": "v13",
+    "start": "2025-08-07",
+    "end": "2026-08-13",
+    "weights": {
+      "SPY": 0.5,
+      "QQQ": 0.5
+    },
+    "cfg": {
+      "mode_enter_immediate": false,
+      "mode_min_hold_days": 0,
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 3
+    },
+    "blend": {
+      "total_return": 1.025762964205207,
+      "max_drawdown": -0.18943912844698363,
+      "sharpe": 2.386271169194386,
+      "end_equity": 101288.14821026036,
+      "vs_spy_bh_pp": 79.12981042059293,
+      "vs_static_etf_blend_pp": 76.99232961785944,
+      "n_trades": 84
+    },
+    "spy_bh": {
+      "total_return": 0.2344648599992778,
+      "max_drawdown": -0.08841173798392099,
+      "sharpe": 1.7490227239007994
+    },
+    "static_etf": {
+      "total_return": 0.2558396680266126,
+      "max_drawdown": -0.1012217828315769,
+      "sharpe": 1.5524131529443486
+    },
+    "soft_pass": {
+      "soft_pass": true,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": true,
+      "gap_vs_better_pp": -76.99232961785944,
+      "hard_pass_beat_both": true,
+      "max_gap_pp": 35.0
+    },
+    "sleeves": [
+      {
+        "book": "SPY",
+        "weight": 0.5,
+        "n_members": 500,
+        "total_return": 1.158073532633063,
+        "max_drawdown": -0.3006326945013681,
+        "sharpe": 1.7476203081528225,
+        "bh_total_return": 0.2314566465815655,
+        "mode_distribution": {
+          "ers": 0.34765625,
+          "bench": 0.2890625,
+          "strong": 0.1875,
+          "cash": 0.17578125
+        },
+        "n_trades": 57,
+        "mode_switch_blocked_share": 0.07421875
+      },
+      {
+        "book": "QQQ",
+        "weight": 0.5,
+        "n_members": 97,
+        "total_return": 0.8934523957773517,
+        "max_drawdown": -0.13126124618448864,
+        "sharpe": 2.647807106572547,
+        "bh_total_return": 0.28022268947165974,
+        "mode_distribution": {
+          "bench": 0.5859375,
+          "cash": 0.203125,
+          "ers": 0.15234375,
+          "strong": 0.05859375
+        },
+        "n_trades": 27,
+        "mode_switch_blocked_share": 0.0703125
+      }
+    ]
+  },
+  "v14": {
+    "label": "v14",
+    "start": "2025-08-07",
+    "end": "2026-08-13",
+    "weights": {
+      "SPY": 0.5,
+      "QQQ": 0.5
+    },
+    "cfg": {
+      "mode_enter_immediate": true,
+      "mode_min_hold_days": 3,
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 0
+    },
+    "blend": {
+      "total_return": 0.8638747497809742,
+      "max_drawdown": -0.19819478401171153,
+      "sharpe": 2.005442022067318,
+      "end_equity": 93193.73748904871,
+      "vs_spy_bh_pp": 62.94098897816964,
+      "vs_static_etf_blend_pp": 60.803508175436164,
+      "n_trades": 112
+    },
+    "spy_bh": {
+      "total_return": 0.2344648599992778,
+      "max_drawdown": -0.08841173798392099,
+      "sharpe": 1.7490227239007994
+    },
+    "static_etf": {
+      "total_return": 0.2558396680266126,
+      "max_drawdown": -0.1012217828315769,
+      "sharpe": 1.5524131529443486
+    },
+    "soft_pass": {
+      "soft_pass": true,
+      "beat_worse_baseline": true,
+      "within_gap_of_better": true,
+      "gap_vs_better_pp": -60.803508175436164,
+      "hard_pass_beat_both": true,
+      "max_gap_pp": 35.0
+    },
+    "sleeves": [
+      {
+        "book": "SPY",
+        "weight": 0.5,
+        "n_members": 500,
+        "total_return": 1.1186044867138736,
+        "max_drawdown": -0.30086618038590374,
+        "sharpe": 1.666974316335676,
+        "bh_total_return": 0.2314566465815655,
+        "mode_distribution": {
+          "ers": 0.3671875,
+          "bench": 0.26171875,
+          "strong": 0.19140625,
+          "cash": 0.1796875
+        },
+        "n_trades": 61,
+        "mode_switch_blocked_share": 0.0234375
+      },
+      {
+        "book": "QQQ",
+        "weight": 0.5,
+        "n_members": 97,
+        "total_return": 0.6091450128480749,
+        "max_drawdown": -0.1681422216417161,
+        "sharpe": 1.927877192186503,
+        "bh_total_return": 0.28022268947165974,
+        "mode_distribution": {
+          "bench": 0.50390625,
+          "ers": 0.24609375,
+          "cash": 0.203125,
+          "strong": 0.046875
+        },
+        "n_trades": 51,
+        "mode_switch_blocked_share": 0.04296875
+      }
+    ]
+  },
+  "delta_v14_minus_v13": {
+    "ret_pp": -16.188821442423283,
+    "maxdd_pp": -0.8755655564727904,
+    "trades": 28,
+    "vs_spy_pp": -16.18882144242329
+  },
+  "note": "v14: mode_enter_immediate + mode_min_hold_days=3; locks (sticky/thrust/\u2026) unchanged from v13"
+}

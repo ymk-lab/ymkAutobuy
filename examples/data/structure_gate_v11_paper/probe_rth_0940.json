@@ -1,0 +1,196 @@
+{
+  "ok": true,
+  "source": "yahoo",
+  "note": "test-only; not wired into paper cron",
+  "generated_at_utc": "2026-08-10T04:30:08.490393Z",
+  "rows": [
+    {
+      "symbol": "QQQ",
+      "date": "2026-08-03",
+      "daily_open": 688.3,
+      "open_0930": 687.0,
+      "open_0940": 690.3900146484375,
+      "close_0940": 689.5999755859375,
+      "bps_0940_open_vs_daily": 30.36,
+      "bps_0940_close_vs_daily": 18.89,
+      "bps_0930_open_vs_daily": -18.89
+    },
+    {
+      "symbol": "QQQ",
+      "date": "2026-08-04",
+      "daily_open": 708.16,
+      "open_0930": 708.2050170898438,
+      "open_0940": 712.0700073242188,
+      "close_0940": 712.1799926757812,
+      "bps_0940_open_vs_daily": 55.21,
+      "bps_0940_close_vs_daily": 56.77,
+      "bps_0930_open_vs_daily": 0.64
+    },
+    {
+      "symbol": "QQQ",
+      "date": "2026-08-05",
+      "daily_open": 726.25,
+      "open_0930": 726.2249755859375,
+      "open_0940": 726.85498046875,
+      "close_0940": 726.89990234375,
+      "bps_0940_open_vs_daily": 8.33,
+      "bps_0940_close_vs_daily": 8.95,
+      "bps_0930_open_vs_daily": -0.34
+    },
+    {
+      "symbol": "QQQ",
+      "date": "2026-08-06",
+      "daily_open": 710.82,
+      "open_0930": 710.760009765625,
+      "open_0940": 711.989990234375,
+      "close_0940": 713.2999877929688,
+      "bps_0940_open_vs_daily": 16.46,
+      "bps_0940_close_vs_daily": 34.89,
+      "bps_0930_open_vs_daily": -0.84
+    },
+    {
+      "symbol": "QQQ",
+      "date": "2026-08-07",
+      "daily_open": 720.15,
+      "open_0930": 720.0,
+      "open_0940": 720.6400146484375,
+      "close_0940": 720.7000122070312,
+      "bps_0940_open_vs_daily": 6.8,
+      "bps_0940_close_vs_daily": 7.64,
+      "bps_0930_open_vs_daily": -2.08
+    },
+    {
+      "symbol": "SPY",
+      "date": "2026-08-03",
+      "daily_open": 749.4400024414062,
+      "open_0930": 749.4400024414062,
+      "open_0940": 751.7000122070312,
+      "close_0940": 751.5800170898438,
+      "bps_0940_open_vs_daily": 30.16,
+      "bps_0940_close_vs_daily": 28.55,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SPY",
+      "date": "2026-08-04",
+      "daily_open": 760.6300048828125,
+      "open_0930": 760.6300048828125,
+      "open_0940": 761.9600219726562,
+      "close_0940": 761.8699951171875,
+      "bps_0940_open_vs_daily": 17.49,
+      "bps_0940_close_vs_daily": 16.3,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SPY",
+      "date": "2026-08-05",
+      "daily_open": 775.8499755859375,
+      "open_0930": 775.8499755859375,
+      "open_0940": 776.530029296875,
+      "close_0940": 776.3300170898438,
+      "bps_0940_open_vs_daily": 8.77,
+      "bps_0940_close_vs_daily": 6.19,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SPY",
+      "date": "2026-08-06",
+      "daily_open": 770.2100219726562,
+      "open_0930": 770.2100219726562,
+      "open_0940": 769.7050170898438,
+      "close_0940": 770.0150146484375,
+      "bps_0940_open_vs_daily": -6.56,
+      "bps_0940_close_vs_daily": -2.53,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SPY",
+      "date": "2026-08-07",
+      "daily_open": 771.02001953125,
+      "open_0930": 771.02001953125,
+      "open_0940": 771.125,
+      "close_0940": 771.3599853515625,
+      "bps_0940_open_vs_daily": 1.36,
+      "bps_0940_close_vs_daily": 4.41,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SMH",
+      "date": "2026-08-03",
+      "daily_open": 530.4299926757812,
+      "open_0930": 530.4299926757812,
+      "open_0940": 529.4400024414062,
+      "close_0940": 527.219970703125,
+      "bps_0940_open_vs_daily": -18.66,
+      "bps_0940_close_vs_daily": -60.52,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SMH",
+      "date": "2026-08-04",
+      "daily_open": 564.2899780273438,
+      "open_0930": 564.2919921875,
+      "open_0940": 566.7000122070312,
+      "close_0940": 566.9600219726562,
+      "bps_0940_open_vs_daily": 42.71,
+      "bps_0940_close_vs_daily": 47.32,
+      "bps_0930_open_vs_daily": 0.04
+    },
+    {
+      "symbol": "SMH",
+      "date": "2026-08-05",
+      "daily_open": 574.4099731445312,
+      "open_0930": 574.4099731445312,
+      "open_0940": 577.8300170898438,
+      "close_0940": 578.8693237304688,
+      "bps_0940_open_vs_daily": 59.54,
+      "bps_0940_close_vs_daily": 77.63,
+      "bps_0930_open_vs_daily": 0.0
+    },
+    {
+      "symbol": "SMH",
+      "date": "2026-08-06",
+      "daily_open": 565.47998046875,
+      "open_0930": 565.0900268554688,
+      "open_0940": 566.2999877929688,
+      "close_0940": 568.8800048828125,
+      "bps_0940_open_vs_daily": 14.5,
+      "bps_0940_close_vs_daily": 60.13,
+      "bps_0930_open_vs_daily": -6.9
+    },
+    {
+      "symbol": "SMH",
+      "date": "2026-08-07",
+      "daily_open": 583.5800170898438,
+      "open_0930": 584.0,
+      "open_0940": 581.8599853515625,
+      "close_0940": 582.4400024414062,
+      "bps_0940_open_vs_daily": -29.47,
+      "bps_0940_close_vs_daily": -19.53,
+      "bps_0930_open_vs_daily": 7.2
+    }
+  ],
+  "summary": {
+    "QQQ": {
+      "n": 5,
+      "mean_bps_0940_open_vs_daily": 23.43,
+      "abs_mean_bps": 23.43,
+      "min_bps": 6.8,
+      "max_bps": 55.21
+    },
+    "SPY": {
+      "n": 5,
+      "mean_bps_0940_open_vs_daily": 10.24,
+      "abs_mean_bps": 12.87,
+      "min_bps": -6.56,
+      "max_bps": 30.16
+    },
+    "SMH": {
+      "n": 5,
+      "mean_bps_0940_open_vs_daily": 13.72,
+      "abs_mean_bps": 32.98,
+      "min_bps": -29.47,
+      "max_bps": 59.54
+    }
+  }
+}

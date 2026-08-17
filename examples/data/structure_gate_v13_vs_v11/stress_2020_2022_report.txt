@@ -1,0 +1,20 @@
+=== Structure Gate v11 vs v13 — stress 2020 & 2022 ===
+data: Yahoo 2019-01-01→2023-06-01, symbols_ok=483
+capital $50k | SPY40/QQQ30/SMH30 | Futu fees+3bps | next-open
+
+## 2020-01-01 → 2021-01-01
+SPY B&H: +17.63% | static 40/30/30: +36.83%
+v11: ret=+46.27% maxDD=-13.80% sharpe=1.73 vsSPY=+28.6pp vsStatic=+9.4pp trades=93
+v13: ret=+59.51% maxDD=-13.24% sharpe=1.97 vsSPY=+41.9pp vsStatic=+22.7pp trades=67
+Δ(v13-v11): ret=+13.24pp maxDD=+0.56pp trades=-26
+  v11 sleeves: SPY +1.3%/DD-19.6%/tr49 | QQQ +108.3%/DD-17.2%/tr31 | SMH +44.2%/DD-22.8%/tr13
+  v13 sleeves: SPY +2.8%/DD-18.3%/tr41 | QQQ +159.2%/DD-21.1%/tr17 | SMH +35.4%/DD-22.8%/tr9
+
+## 2022-01-01 → 2023-01-01
+SPY B&H: -18.35% | static 40/30/30: -27.11%
+v11: ret=-25.52% maxDD=-26.89% sharpe=-1.80 vsSPY=-7.2pp vsStatic=+1.6pp trades=57
+v13: ret=-24.98% maxDD=-26.56% sharpe=-1.75 vsSPY=-6.6pp vsStatic=+2.1pp trades=41
+Δ(v13-v11): ret=+0.54pp maxDD=+0.33pp trades=-16
+  v11 sleeves: SPY -22.0%/DD-23.3%/tr9 | QQQ -28.1%/DD-28.6%/tr16 | SMH -27.7%/DD-33.7%/tr32
+  v13 sleeves: SPY -22.0%/DD-23.3%/tr9 | QQQ -26.9%/DD-27.4%/tr12 | SMH -27.1%/DD-32.6%/tr20
+

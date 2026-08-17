@@ -1,0 +1,9 @@
+[Unit]
+Description=Structure Gate v13 paper signal freshness watchdog
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Needs root to systemctl start the paper signal unit.
+ExecStart=/opt/qresearch/deploy/vps/bin/ensure-paper-signal.sh
+Nice=10

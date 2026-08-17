@@ -69,12 +69,20 @@ class TargetWeightExecutor:
             (buys if delta > 0 else sells).append(order)
 
         fills: list[Fill] = []
+        errors: list[str] = []
         for order in sells + buys:
-            fills.append(
-                self.broker.submit_order(
-                    order,
-                    price=marks[order.symbol],
-                    timestamp=pd.Timestamp(timestamp),
+            try:
+                fills.append(
+                    self.broker.submit_order(
+                        order,
+                        price=marks[order.symbol],
+                        timestamp=pd.Timestamp(timestamp),
+                    )
                 )
-            )
+            except Exception as exc:  # noqa: BLE001 — keep going so later legs still try
+                side = order.side.value if hasattr(order.side, "value") else str(order.side)
+                errors.append(f"{side} {order.quantity:g} {order.symbol}: {exc}")
+        if errors:
+            # Successful fills remain on broker.fills_log / ``fills``; caller should persist them.
+            raise RuntimeError("rebalance partial failure: " + " | ".join(errors))
         return fills

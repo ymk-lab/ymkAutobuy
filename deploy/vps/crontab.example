@@ -1,0 +1,16 @@
+# Structure Gate v13 on VPS — America/New_York wall clock
+# Execution policy: signal at prior close; submit at RTH 09:40 ET (= 21:40 HKT in EDT).
+# IMPORTANT: CRON_TZ must be America/New_York. Without it, `40 9` = 09:40 UTC (wrong).
+# Install: crontab -e  (or crontab -u <APP_USER> -e); fix paths if repo ≠ /opt/qresearch
+# Verify: crontab -l | head;  next once should log et≈09:40 and submit=1
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+CRON_TZ=America/New_York
+
+# After US cash close: compute signal only (no orders)
+30 16 * * 1-5  /opt/qresearch/deploy/vps/bin/run-paper.sh signal >> /opt/qresearch/examples/data/structure_gate_v13_paper/logs/cron_signal.log 2>&1
+
+# Official fill window: 09:40 ET (HKT 21:40 while EDT). Needs QRESEARCH_SG_PAPER_SUBMIT=1
+# in /opt/qresearch/.env (UI toggle) — run-paper.sh lets .env override app.env.
+40 9 * * 1-5  /opt/qresearch/deploy/vps/bin/run-paper.sh once >> /opt/qresearch/examples/data/structure_gate_v13_paper/logs/cron_submit.log 2>&1
