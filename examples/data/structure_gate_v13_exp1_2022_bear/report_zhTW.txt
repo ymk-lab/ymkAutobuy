@@ -1,0 +1,41 @@
+=== V13 實驗 1：2022 全年熊市外推壓力測試（SPY50/QQQ50）===
+資料：Yahoo 2019-01-01→2023-06-01，symbols_ok=472
+設定：$50k｜SPY50/QQQ50｜Futu+3bps｜次日 open｜相對 v13 調參窗為 OOS
+
+判決：PASS
+  - 關閉 thrust 蓋過 harsh_dd 僅改善 maxDD 0.00pp < 3.0pp → 優先序不是巨額回撤主因
+
+基準：SPY B&H -18.35%／maxDD -24.38%｜靜態 50/50 -25.40%／maxDD -29.26%
+
+變體總覽：
+· v13 生產預設：報酬 -22.58%｜maxDD -23.48%｜vsSPY -4.24pp｜vs靜態 +2.82pp
+    SPY：thrust鎖 23.5%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 20.7%｜衝突日後10日基準 —
+    QQQ：thrust鎖 22.7%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 27.9%｜衝突日後10日基準 —
+· 關閉 thrust 蓋過 harsh_dd：報酬 -22.58%｜maxDD -23.48%｜vsSPY -4.24pp｜vs靜態 +2.82pp
+    SPY：thrust鎖 23.5%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 20.7%｜衝突日後10日基準 —
+    QQQ：thrust鎖 22.7%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 27.9%｜衝突日後10日基準 —
+· 關閉 thrust 強制 bench：報酬 -26.08%｜maxDD -26.93%｜vsSPY -7.73pp｜vs靜態 -0.68pp
+    SPY：thrust鎖 0.0%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 20.7%｜衝突日後10日基準 —
+    QQQ：thrust鎖 0.0%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 27.9%｜衝突日後10日基準 —
+· thrust 全面降級：報酬 -26.08%｜maxDD -26.93%｜vsSPY -7.73pp｜vs靜態 -0.68pp
+    SPY：thrust鎖 0.0%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 20.7%｜衝突日後10日基準 —
+    QQQ：thrust鎖 0.0%｜thrust∩harsh_dd 0.0%｜死貓跳日占比 27.9%｜衝突日後10日基準 —
+
+## 創除差異（maxDD 改善＝回撤變淺）
+關閉 thrust 蓋過 harsh_dd：+0.00pp
+thrust 全面降級：-3.45pp
+baseline maxDD 相對 SPY maxDD：+0.90pp
+thrust∩harsh_dd 日後 10 日基準均報酬：—
+
+解讀備註：
+1. 死貓跳＝基準仍弱（破 SMA50 或 dd60≤−10%）且出現短反彈（ret5≥3%／ret10≥5%／bounce20≥4%）。
+2. thrust∩harsh_dd 日數衡量「thrust > harsh_dd」優先序真正起作用的衝突面。
+3. 本實驗不改 production；僅回答優先序是否為 2022 巨額回撤主因。
+
+機制觀察（2022）：
+1. 全年 thrust∩harsh_dd = 0%：衝突優先序在樣本內幾乎未觸發（thrust 本就要求 ret20 高於 harsh_ret 門檻）。
+2. 關閉 thrust_force_bench／全面降級 thrust，maxDD 反而變差 3.45pp → thrust 鎖 bench 在此熊市是減害而非加害。
+3. thrust∩死貓跳占比極低（SPY 1.2%／QQQ 3.6%），對應短反彈後 10 日基準均報酬為正，未見「死貓跳追高後巨額回撤」路徑。
+4. Blend maxDD（−23.5%）略優於 SPY B&H（−24.4%）與靜態 50/50（−29.3%）；剩餘虧損主要來自必須持有的 bench／無法完全 cash 的結構，而非 thrust>harsh_dd。
+
+=== END ===

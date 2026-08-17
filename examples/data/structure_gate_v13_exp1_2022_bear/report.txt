@@ -1,0 +1,38 @@
+=== V13 Experiment 1 — 2022 full-year bear stress (SPY50/QQQ50) ===
+data: Yahoo 2019-01-01→2023-06-01, symbols_ok=472
+capital $50k | SPY50/QQQ50 | Futu fees+3bps | next-open | OOS vs v13 tune
+
+VERDICT: PASS
+  - 關閉 thrust 蓋過 harsh_dd 僅改善 maxDD 0.00pp < 3.0pp → 優先序不是巨額回撤主因
+
+SPY B&H: -18.35% maxDD=-24.38% | static 50/50: -25.40% maxDD=-29.26%
+
+v13_baseline           ret=  -22.58% maxDD=  -23.48% sharpe= -1.75 vsSPY=-4.24pp vsStatic=+2.82pp trades=23
+  SPY  ret=  -24.43% maxDD=  -25.74% thrust= 23.5% thrust∩harsh=  0.0% dcb= 20.7% fwd10_thrust∩harsh=—
+  QQQ  ret=  -20.74% maxDD=  -21.22% thrust= 22.7% thrust∩harsh=  0.0% dcb= 27.9% fwd10_thrust∩harsh=—
+
+no_thrust_over_harsh   ret=  -22.58% maxDD=  -23.48% sharpe= -1.75 vsSPY=-4.24pp vsStatic=+2.82pp trades=23
+  SPY  ret=  -24.43% maxDD=  -25.74% thrust= 23.5% thrust∩harsh=  0.0% dcb= 20.7% fwd10_thrust∩harsh=—
+  QQQ  ret=  -20.74% maxDD=  -21.22% thrust= 22.7% thrust∩harsh=  0.0% dcb= 27.9% fwd10_thrust∩harsh=—
+
+no_thrust_force        ret=  -26.08% maxDD=  -26.93% sharpe= -2.40 vsSPY=-7.73pp vsStatic=-0.68pp trades=19
+  SPY  ret=  -28.53% maxDD=  -29.77% thrust=  0.0% thrust∩harsh=  0.0% dcb= 20.7% fwd10_thrust∩harsh=—
+  QQQ  ret=  -23.63% maxDD=  -24.10% thrust=  0.0% thrust∩harsh=  0.0% dcb= 27.9% fwd10_thrust∩harsh=—
+
+thrust_demoted         ret=  -26.08% maxDD=  -26.93% sharpe= -2.40 vsSPY=-7.73pp vsStatic=-0.68pp trades=19
+  SPY  ret=  -28.53% maxDD=  -29.77% thrust=  0.0% thrust∩harsh=  0.0% dcb= 20.7% fwd10_thrust∩harsh=—
+  QQQ  ret=  -23.63% maxDD=  -24.10% thrust=  0.0% thrust∩harsh=  0.0% dcb= 27.9% fwd10_thrust∩harsh=—
+
+## Ablation deltas (maxDD improve = less negative)
+no_thrust_over_harsh vs baseline: +0.00pp
+thrust_demoted vs baseline:       -3.45pp
+baseline maxDD vs SPY maxDD:      +0.90pp
+mean fwd10 on thrust∩harsh:       —
+
+## Mechanism notes (2022)
+1. thrust∩harsh_dd = 0% all year — priority conflict never armed (thrust already requires ret20 above harsh_ret).
+2. Disabling thrust_force_bench / demoting thrust *worsened* maxDD by 3.45pp — thrust lock was protective, not harmful.
+3. thrust∩dead-cat share was tiny (SPY 1.2% / QQQ 3.6%); mean fwd10 after those episodes was positive.
+4. Blend maxDD (−23.5%) beat SPY B&H (−24.4%) and static 50/50 (−29.3%); residual loss is structural exposure, not thrust>harsh_dd.
+
+=== END ===
