@@ -1,0 +1,22 @@
+=== 實驗 3：長窗敏感度微擾平滑（Robustness Plateaus）===
+窗：2021-01-01 → 2026-08-13｜資本 $50,000｜權重 SPY50/QQQ50｜v13 其餘 knobs 凍結
+長窗網格：[55, 58, 60, 62, 65]
+資料 symbols_ok=510
+
+結果：
+  L55: ret +382.62%｜ann +32.43%｜Sharpe 1.27｜maxDD -34.21%｜trades 314｜Δvs60 -37.94pp
+  L58: ret +281.98%｜ann +27.01%｜Sharpe 1.10｜maxDD -40.69%｜trades 348｜Δvs60 -138.58pp
+  L60: ret +420.56%｜ann +34.23%｜Sharpe 1.40｜maxDD -38.68%｜trades 286｜Δvs60 +0.00pp
+  L62: ret +350.46%｜ann +30.81%｜Sharpe 1.19｜maxDD -46.27%｜trades 294｜Δvs60 -70.10pp
+  L65: ret +439.72%｜ann +35.10%｜Sharpe 1.35｜maxDD -34.77%｜trades 312｜Δvs60 +19.17pp
+
+CV(ann) = 8.97%｜CV(Sharpe) = 8.44%
+
+判準：
+  1) CV(ann) < 15%：PASS (8.97%)
+  2) CV(Sharpe) < 15%：PASS (8.44%)
+  3) 無相對 L60 斷崖（≤-20pp）：FAIL
+總判決：FAIL
+
+預期失效模式：報酬曲線階梯斷裂 → 60 日為噪音尖峰。
+註：相對「只在 60」的尖峰假設；本實驗為平滑微擾，不含 v15 的 50 日遠端跳點。
