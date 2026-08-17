@@ -125,6 +125,10 @@ class StructureGateConfig:
     # Soft exits from ers/strong blocked until this many days in stock mode
     # (risk cash still pierces). 0 = disabled (v13 behavior).
     mode_min_hold_days: int = 0
+    # When True, ``harsh_dd`` clears sticky_lock the same day (陰跌: don't sit
+    # bench through a grinding DD just because sticky episode hasn't confirmed
+    # exit yet). v13 default False — only ``harsh_ret`` / mild_top demote pierce.
+    harsh_dd_pierces_sticky: bool = False
 
     @classmethod
     def v8(cls) -> "StructureGateConfig":
@@ -293,6 +297,37 @@ class StructureGateConfig:
             ers_lag_lookback=70,
         )
 
+    @classmethod
+    def v17(cls) -> "StructureGateConfig":
+        """v17: v13 + tighter grinding-bear defense for sticky bench lock.
+
+        Differences vs v13:
+        - ``harsh_defense_dd=0.10`` (was 0.20) — fire earlier on dd60 陰跌
+        - ``harsh_dd_pierces_sticky=True`` — sticky cannot pin bench through harsh_dd
+        - ``thrust_overrides_dd_harsh=True`` kept — thrusting melt-up still overrides dd
+        Addresses 2022 SPY sticky-pinning bench while dd60 rarely hit −20%.
+        Research preset; paper default remains v13 until multi-window OK.
+        """
+        return cls(
+            mode_hysteresis_enabled=True,
+            mode_enter_trail=0.035,
+            mode_exit_trail=-0.015,
+            mode_switch_cooldown_days=3,
+            risk_override_enabled=True,
+            risk_override_stock_1d=0.08,
+            mild_defense_dd=0.06,
+            mild_defense_ret20=-0.05,
+            harsh_defense_dd=0.10,
+            harsh_defense_ret20=-0.12,
+            stock_led_min_trail=0.03,
+            index_lean_max_trail=-0.03,
+            sma50_hysteresis=0.0,
+            mode_enter_immediate=False,
+            mode_min_hold_days=0,
+            harsh_dd_pierces_sticky=True,
+            thrust_overrides_dd_harsh=True,
+        )
+
 
 # Default capital weights (must sum to 1.0).
 V11_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.40, "QQQ": 0.30, "SMH": 0.30}
@@ -301,6 +336,7 @@ V13_BOOK_WEIGHTS: dict[str, float] = {"SPY": 0.50, "QQQ": 0.50}
 V14_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
 V15_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
 V16_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
+V17_BOOK_WEIGHTS: dict[str, float] = dict(V13_BOOK_WEIGHTS)
 
 
 def blend_structure_gate_books(
@@ -949,10 +985,13 @@ def label_structure_modes(
         | (feat["ret20"] <= ret_thr)
     ).fillna(False)
 
-    # Sticky/thrust/reentry lock bench through lagging dd60; only harsh_ret breaks them.
+    # Sticky/thrust/reentry lock bench through lagging dd60; harsh_ret always pierces.
+    # Optional: harsh_dd also pierces sticky (v17 grinding-bear defense).
     # mild_top + mild → demote locks so Mild cash can fire (avoid riding ETF down).
     demote = mild_top & mild
     sticky_lock = sticky & ~harsh_ret & ~demote
+    if cfg.harsh_dd_pierces_sticky:
+        sticky_lock = sticky_lock & ~harsh_dd
     if cfg.thrust_force_bench:
         thrust_lock = thrust & ~harsh_ret & ~demote
         if not cfg.thrust_overrides_dd_harsh:
