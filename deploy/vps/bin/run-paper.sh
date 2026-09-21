@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Structure Gate v13 paper job. Usage: run-paper.sh signal|once
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
+VPS="$(cd "$HERE/.." && pwd)"
+LOCAL="${QRESEARCH_VPS_SECRETS:-$VPS/secrets/local}"
+MODE="${1:-signal}"
+
+# Need OpenD listening; full secrets/local check is optional after manual XML login.
+if ! bash "$HERE/wait-opend.sh" "${FUTU_OPEND_HOST:-127.0.0.1}" "${FUTU_OPEND_PORT:-11111}" 15; then
+  echo "OpenD not up on 11111" >&2
+  exit 1
+fi
+
+cd "$ROOT"
+if [[ -f "$ROOT/.venv/bin/activate" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/.venv/bin/activate"
+fi
+# Defaults from secrets/local, then repo .env wins (UI set-submit writes .env).
+if [[ -f "${LOCAL}/app.env" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${LOCAL}/app.env"
+  set +a
+fi
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
+
+export PYTHONPATH="${ROOT}/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONUNBUFFERED=1
+export QRESEARCH_SG_PAPER_ONLY="${QRESEARCH_SG_PAPER_ONLY:-1}"
+export FUTU_TRD_ENV="${FUTU_TRD_ENV:-SIMULATE}"
+export QRESEARCH_SG_PAPER_OUT="${QRESEARCH_SG_PAPER_OUT:-$ROOT/examples/data/structure_gate_v13_paper}"
+
+if [[ "$MODE" == "once" || "$MODE" == "submit" ]]; then
+  MODE="once"
+  if [[ "${QRESEARCH_SG_PAPER_SUBMIT:-0}" != "1" ]]; then
+    echo "WARN: submit mode but QRESEARCH_SG_PAPER_SUBMIT!=1 (dry plan only)" >&2
+  fi
+fi
+
+LOG_DIR="${QRESEARCH_SG_PAPER_OUT}/logs"
+mkdir -p "$LOG_DIR"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+ET_STAMP="$(TZ=America/New_York date +%Y-%m-%dT%H:%M:%S%z)"
+LOG_FILE="$LOG_DIR/vps_${MODE}_${STAMP}.log"
+
+{
+  echo "=== vps paper mode=$MODE submit=${QRESEARCH_SG_PAPER_SUBMIT:-0} utc=$STAMP et=$ET_STAMP cron_tz=${CRON_TZ:-unset} ==="
+  bash "$HERE/wait-opend.sh" "${FUTU_OPEND_HOST:-127.0.0.1}" "${FUTU_OPEND_PORT:-11111}" 30
+  python3 "$ROOT/examples/run_structure_gate_v13_paper_daily.py" "$MODE"
+} 2>&1 | tee -a "$LOG_FILE"

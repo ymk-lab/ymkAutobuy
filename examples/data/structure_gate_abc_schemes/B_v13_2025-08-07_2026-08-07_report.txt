@@ -1,0 +1,35 @@
+=== Structure Gate B/v13 — 2025-08-07 → 2026-08-07 ===
+weights: SPY 40% / QQQ 30% / IWM 30%
+capital $50k | Futu fees+3bps | next-open | IWM universe capped 250
+
+BLEND: ret=+81.36% end=$90,680.97
+maxDD=-17.05% (2025-12-17) | Sharpe=2.36
+vs SPY B&H=+58.6pp | vs static 40/30/30=+53.4pp
+trades=95 | hard_pass=True
+
+SPY B&H: +22.72% maxDD=-8.84%
+Static ETF: +27.93% maxDD=-9.66%
+
+Sleeves:
+  SPY: SG +114.78% | ETF BH +22.28% | maxDD -30.05% | Sharpe 1.75 | trades 57 | n=500
+    modes: ers 35.3% / bench 27.8% / strong 19.0% / cash 17.9%
+  QQQ: SG +86.41% | ETF BH +26.67% | maxDD -13.02% | Sharpe 2.62 | trades 27 | n=97
+    modes: bench 57.9% / cash 20.6% / ers 15.5% / strong 6.0%
+  IWM: SG +31.76% | ETF BH +36.72% | maxDD -16.14% | Sharpe 1.51 | trades 11 | n=250
+    modes: bench 75.0% / ers 20.6% / cash 4.4%
+
+path: best +7.56% (2026-02-02) | worst -8.60% (2026-02-04) | vol 27.2% | up 58.6%
+Monthly:
+  2025-09: +10.73%
+  2025-10: +27.56%
+  2025-11: +5.30%
+  2025-12: -5.24%
+  2026-01: +5.16%
+  2026-02: -0.36%
+  2026-03: -2.31%
+  2026-04: +8.80%
+  2026-05: +5.91%
+  2026-06: +2.64%
+  2026-07: -0.41%
+  2026-08: +3.95%
+=== END ===

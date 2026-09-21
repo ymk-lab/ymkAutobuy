@@ -1,0 +1,170 @@
+{
+  "experiment": "exp1_2022_bear_rerun_v17",
+  "window": [
+    "2022-01-01",
+    "2022-12-31"
+  ],
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "criteria": {
+    "max_drawdown_shallower_than": -0.22
+  },
+  "v13": {
+    "label": "v13",
+    "cfg": {
+      "harsh_defense_dd": 0.2,
+      "harsh_dd_pierces_sticky": false,
+      "thrust_overrides_dd_harsh": true
+    },
+    "blend": {
+      "total_return": -0.21956598334490918,
+      "max_drawdown": -0.22865959116111922,
+      "sharpe": -1.6640743155122368,
+      "vs_spy_bh_pp": -3.610141980090731,
+      "vs_static_etf_blend_pp": 3.4433315697290134,
+      "n_trades": 21
+    },
+    "spy_bh": {
+      "total_return": -0.18346456354400187
+    },
+    "static_etf": {
+      "total_return": -0.2539992990421993
+    },
+    "sleeves": [
+      {
+        "book": "SPY",
+        "weight": 0.5,
+        "n_members": 479,
+        "total_return": -0.2317399321848953,
+        "max_drawdown": -0.2451305868592556,
+        "sharpe": -1.3998774806568937,
+        "bh_total_return": -0.18185188819675868,
+        "mode_distribution": {
+          "bench": 0.6932270916334662,
+          "cash": 0.30677290836653387
+        },
+        "n_trades": 9,
+        "sticky_share": 0.6294820717131474,
+        "harsh_dd_share": 0.00796812749003984,
+        "thrust_harsh": {
+          "n_thrust_triggers": 59,
+          "n_failures": 0,
+          "max_consecutive_failures": 0,
+          "pass_no_double_streak": true
+        }
+      },
+      {
+        "book": "QQQ",
+        "weight": 0.5,
+        "n_members": 94,
+        "total_return": -0.20739203450492305,
+        "max_drawdown": -0.21224797880876922,
+        "sharpe": -1.5362579189785435,
+        "bh_total_return": -0.32614670988763983,
+        "mode_distribution": {
+          "cash": 0.6693227091633466,
+          "bench": 0.33067729083665337
+        },
+        "n_trades": 12,
+        "sticky_share": 0.07569721115537849,
+        "harsh_dd_share": 0.11952191235059761,
+        "thrust_harsh": {
+          "n_thrust_triggers": 57,
+          "n_failures": 1,
+          "max_consecutive_failures": 1,
+          "pass_no_double_streak": true
+        }
+      }
+    ],
+    "verdict": {
+      "pass_maxdd": false,
+      "pass_thrust_harsh": true,
+      "overall_pass": false,
+      "max_consecutive_thrust_harsh": 1
+    }
+  },
+  "v17": {
+    "label": "v17",
+    "cfg": {
+      "harsh_defense_dd": 0.1,
+      "harsh_dd_pierces_sticky": true,
+      "thrust_overrides_dd_harsh": true
+    },
+    "blend": {
+      "total_return": -0.20288036962100797,
+      "max_drawdown": -0.21204625424870183,
+      "sharpe": -1.6114838246598986,
+      "vs_spy_bh_pp": -1.9415806077006104,
+      "vs_static_etf_blend_pp": 5.111892942119134,
+      "n_trades": 25
+    },
+    "spy_bh": {
+      "total_return": -0.18346456354400187
+    },
+    "static_etf": {
+      "total_return": -0.2539992990421993
+    },
+    "sleeves": [
+      {
+        "book": "SPY",
+        "weight": 0.5,
+        "n_members": 479,
+        "total_return": -0.236326741273852,
+        "max_drawdown": -0.24970578978772273,
+        "sharpe": -1.5708772118770793,
+        "bh_total_return": -0.18185188819675868,
+        "mode_distribution": {
+          "bench": 0.6055776892430279,
+          "cash": 0.3944223107569721
+        },
+        "n_trades": 13,
+        "sticky_share": 0.5378486055776892,
+        "harsh_dd_share": 0.3784860557768924,
+        "thrust_harsh": {
+          "n_thrust_triggers": 59,
+          "n_failures": 5,
+          "max_consecutive_failures": 5,
+          "pass_no_double_streak": false
+        }
+      },
+      {
+        "book": "QQQ",
+        "weight": 0.5,
+        "n_members": 94,
+        "total_return": -0.16943399796816405,
+        "max_drawdown": -0.17452249369633344,
+        "sharpe": -1.2908318199973974,
+        "bh_total_return": -0.32614670988763983,
+        "mode_distribution": {
+          "cash": 0.6932270916334662,
+          "bench": 0.30677290836653387
+        },
+        "n_trades": 12,
+        "sticky_share": 0.05179282868525897,
+        "harsh_dd_share": 0.6294820717131474,
+        "thrust_harsh": {
+          "n_thrust_triggers": 57,
+          "n_failures": 20,
+          "max_consecutive_failures": 9,
+          "pass_no_double_streak": false
+        }
+      }
+    ],
+    "verdict": {
+      "pass_maxdd": true,
+      "pass_thrust_harsh": false,
+      "overall_pass": false,
+      "max_consecutive_thrust_harsh": 9
+    }
+  },
+  "delta_v17_minus_v13": {
+    "ret_pp": 1.6685613723901205,
+    "maxdd_pp": 1.6613336912417398,
+    "spy_cash_pp": 8.764940239043822,
+    "spy_bench_pp": -8.764940239043828
+  },
+  "note": "v17 fixes 2022 SPY \u9670\u8dcc: sticky was pinning bench while harsh_dd\u22480. Only lowering harsh_defense_dd without pierce does almost nothing."
+}

@@ -1,0 +1,23 @@
+[Unit]
+Description=Structure Gate v13 paper signal (post-close plan only)
+After=network-online.target qresearch-opend.service
+Wants=network-online.target qresearch-opend.service
+
+[Service]
+Type=oneshot
+User=REPLACE_USER
+Group=REPLACE_USER
+WorkingDirectory=/opt/qresearch
+Environment=PYTHONPATH=/opt/qresearch/src
+Environment=PYTHONUNBUFFERED=1
+Environment=FUTU_OPEND_HOST=127.0.0.1
+Environment=FUTU_OPEND_PORT=11111
+Environment=FUTU_TRD_ENV=SIMULATE
+Environment=QRESEARCH_FUTU_ALLOW_LIVE=0
+Environment=QRESEARCH_SG_PAPER_ONLY=1
+Environment=QRESEARCH_SG_PAPER_OUT=/opt/qresearch/examples/data/structure_gate_v13_paper
+EnvironmentFile=-/opt/qresearch/deploy/vps/secrets/local/app.env
+EnvironmentFile=-/opt/qresearch/.env
+# Do not force-submit on signal; .env may still show submit=1 for once.
+ExecStart=/opt/qresearch/deploy/vps/bin/run-paper.sh signal
+Nice=10

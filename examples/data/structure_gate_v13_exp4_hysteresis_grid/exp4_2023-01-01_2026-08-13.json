@@ -1,0 +1,553 @@
+{
+  "experiment": "exp4_hysteresis_bandwidth",
+  "preset_base": "StructureGateConfig.v13",
+  "window": [
+    "2023-01-01",
+    "2026-08-13"
+  ],
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "grid": {
+    "enters": [
+      0.025,
+      0.03,
+      0.035
+    ],
+    "exits": [
+      -0.01,
+      -0.015,
+      -0.02
+    ]
+  },
+  "baseline": {
+    "mode_enter_trail": 0.035,
+    "mode_exit_trail": -0.015
+  },
+  "criteria": {
+    "neighbor_jump_pp_max": 25.0,
+    "trade_mult_max_vs_baseline": 3.0,
+    "profit_collapse_pp_vs_baseline": -20.0,
+    "path_cv_max": 0.15
+  },
+  "rows": [
+    {
+      "label": "E0p025_Xm0p010",
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.01,
+      "total_return": 3.7956163884068737,
+      "max_drawdown": -0.19792826783977524,
+      "sharpe": 2.079220243985279,
+      "n_trades": 224,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.199866018562336,
+          "max_drawdown": -0.2886976479596337,
+          "sharpe": 1.792936761885845,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.04746136865342163
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.3913667582514107,
+          "max_drawdown": -0.16228913430041003,
+          "sharpe": 1.5395274946933175,
+          "n_trades": 115,
+          "mode_switch_blocked_share": 0.10596026490066225
+        }
+      ]
+    },
+    {
+      "label": "E0p025_Xm0p015",
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.015,
+      "total_return": 3.7956163884068737,
+      "max_drawdown": -0.19792826783977524,
+      "sharpe": 2.079220243985279,
+      "n_trades": 224,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.199866018562336,
+          "max_drawdown": -0.2886976479596337,
+          "sharpe": 1.792936761885845,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.04746136865342163
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.3913667582514107,
+          "max_drawdown": -0.16228913430041003,
+          "sharpe": 1.5395274946933175,
+          "n_trades": 115,
+          "mode_switch_blocked_share": 0.10596026490066225
+        }
+      ]
+    },
+    {
+      "label": "E0p025_Xm0p020",
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.02,
+      "total_return": 3.6444633660054704,
+      "max_drawdown": -0.20284206820972073,
+      "sharpe": 2.0038489223159655,
+      "n_trades": 232,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.199866018562336,
+          "max_drawdown": -0.2886976479596337,
+          "sharpe": 1.792936761885845,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.04746136865342163
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.0890607134486054,
+          "max_drawdown": -0.23581535510928509,
+          "sharpe": 1.4059522853831712,
+          "n_trades": 123,
+          "mode_switch_blocked_share": 0.11589403973509933
+        }
+      ]
+    },
+    {
+      "label": "E0p030_Xm0p010",
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.01,
+      "total_return": 3.816552447730972,
+      "max_drawdown": -0.197305098938661,
+      "sharpe": 2.090121762999702,
+      "n_trades": 222,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.199866018562336,
+          "max_drawdown": -0.2886976479596337,
+          "sharpe": 1.792936761885845,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.04746136865342163
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.4332388768996096,
+          "max_drawdown": -0.16193890945234346,
+          "sharpe": 1.5567724896329478,
+          "n_trades": 113,
+          "mode_switch_blocked_share": 0.10596026490066225
+        }
+      ]
+    },
+    {
+      "label": "E0p030_Xm0p015",
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.015,
+      "total_return": 3.816552447730972,
+      "max_drawdown": -0.197305098938661,
+      "sharpe": 2.090121762999702,
+      "n_trades": 222,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.199866018562336,
+          "max_drawdown": -0.2886976479596337,
+          "sharpe": 1.792936761885845,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.04746136865342163
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.4332388768996096,
+          "max_drawdown": -0.16193890945234346,
+          "sharpe": 1.5567724896329478,
+          "n_trades": 113,
+          "mode_switch_blocked_share": 0.10596026490066225
+        }
+      ]
+    },
+    {
+      "label": "E0p030_Xm0p020",
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.02,
+      "total_return": 3.662335946674826,
+      "max_drawdown": -0.20228954712705327,
+      "sharpe": 2.0130453978616867,
+      "n_trades": 230,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.199866018562336,
+          "max_drawdown": -0.2886976479596337,
+          "sharpe": 1.792936761885845,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.04746136865342163
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.1248058747873166,
+          "max_drawdown": -0.23614281848519458,
+          "sharpe": 1.420466875909139,
+          "n_trades": 121,
+          "mode_switch_blocked_share": 0.11589403973509933
+        }
+      ]
+    },
+    {
+      "label": "E0p035_Xm0p010",
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.01,
+      "total_return": 3.921473475648895,
+      "max_drawdown": -0.1988123588153785,
+      "sharpe": 2.117337104137231,
+      "n_trades": 220,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.380966778495854,
+          "max_drawdown": -0.2887763851979147,
+          "sharpe": 1.8294773352294351,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.05187637969094923
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.4619801728019364,
+          "max_drawdown": -0.1621017742655203,
+          "sharpe": 1.583217836855634,
+          "n_trades": 111,
+          "mode_switch_blocked_share": 0.10816777041942605
+        }
+      ]
+    },
+    {
+      "label": "E0p035_Xm0p015",
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.015,
+      "total_return": 3.921473475648895,
+      "max_drawdown": -0.1988123588153785,
+      "sharpe": 2.117337104137231,
+      "n_trades": 220,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.380966778495854,
+          "max_drawdown": -0.2887763851979147,
+          "sharpe": 1.8294773352294351,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.05187637969094923
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.4619801728019364,
+          "max_drawdown": -0.1621017742655203,
+          "sharpe": 1.583217836855634,
+          "n_trades": 111,
+          "mode_switch_blocked_share": 0.10816777041942605
+        }
+      ]
+    },
+    {
+      "label": "E0p035_Xm0p020",
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.02,
+      "total_return": 3.7690359534863163,
+      "max_drawdown": -0.20356700320674548,
+      "sharpe": 2.041869572010881,
+      "n_trades": 228,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.380966778495854,
+          "max_drawdown": -0.2887763851979147,
+          "sharpe": 1.8294773352294351,
+          "n_trades": 109,
+          "mode_switch_blocked_share": 0.05187637969094923
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 2.1571051284767786,
+          "max_drawdown": -0.23602885178365907,
+          "sharpe": 1.4471631021147426,
+          "n_trades": 119,
+          "mode_switch_blocked_share": 0.11810154525386314
+        }
+      ]
+    }
+  ],
+  "path": [
+    {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.01,
+      "total_return": 3.7956163884068737,
+      "sharpe": 2.079220243985279,
+      "n_trades": 224
+    },
+    {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.015,
+      "total_return": 3.816552447730972,
+      "sharpe": 2.090121762999702,
+      "n_trades": 222
+    },
+    {
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.015,
+      "total_return": 3.921473475648895,
+      "sharpe": 2.117337104137231,
+      "n_trades": 220
+    }
+  ],
+  "path_deltas": [
+    {
+      "from": [
+        0.025,
+        -0.01
+      ],
+      "to": [
+        0.03,
+        -0.015
+      ],
+      "delta_ret_pp": 2.0936059324098366
+    },
+    {
+      "from": [
+        0.03,
+        -0.015
+      ],
+      "to": [
+        0.035,
+        -0.015
+      ],
+      "delta_ret_pp": 10.492102791792313
+    }
+  ],
+  "path_cv": 0.014322189118558586,
+  "neighbor_jumps": [
+    {
+      "from": [
+        0.025,
+        -0.01
+      ],
+      "to": [
+        0.03,
+        -0.01
+      ],
+      "delta_ret_pp": 2.0936059324098366
+    },
+    {
+      "from": [
+        0.025,
+        -0.01
+      ],
+      "to": [
+        0.025,
+        -0.015
+      ],
+      "delta_ret_pp": 0.0
+    },
+    {
+      "from": [
+        0.025,
+        -0.015
+      ],
+      "to": [
+        0.03,
+        -0.015
+      ],
+      "delta_ret_pp": 2.0936059324098366
+    },
+    {
+      "from": [
+        0.025,
+        -0.015
+      ],
+      "to": [
+        0.025,
+        -0.02
+      ],
+      "delta_ret_pp": -15.115302240140327
+    },
+    {
+      "from": [
+        0.025,
+        -0.02
+      ],
+      "to": [
+        0.03,
+        -0.02
+      ],
+      "delta_ret_pp": 1.787258066935582
+    },
+    {
+      "from": [
+        0.03,
+        -0.01
+      ],
+      "to": [
+        0.035,
+        -0.01
+      ],
+      "delta_ret_pp": 10.492102791792313
+    },
+    {
+      "from": [
+        0.03,
+        -0.01
+      ],
+      "to": [
+        0.03,
+        -0.015
+      ],
+      "delta_ret_pp": 0.0
+    },
+    {
+      "from": [
+        0.03,
+        -0.015
+      ],
+      "to": [
+        0.035,
+        -0.015
+      ],
+      "delta_ret_pp": 10.492102791792313
+    },
+    {
+      "from": [
+        0.03,
+        -0.015
+      ],
+      "to": [
+        0.03,
+        -0.02
+      ],
+      "delta_ret_pp": -15.421650105614582
+    },
+    {
+      "from": [
+        0.03,
+        -0.02
+      ],
+      "to": [
+        0.035,
+        -0.02
+      ],
+      "delta_ret_pp": 10.670000681149006
+    },
+    {
+      "from": [
+        0.035,
+        -0.01
+      ],
+      "to": [
+        0.035,
+        -0.015
+      ],
+      "delta_ret_pp": 0.0
+    },
+    {
+      "from": [
+        0.035,
+        -0.015
+      ],
+      "to": [
+        0.035,
+        -0.02
+      ],
+      "delta_ret_pp": -15.243752216257889
+    }
+  ],
+  "trade_ratios_enter_025": [
+    {
+      "enter": 0.025,
+      "exit": -0.01,
+      "n_trades": 224,
+      "ratio_vs_baseline": 1.018181818181818
+    },
+    {
+      "enter": 0.025,
+      "exit": -0.015,
+      "n_trades": 224,
+      "ratio_vs_baseline": 1.018181818181818
+    },
+    {
+      "enter": 0.025,
+      "exit": -0.02,
+      "n_trades": 232,
+      "ratio_vs_baseline": 1.0545454545454545
+    }
+  ],
+  "profit_deltas_enter_025": [
+    {
+      "enter": 0.025,
+      "exit": -0.01,
+      "delta_ret_pp_vs_baseline": -12.58570872420215
+    },
+    {
+      "enter": 0.025,
+      "exit": -0.015,
+      "delta_ret_pp_vs_baseline": -12.58570872420215
+    },
+    {
+      "enter": 0.025,
+      "exit": -0.02,
+      "delta_ret_pp_vs_baseline": -27.701010964342476
+    }
+  ],
+  "baseline_blend": {
+    "total_return": 3.921473475648895,
+    "sharpe": 2.117337104137231,
+    "n_trades": 220,
+    "max_drawdown": -0.1988123588153785
+  },
+  "verdict": {
+    "pass_smooth_no_violent_jump": true,
+    "pass_path_cv": true,
+    "pass_no_trade_explosion": true,
+    "pass_no_profit_collapse_at_025": false,
+    "overall_pass": false
+  },
+  "data": {
+    "cache": "/workspace/examples/data/structure_gate_v13_exp3_long_window_plateau/cache_ohlcv",
+    "n_symbols": 510
+  },
+  "note": "Only mode_enter_trail / mode_exit_trail vary; other v13 knobs frozen. Primary path: [0.025,-0.010] \u2192 [0.030,-0.015] \u2192 [0.035,-0.015]."
+}

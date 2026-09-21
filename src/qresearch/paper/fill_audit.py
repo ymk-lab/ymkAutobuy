@@ -66,6 +66,39 @@ def signed_qty_delta(fills: list[dict[str, Any]]) -> dict[str, float]:
     return out
 
 
+def verify_fills_against_positions(
+    fills: list[dict[str, Any]] | None,
+    positions_before: dict[str, Any] | None,
+    positions_after: dict[str, Any] | None,
+    *,
+    tolerance_qty: float = 1e-6,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Split broker-reported fills into position-verified vs phantom rows.
+
+    Futu SIMULATE occasionally reports FILLED while ``position_list_query``
+    still shows the old qty. Those rows must not mark the day submitted.
+    """
+    rows = [normalize_fill_row(r, source="fill") for r in (fills or [])]
+    before = {_sym(k): _f(v) for k, v in (positions_before or {}).items() if _sym(k)}
+    after = {_sym(k): _f(v) for k, v in (positions_after or {}).items() if _sym(k)}
+    if not rows:
+        return [], []
+    if not after and not before:
+        return rows, ["cannot verify fills: empty positions before/after"]
+
+    claimed = signed_qty_delta(rows)
+    phantoms: list[str] = []
+    bad_syms: set[str] = set()
+    for sym, dq in claimed.items():
+        actual = after.get(sym, 0.0) - before.get(sym, 0.0)
+        if abs(actual - dq) > tolerance_qty:
+            bad_syms.add(sym)
+            phantoms.append(f"{sym}: fillΔ={dq:g} accountΔ={actual:g}")
+
+    verified = [r for r in rows if r["symbol"] not in bad_syms]
+    return verified, phantoms
+
+
 def reconcile_fills(
     *,
     preview_orders: list[dict[str, Any]] | None,
@@ -186,13 +219,22 @@ def reconcile_fills(
         x["status"] in {"missing_fill", "extra_fill", "qty_mismatch"} for x in lines
     ) or (not pos_ok and bool(after))
     warn = any(x["status"] == "price_warn" for x in lines)
+    # Plan-only: preview exists and no fills yet. Do NOT require empty account —
+    # live holdings are common before the next 09:40 submit, and treating that
+    # as missing_fill caused false FAIL after signal-only runs.
     pending = bool(preview) and not actual
 
-    if pending and not after:
-        # Plan-only: preview exists but nothing submitted yet.
+    if pending:
         status = "pending"
         ok = True
-        issues = [f"pending fill {x['side']} {x.get('preview_qty')} {x['symbol']}" for x in lines]
+        issues = [
+            f"pending fill {x['side']} {x.get('preview_qty')} {x['symbol']}" for x in lines
+        ]
+        for x in lines:
+            if x["status"] == "missing_fill":
+                x["status"] = "pending"
+                x["qty_ok"] = None
+                x["price_ok"] = None
         hard_fail = False
     else:
         status = "fail" if hard_fail else ("warn" if warn else "pass")
@@ -260,15 +302,27 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
     state = _read("state.json")
 
     preview = run.get("preview_orders") or signal.get("preview_orders") or []
-    fills = run.get("fills") or []
-    if not fills:
-        # Fall back to ledger for display/audit when latest_run missing.
+    # Prefer latest_run fills even when empty (means this run placed 0 orders).
+    # Only fall back to the historical ledger when latest_run.json is missing —
+    # otherwise "recheck" aggregates old buys against today's empty preview
+    # and falsely reports extra_fill / position mismatch.
+    run_path = base / "latest_run.json"
+    if run_path.is_file():
+        fills = list(run.get("fills") or [])
+    else:
         fills = load_fills_ledger(base, limit=50)
+        asof_hint = str(signal.get("asof") or state.get("asof") or "")
+        if asof_hint:
+            fills = [r for r in fills if str(r.get("asof") or "") == asof_hint]
 
     positions_before = run.get("positions") or signal.get("positions") or {}
-    positions_after = run.get("positions_after")
-    if positions_after is None and account.get("positions") is not None:
+    # Live account is source of truth for "after" whenever present.
+    if account.get("positions") is not None:
         positions_after = account.get("positions") or {}
+    elif run_path.is_file():
+        positions_after = run.get("positions_after")
+    else:
+        positions_after = None
 
     audit = reconcile_fills(
         preview_orders=preview,
@@ -278,8 +332,19 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
         asof=str(run.get("asof") or signal.get("asof") or state.get("asof") or ""),
         run_at=str(run.get("generated_at_utc") or state.get("at") or ""),
     )
-    # If account already shows the expected post-fill positions but latest_run
-    # is missing (e.g. copied signal only), mark as needs_run_file rather than pass.
+    verified, phantoms = verify_fills_against_positions(
+        fills, positions_before, positions_after
+    )
+    if phantoms:
+        audit["ok"] = False
+        audit["status"] = "fail"
+        audit["issues"] = list(audit.get("issues") or []) + [
+            f"phantom fill (order reported filled but position unchanged): {p}" for p in phantoms
+        ]
+        audit["n_issues"] = len(audit["issues"])
+        audit["verified_fills"] = verified
+        audit["phantom_fills"] = phantoms
+    # Submitted but no run/fills artifact → real problem; keep fail.
     if audit.get("status") == "pending" and bool(state.get("submitted")) and not run.get("fills"):
         audit["ok"] = False
         audit["status"] = "fail"
@@ -287,6 +352,9 @@ def audit_from_out_dir(base: Path) -> dict[str, Any]:
             "state.submitted=true but latest_run.json fills missing — copy run log from paper host"
         ]
         audit["n_issues"] = len(audit["issues"])
+        for x in audit.get("lines") or []:
+            if x.get("status") == "pending":
+                x["status"] = "missing_fill"
     audit["sources"] = {
         "signal": bool(signal),
         "latest_run": bool(run),

@@ -1,0 +1,44 @@
+=== Structure Gate v13 vs v11 回測對比 ===
+分支：cursor/structure-gate-v13-600b
+腳本：examples/run_structure_gate_v13_vs_v11.py
+資本：$50k｜權重：SPY40/QQQ30/SMH30｜成本：Futu fees + 3bps｜次日 open
+
+## v13 機制
+1) 動態遲滯（主）：leader_vs_bench_trail
+   - 進場（bench/cash→ers/strong）：trail >= mode_enter_trail
+   - 出場（ers/strong→bench）：trail <= mode_exit_trail
+2) 軟切換冷靜期（輔）：mode_switch_cooldown_days（ers/strong↔bench）
+3) 風控穿透：harsh_ret / harsh_dd → 立刻允許 cash；
+   持倉個股 1 日跌幅 >= risk_override_stock_1d → 次日 open 強平
+
+## 微調（10 參數，36 trial，seed=13）
+最佳 knobs（已寫入 StructureGateConfig.v13()）：
+  mode_enter_trail = 0.035
+  mode_exit_trail = -0.015
+  mode_switch_cooldown_days = 3
+  risk_override_stock_1d = 0.08
+  mild_defense_dd = 0.06
+  mild_defense_ret20 = -0.05
+  harsh_defense_dd = 0.20
+  harsh_defense_ret20 = -0.12
+  stock_led_min_trail = 0.03   # index_lean = -0.03
+  sma50_hysteresis = 0.0
+
+## 對比結果
+
+### 2023-01-01 → 2024-01-01
+v11: +27.94% | maxDD -13.81% | Sharpe 1.57 | vsSPY +2.4pp | vsStatic -19.0pp | trades 127
+v13: +73.51% | maxDD -7.80%  | Sharpe 2.88 | vsSPY +48.0pp | vsStatic +26.6pp | trades 69
+Δ   : ret +45.58pp | maxDD 改善 6.01pp | trades -58
+
+### 2025-08-07 → 2026-08-07
+v11: +98.14% | maxDD -13.25% | Sharpe 2.40 | vsSPY +75.4pp | vsStatic +51.6pp | trades 136
+v13: +113.43%| maxDD -13.99% | Sharpe 2.63 | vsSPY +90.7pp | vsStatic +66.9pp | trades 92
+Δ   : ret +15.29pp | maxDD 略差 0.74pp | trades -44
+
+## 解讀
+- 2023（原 v11 輸靜態 ETF）是 v13 最大改善：遲滯過濾了 QQQ/SMH 雜訊輪動，交易腰斬，且轉為大幅贏靜態。
+- 2025–2026 一年窗報酬與超額仍高於 v11，交易亦下降；maxDD 略深 ~0.7pp。
+- 注意：兩窗皆參與 tune，屬 in-sample-ish；上線前建議再加 2021–2022 / 2024 窗做確認。
+
+=== END ===

@@ -1,0 +1,1586 @@
+[
+  {
+    "trial": 0,
+    "score": 166.73740974668704,
+    "mean_window_score": 156.22021083307177,
+    "improve_2023_vs_static_pp": 42.06879565446102,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7000720165940582,
+        "max_drawdown": -0.07716318700081759,
+        "sharpe": 2.807073412247302,
+        "vs_spy_bh_pp": 44.511300582159485,
+        "vs_static_etf_blend_pp": 23.076837684356843,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.051548070607156,
+        "max_drawdown": -0.14114741985091783,
+        "sharpe": 2.435190786297965,
+        "vs_spy_bh_pp": 82.4382705819791,
+        "vs_static_etf_blend_pp": 58.59656908706299,
+        "n_trades": 96,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 1,
+    "score": 169.53019648077938,
+    "mean_window_score": 158.4903850760755,
+    "improve_2023_vs_static_pp": 44.159245618815504,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.720976516237603,
+        "max_drawdown": -0.12523010907073862,
+        "sharpe": 2.6702318172547552,
+        "vs_spy_bh_pp": 46.60175054651396,
+        "vs_static_etf_blend_pp": 25.167287648711323,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.0719667999046236,
+        "max_drawdown": -0.14506809463144377,
+        "sharpe": 2.4780872389446302,
+        "vs_spy_bh_pp": 84.48014351172586,
+        "vs_static_etf_blend_pp": 60.63844201680975,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 2,
+    "score": 148.9931360996647,
+    "mean_window_score": 142.7499253679741,
+    "improve_2023_vs_static_pp": 24.972842926762404,
+    "knobs": {
+      "mode_enter_trail": 0.02,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.529112489317072,
+        "max_drawdown": -0.1138368258922472,
+        "sharpe": 2.2573036396855244,
+        "vs_spy_bh_pp": 27.41534785446087,
+        "vs_static_etf_blend_pp": 5.980884956658228,
+        "n_trades": 85,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.110379256779872,
+        "max_drawdown": -0.14087819054794792,
+        "sharpe": 2.5524593417540364,
+        "vs_spy_bh_pp": 88.3213891992507,
+        "vs_static_etf_blend_pp": 64.4796877043346,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 3,
+    "score": 130.70477060014665,
+    "mean_window_score": 123.11564858239511,
+    "improve_2023_vs_static_pp": 30.356488071006194,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 0,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5829489407595099,
+        "max_drawdown": -0.13227842708396642,
+        "sharpe": 2.0853482485201944,
+        "vs_spy_bh_pp": 32.798992998704655,
+        "vs_static_etf_blend_pp": 11.364530100902016,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8772281528836687,
+        "max_drawdown": -0.15230151950272852,
+        "sharpe": 2.1538931830340453,
+        "vs_spy_bh_pp": 65.00627880963037,
+        "vs_static_etf_blend_pp": 41.16457731471426,
+        "n_trades": 98,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 4,
+    "score": 153.37325014736527,
+    "mean_window_score": 142.28002234002906,
+    "improve_2023_vs_static_pp": 44.37291122934486,
+    "knobs": {
+      "mode_enter_trail": 0.02,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7231131723428965,
+        "max_drawdown": -0.07762411007189218,
+        "sharpe": 2.709694262024781,
+        "vs_spy_bh_pp": 46.81541615704332,
+        "vs_static_etf_blend_pp": 25.38095325924068,
+        "n_trades": 73,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8999054496953258,
+        "max_drawdown": -0.1513359053291271,
+        "sharpe": 2.1750546536272855,
+        "vs_spy_bh_pp": 67.27400849079608,
+        "vs_static_etf_blend_pp": 43.43230699587997,
+        "n_trades": 98,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 5,
+    "score": 180.04374975345766,
+    "mean_window_score": 168.64963767970903,
+    "improve_2023_vs_static_pp": 45.57644829499449,
+    "knobs": {
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7351485429993929,
+        "max_drawdown": -0.07798245926851799,
+        "sharpe": 2.8800192079797937,
+        "vs_spy_bh_pp": 48.018953222692964,
+        "vs_static_etf_blend_pp": 26.584490324890318,
+        "n_trades": 69,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.1342755053737061,
+        "max_drawdown": -0.1399069600209476,
+        "sharpe": 2.6296516865811785,
+        "vs_spy_bh_pp": 90.7110140586341,
+        "vs_static_etf_blend_pp": 66.869312563718,
+        "n_trades": 92,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 6,
+    "score": 148.5520014882608,
+    "mean_window_score": 139.11693913688134,
+    "improve_2023_vs_static_pp": 37.74024940551787,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6567865541046267,
+        "max_drawdown": -0.09526110426934187,
+        "sharpe": 2.4811009279299494,
+        "vs_spy_bh_pp": 40.182754333216344,
+        "vs_static_etf_blend_pp": 18.748291435413698,
+        "n_trades": 77,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9427422082463746,
+        "max_drawdown": -0.15230151950272852,
+        "sharpe": 2.223774396361943,
+        "vs_spy_bh_pp": 71.55768434590095,
+        "vs_static_etf_blend_pp": 47.71598285098484,
+        "n_trades": 94,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 7,
+    "score": 164.32662861779346,
+    "mean_window_score": 151.4423644171747,
+    "improve_2023_vs_static_pp": 51.53705680247498,
+    "knobs": {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7947546280741977,
+        "max_drawdown": -0.0788836664652014,
+        "sharpe": 2.982841051150803,
+        "vs_spy_bh_pp": 53.979561730173444,
+        "vs_static_etf_blend_pp": 32.5450988323708,
+        "n_trades": 69,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9037138100750237,
+        "max_drawdown": -0.13820428876337842,
+        "sharpe": 2.3011999502892495,
+        "vs_spy_bh_pp": 67.65484452876586,
+        "vs_static_etf_blend_pp": 43.813143033849755,
+        "n_trades": 94,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 8,
+    "score": 131.6596061983594,
+    "mean_window_score": 124.28394145018774,
+    "improve_2023_vs_static_pp": 29.502658992686648,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5744106499763144,
+        "max_drawdown": -0.076967797075844,
+        "sharpe": 2.510625210973494,
+        "vs_spy_bh_pp": 31.945163920385113,
+        "vs_static_etf_blend_pp": 10.51070102258247,
+        "n_trades": 83,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8661795040330718,
+        "max_drawdown": -0.14056628676421778,
+        "sharpe": 2.200649940098309,
+        "vs_spy_bh_pp": 63.90141392457067,
+        "vs_static_etf_blend_pp": 40.05971242965456,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 9,
+    "score": 168.68813548080135,
+    "mean_window_score": 156.39783801666277,
+    "improve_2023_vs_static_pp": 49.16118985655436,
+    "knobs": {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7709959586149915,
+        "max_drawdown": -0.0784252596122259,
+        "sharpe": 2.9334190200432224,
+        "vs_spy_bh_pp": 51.603694784252816,
+        "vs_static_etf_blend_pp": 30.169231886450177,
+        "n_trades": 73,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9813831168570364,
+        "max_drawdown": -0.14027609916223405,
+        "sharpe": 2.337179762581591,
+        "vs_spy_bh_pp": 75.42177520696714,
+        "vs_static_etf_blend_pp": 51.580073712051025,
+        "n_trades": 96,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 10,
+    "score": 133.92308815833533,
+    "mean_window_score": 123.04902783151444,
+    "improve_2023_vs_static_pp": 43.49624130728358,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.025,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7143464731222837,
+        "max_drawdown": -0.09259350022370427,
+        "sharpe": 2.586740222520773,
+        "vs_spy_bh_pp": 45.93874623498204,
+        "vs_static_etf_blend_pp": 24.5042833371794,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7423761740324935,
+        "max_drawdown": -0.21524519635296413,
+        "sharpe": 1.8741828753627026,
+        "vs_spy_bh_pp": 51.521080924512844,
+        "vs_static_etf_blend_pp": 27.67937942959673,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 11,
+    "score": 122.8668295775861,
+    "mean_window_score": 114.47864125909743,
+    "improve_2023_vs_static_pp": 33.55275327395471,
+    "knobs": {
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.614911592788995,
+        "max_drawdown": -0.08370481638895033,
+        "sharpe": 2.448115957501444,
+        "vs_spy_bh_pp": 35.99525820165317,
+        "vs_static_etf_blend_pp": 14.560795303850526,
+        "n_trades": 69,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7556861818994853,
+        "max_drawdown": -0.22166723457537418,
+        "sharpe": 1.8633429902906116,
+        "vs_spy_bh_pp": 52.85208171121203,
+        "vs_static_etf_blend_pp": 29.010380216295918,
+        "n_trades": 98,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 12,
+    "score": 115.18635014223324,
+    "mean_window_score": 108.19858127893701,
+    "improve_2023_vs_static_pp": 27.951075453184913,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5588948145812971,
+        "max_drawdown": -0.09526110426934187,
+        "sharpe": 2.2376491140279073,
+        "vs_spy_bh_pp": 30.393580380883378,
+        "vs_static_etf_blend_pp": 8.959117483080735,
+        "n_trades": 85,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7504174466697509,
+        "max_drawdown": -0.18448254527889207,
+        "sharpe": 1.9611837757826116,
+        "vs_spy_bh_pp": 52.325208188238584,
+        "vs_static_etf_blend_pp": 28.483506693322468,
+        "n_trades": 106,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 13,
+    "score": 97.0519507386427,
+    "mean_window_score": 112.57242941619371,
+    "improve_2023_vs_static_pp": 37.91808528979597,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6585649129474076,
+        "max_drawdown": -0.07722729279881757,
+        "sharpe": 2.518338328584383,
+        "vs_spy_bh_pp": 40.36059021749443,
+        "vs_static_etf_blend_pp": 18.926127319691787,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.680361997864555,
+        "max_drawdown": -0.16554065966235343,
+        "sharpe": 1.7957301830332755,
+        "vs_spy_bh_pp": 45.319663307719,
+        "vs_static_etf_blend_pp": 21.47796181280288,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 14,
+    "score": 128.6618581246627,
+    "mean_window_score": 119.76792268589567,
+    "improve_2023_vs_static_pp": 35.57574175506812,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 0,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6351414776001292,
+        "max_drawdown": -0.13606639980125446,
+        "sharpe": 2.168015932460275,
+        "vs_spy_bh_pp": 38.01824668276659,
+        "vs_static_etf_blend_pp": 16.583783784963945,
+        "n_trades": 77,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7938406610928974,
+        "max_drawdown": -0.15230151950272852,
+        "sharpe": 2.0141140686216574,
+        "vs_spy_bh_pp": 56.66752963055324,
+        "vs_static_etf_blend_pp": 32.825828135637124,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 15,
+    "score": 111.913190043224,
+    "mean_window_score": 124.96606682856424,
+    "improve_2023_vs_static_pp": 47.78849285863906,
+    "knobs": {
+      "mode_enter_trail": 0.02,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7572689886358386,
+        "max_drawdown": -0.08075427974211724,
+        "sharpe": 2.7441629344578344,
+        "vs_spy_bh_pp": 50.230997786337525,
+        "vs_static_etf_blend_pp": 28.796534888534886,
+        "n_trades": 73,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7053419076795964,
+        "max_drawdown": -0.19310006530944746,
+        "sharpe": 1.8662522374969517,
+        "vs_spy_bh_pp": 47.817654289223135,
+        "vs_static_etf_blend_pp": 23.97595279430702,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 16,
+    "score": 152.5318126777159,
+    "mean_window_score": 142.33505327281765,
+    "improve_2023_vs_static_pp": 40.787037619592965,
+    "knobs": {
+      "mode_enter_trail": 0.02,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6872544362453776,
+        "max_drawdown": -0.07810070619616005,
+        "sharpe": 2.7078660775331342,
+        "vs_spy_bh_pp": 43.22954254729143,
+        "vs_static_etf_blend_pp": 21.79507964948879,
+        "n_trades": 83,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9324075576135766,
+        "max_drawdown": -0.13923372521014477,
+        "sharpe": 2.262232570600118,
+        "vs_spy_bh_pp": 70.52421928262116,
+        "vs_static_etf_blend_pp": 46.682517787705045,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 17,
+    "score": 134.47098156754942,
+    "mean_window_score": 126.43355564750621,
+    "improve_2023_vs_static_pp": 32.14970368017278,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6008810968511757,
+        "max_drawdown": -0.08370481638895033,
+        "sharpe": 2.4230634054531515,
+        "vs_spy_bh_pp": 34.59220860787124,
+        "vs_static_etf_blend_pp": 13.157745710068603,
+        "n_trades": 73,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8682805424698308,
+        "max_drawdown": -0.14876974764792716,
+        "sharpe": 2.0917449197813713,
+        "vs_spy_bh_pp": 64.11151776824657,
+        "vs_static_etf_blend_pp": 40.26981627333046,
+        "n_trades": 90,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 18,
+    "score": 123.31807414572494,
+    "mean_window_score": 119.31274114772812,
+    "improve_2023_vs_static_pp": 16.021331991987275,
+    "knobs": {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 0,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.4395973799693207,
+        "max_drawdown": -0.15994200887408905,
+        "sharpe": 1.808318790888583,
+        "vs_spy_bh_pp": 18.46383691968574,
+        "vs_static_etf_blend_pp": -2.970625978116903,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": false
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.008529475416882,
+        "max_drawdown": -0.14601540508237643,
+        "sharpe": 2.5182762774509433,
+        "vs_spy_bh_pp": 78.13641106295171,
+        "vs_static_etf_blend_pp": 54.29470956803559,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 19,
+    "score": 146.64484448293106,
+    "mean_window_score": 138.73831484322736,
+    "improve_2023_vs_static_pp": 31.626118558814852,
+    "knobs": {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5956452456375965,
+        "max_drawdown": -0.07767221441577843,
+        "sharpe": 2.5559401763730385,
+        "vs_spy_bh_pp": 34.06862348651332,
+        "vs_static_etf_blend_pp": 12.634160588710674,
+        "n_trades": 75,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9793234931356929,
+        "max_drawdown": -0.13670942517328466,
+        "sharpe": 2.431674713560979,
+        "vs_spy_bh_pp": 75.21581283483279,
+        "vs_static_etf_blend_pp": 51.374111339916674,
+        "n_trades": 90,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 20,
+    "score": 146.63116154621162,
+    "mean_window_score": 136.98469866304177,
+    "improve_2023_vs_static_pp": 38.58585153267939,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6652425753762419,
+        "max_drawdown": -0.08370481638895033,
+        "sharpe": 2.605022489832288,
+        "vs_spy_bh_pp": 41.02835646037786,
+        "vs_static_etf_blend_pp": 19.593893562575214,
+        "n_trades": 77,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9073623380445321,
+        "max_drawdown": -0.1522820651641721,
+        "sharpe": 2.1683554169978687,
+        "vs_spy_bh_pp": 68.0196973257167,
+        "vs_static_etf_blend_pp": 44.1779958308006,
+        "n_trades": 96,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 21,
+    "score": 135.73153639156624,
+    "mean_window_score": 127.72877674850315,
+    "improve_2023_vs_static_pp": 32.01103857225229,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5994944457719709,
+        "max_drawdown": -0.09526110426934187,
+        "sharpe": 2.3473953929455327,
+        "vs_spy_bh_pp": 34.453543499950754,
+        "vs_static_etf_blend_pp": 13.019080602148115,
+        "n_trades": 83,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8914203526847833,
+        "max_drawdown": -0.15778539760497623,
+        "sharpe": 2.2274403672514183,
+        "vs_spy_bh_pp": 66.42549878974182,
+        "vs_static_etf_blend_pp": 42.58379729482571,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 22,
+    "score": 157.41139118406977,
+    "mean_window_score": 148.38995602416932,
+    "improve_2023_vs_static_pp": 36.08574063960175,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6402414664454654,
+        "max_drawdown": -0.07749271422103443,
+        "sharpe": 2.681501074087613,
+        "vs_spy_bh_pp": 38.52824556730021,
+        "vs_static_etf_blend_pp": 17.09378266949757,
+        "n_trades": 81,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.036147081671705,
+        "max_drawdown": -0.1418674898846205,
+        "sharpe": 2.425196461747673,
+        "vs_spy_bh_pp": 80.898171688434,
+        "vs_static_etf_blend_pp": 57.056470193517896,
+        "n_trades": 98,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 23,
+    "score": 141.71698601476388,
+    "mean_window_score": 135.67709562295312,
+    "improve_2023_vs_static_pp": 24.15956156724304,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5209796757218783,
+        "max_drawdown": -0.11455893653445659,
+        "sharpe": 2.2195568206111975,
+        "vs_spy_bh_pp": 26.6020664949415,
+        "vs_static_etf_blend_pp": 5.167603597138859,
+        "n_trades": 93,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.0517358261042546,
+        "max_drawdown": -0.14099566543467135,
+        "sharpe": 2.552132453649547,
+        "vs_spy_bh_pp": 82.45704613168895,
+        "vs_static_etf_blend_pp": 58.615344636772846,
+        "n_trades": 106,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 24,
+    "score": 117.30706032443695,
+    "mean_window_score": 109.54691180612011,
+    "improve_2023_vs_static_pp": 31.040594073267336,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5897900007821213,
+        "max_drawdown": -0.08431778842059656,
+        "sharpe": 2.352656314960714,
+        "vs_spy_bh_pp": 33.4830990009658,
+        "vs_static_etf_blend_pp": 12.048636103163158,
+        "n_trades": 83,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7331843039053292,
+        "max_drawdown": -0.19670427066452423,
+        "sharpe": 1.8251777227154458,
+        "vs_spy_bh_pp": 50.60189391179642,
+        "vs_static_etf_blend_pp": 26.7601924168803,
+        "n_trades": 104,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 25,
+    "score": 139.7331859163031,
+    "mean_window_score": 129.28608405664536,
+    "improve_2023_vs_static_pp": 41.78840743863104,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6972681344357583,
+        "max_drawdown": -0.08308908999824838,
+        "sharpe": 2.5457355544367606,
+        "vs_spy_bh_pp": 44.2309123663295,
+        "vs_static_etf_blend_pp": 22.79644946852686,
+        "n_trades": 81,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8062281164374225,
+        "max_drawdown": -0.15300411692909743,
+        "sharpe": 2.0148510631707497,
+        "vs_spy_bh_pp": 57.90627516500575,
+        "vs_static_etf_blend_pp": 34.064573670089636,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 26,
+    "score": 83.87583033126869,
+    "mean_window_score": 100.75105465972388,
+    "improve_2023_vs_static_pp": 32.499102686179235,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6043750869112403,
+        "max_drawdown": -0.08196968973125685,
+        "sharpe": 2.4342342049227983,
+        "vs_spy_bh_pp": 34.9416076138777,
+        "vs_static_etf_blend_pp": 13.507144716075059,
+        "n_trades": 75,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.6265866987680824,
+        "max_drawdown": -0.20492410810361272,
+        "sharpe": 1.709291566346089,
+        "vs_spy_bh_pp": 39.94213339807173,
+        "vs_static_etf_blend_pp": 16.10043190315562,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 27,
+    "score": 140.12421126986675,
+    "mean_window_score": 131.11352779930178,
+    "improve_2023_vs_static_pp": 36.04273388225987,
+    "knobs": {
+      "mode_enter_trail": 0.025,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6398113988720466,
+        "max_drawdown": -0.08370481638895033,
+        "sharpe": 2.5188064658401212,
+        "vs_spy_bh_pp": 38.48523880995833,
+        "vs_static_etf_blend_pp": 17.050775912155693,
+        "n_trades": 69,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8739540913898309,
+        "max_drawdown": -0.1483135446946583,
+        "sharpe": 2.1043724227312564,
+        "vs_spy_bh_pp": 64.67887266024658,
+        "vs_static_etf_blend_pp": 40.837171165330474,
+        "n_trades": 90,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 28,
+    "score": 128.84384745679816,
+    "mean_window_score": 124.24084398915704,
+    "improve_2023_vs_static_pp": 18.412013870564458,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 0,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.4635041987550925,
+        "max_drawdown": -0.16262956693897113,
+        "sharpe": 1.8527121282943815,
+        "vs_spy_bh_pp": 20.854518798262923,
+        "vs_static_etf_blend_pp": -0.5799440995397198,
+        "n_trades": 93,
+        "soft_pass": true,
+        "hard_pass": false
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.0429149558642674,
+        "max_drawdown": -0.1416002416341483,
+        "sharpe": 2.462828516698156,
+        "vs_spy_bh_pp": 81.57495910769023,
+        "vs_static_etf_blend_pp": 57.733257612774125,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 29,
+    "score": 139.81563128366633,
+    "mean_window_score": 128.6609088909272,
+    "improve_2023_vs_static_pp": 44.6188895709565,
+    "knobs": {
+      "mode_enter_trail": 0.02,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.06,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7255729557590129,
+        "max_drawdown": -0.0778884794164234,
+        "sharpe": 2.6766046934923753,
+        "vs_spy_bh_pp": 47.06139449865496,
+        "vs_static_etf_blend_pp": 25.62693160085232,
+        "n_trades": 79,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7658223754265543,
+        "max_drawdown": -0.15804653962275994,
+        "sharpe": 2.0042940358256067,
+        "vs_spy_bh_pp": 53.86570106391893,
+        "vs_static_etf_blend_pp": 30.02399956900281,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 30,
+    "score": 134.91775007873645,
+    "mean_window_score": 125.80559111453442,
+    "improve_2023_vs_static_pp": 36.44863585680813,
+    "knobs": {
+      "mode_enter_trail": 0.02,
+      "mode_exit_trail": -0.01,
+      "mode_switch_cooldown_days": 2,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.04,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.12,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.005
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.6438704186175292,
+        "max_drawdown": -0.08370481638895033,
+        "sharpe": 2.543968891505312,
+        "vs_spy_bh_pp": 38.8911407845066,
+        "vs_static_etf_blend_pp": 17.456677886703954,
+        "n_trades": 75,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.8212251265138313,
+        "max_drawdown": -0.151937707136646,
+        "sharpe": 1.9862578349339477,
+        "vs_spy_bh_pp": 59.405976172646625,
+        "vs_static_etf_blend_pp": 35.56427467773051,
+        "n_trades": 96,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 31,
+    "score": 154.62106022677696,
+    "mean_window_score": 143.6365027643252,
+    "improve_2023_vs_static_pp": 43.93822984980706,
+    "knobs": {
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.025,
+      "mode_switch_cooldown_days": 3,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.06,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.18,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.02,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7187663585475186,
+        "max_drawdown": -0.0807979725137753,
+        "sharpe": 2.694246712067027,
+        "vs_spy_bh_pp": 46.38073477750553,
+        "vs_static_etf_blend_pp": 24.946271879702884,
+        "n_trades": 69,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.9234075327419249,
+        "max_drawdown": -0.18343523779940374,
+        "sharpe": 2.191050639503373,
+        "vs_spy_bh_pp": 69.62421679545598,
+        "vs_static_etf_blend_pp": 45.78251530053987,
+        "n_trades": 92,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 32,
+    "score": 149.14964552543213,
+    "mean_window_score": 142.29426470787055,
+    "improve_2023_vs_static_pp": 27.42152327024634,
+    "knobs": {
+      "mode_enter_trail": 0.015,
+      "mode_exit_trail": -0.02,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5535992927519113,
+        "max_drawdown": -0.11558380721824779,
+        "sharpe": 2.3377014764331783,
+        "vs_spy_bh_pp": 29.864028197944805,
+        "vs_static_etf_blend_pp": 8.429565300142162,
+        "n_trades": 85,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.0825757056726912,
+        "max_drawdown": -0.1457498152274037,
+        "sharpe": 2.510012127225883,
+        "vs_spy_bh_pp": 85.54103408853263,
+        "vs_static_etf_blend_pp": 61.699332593616504,
+        "n_trades": 104,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 33,
+    "score": 148.18740086844267,
+    "mean_window_score": 140.2373082685798,
+    "improve_2023_vs_static_pp": 31.80037039945145,
+    "knobs": {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.025,
+      "mode_switch_cooldown_days": 0,
+      "risk_override_stock_1d": 0.08,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.15,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.0
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5973877640439624,
+        "max_drawdown": -0.17808734065021958,
+        "sharpe": 2.1253797841637976,
+        "vs_spy_bh_pp": 34.24287532714991,
+        "vs_static_etf_blend_pp": 12.808412429347271,
+        "n_trades": 81,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 1.0374171168561785,
+        "max_drawdown": -0.14280494359351237,
+        "sharpe": 2.478428309868947,
+        "vs_spy_bh_pp": 81.02517520688136,
+        "vs_static_etf_blend_pp": 57.183473711965235,
+        "n_trades": 102,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 34,
+    "score": 143.60267568284297,
+    "mean_window_score": 131.45050227005848,
+    "improve_2023_vs_static_pp": 48.608693651137955,
+    "knobs": {
+      "mode_enter_trail": 0.035,
+      "mode_exit_trail": -0.005,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.1,
+      "mild_defense_dd": 0.08,
+      "mild_defense_ret20": -0.03,
+      "harsh_defense_dd": 0.2,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.03,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.7654709965608275,
+        "max_drawdown": -0.09258827977434769,
+        "sharpe": 2.6872714268739797,
+        "vs_spy_bh_pp": 51.05119857883642,
+        "vs_static_etf_blend_pp": 29.61673568103378,
+        "n_trades": 71,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.7736101081538707,
+        "max_drawdown": -0.21841617838546878,
+        "sharpe": 1.9138357215131256,
+        "vs_spy_bh_pp": 54.64447433665056,
+        "vs_static_etf_blend_pp": 30.80277284173445,
+        "n_trades": 100,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  },
+  {
+    "trial": 35,
+    "score": 119.16295246621709,
+    "mean_window_score": 111.86842566708182,
+    "improve_2023_vs_static_pp": 29.178107196541056,
+    "knobs": {
+      "mode_enter_trail": 0.03,
+      "mode_exit_trail": -0.015,
+      "mode_switch_cooldown_days": 1,
+      "risk_override_stock_1d": 0.12,
+      "mild_defense_dd": 0.05,
+      "mild_defense_ret20": -0.05,
+      "harsh_defense_dd": 0.15,
+      "harsh_defense_ret20": -0.1,
+      "stock_led_min_trail": 0.025,
+      "sma50_hysteresis": 0.01
+    },
+    "windows": [
+      {
+        "start": "2023-01-01",
+        "end": "2024-01-01",
+        "total_return": 0.5711651320148585,
+        "max_drawdown": -0.08431778842059656,
+        "sharpe": 2.291337076191727,
+        "vs_spy_bh_pp": 31.62061212423952,
+        "vs_static_etf_blend_pp": 10.18614922643688,
+        "n_trades": 75,
+        "soft_pass": true,
+        "hard_pass": true
+      },
+      {
+        "start": "2025-08-07",
+        "end": "2026-08-07",
+        "total_return": 0.768927114209391,
+        "max_drawdown": -0.18894150577394353,
+        "sharpe": 1.9315104907729848,
+        "vs_spy_bh_pp": 54.17617494220259,
+        "vs_static_etf_blend_pp": 30.33447344728648,
+        "n_trades": 98,
+        "soft_pass": true,
+        "hard_pass": true
+      }
+    ]
+  }
+]

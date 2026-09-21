@@ -1,0 +1,92 @@
+{
+  "experiment": "exp1_2022_bear_oos",
+  "preset": "StructureGateConfig.v13",
+  "window": [
+    "2022-01-01",
+    "2022-12-31"
+  ],
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "criteria": {
+    "max_drawdown_shallower_than": -0.22,
+    "thrust_harsh_window_days": 5,
+    "max_consecutive_thrust_harsh_failures_allowed": 1
+  },
+  "blend": {
+    "total_return": -0.21371087222128682,
+    "max_drawdown": -0.22293970818476005,
+    "sharpe": -1.6415266126900818,
+    "vs_spy_bh_pp": -3.024630867728495,
+    "vs_static_etf_blend_pp": 4.028842682091249,
+    "n_trades": 21
+  },
+  "spy_bh": {
+    "total_return": -0.18346456354400187,
+    "max_drawdown": -0.24380571872373125
+  },
+  "static_etf": {
+    "total_return": -0.2539992990421993,
+    "max_drawdown": -0.29261124580158293
+  },
+  "sleeves": [
+    {
+      "book": "SPY",
+      "weight": 0.5,
+      "n_members": 458,
+      "total_return": -0.2200297761223371,
+      "max_drawdown": -0.233670190249878,
+      "sharpe": -1.3827700804060534,
+      "bh_total_return": -0.18185188819675868,
+      "mode_distribution": {
+        "bench": 0.6653386454183267,
+        "cash": 0.3346613545816733
+      },
+      "n_trades": 9,
+      "thrust_harsh": {
+        "n_thrust_triggers": 59,
+        "n_failures": 0,
+        "max_consecutive_failures": 0,
+        "pass_no_double_streak": true
+      }
+    },
+    {
+      "book": "QQQ",
+      "weight": 0.5,
+      "n_members": 94,
+      "total_return": -0.20739196832023665,
+      "max_drawdown": -0.21224791302956592,
+      "sharpe": -1.5362556403445666,
+      "bh_total_return": -0.32614670988763983,
+      "mode_distribution": {
+        "cash": 0.6693227091633466,
+        "bench": 0.33067729083665337
+      },
+      "n_trades": 12,
+      "thrust_harsh": {
+        "n_thrust_triggers": 57,
+        "n_failures": 1,
+        "max_consecutive_failures": 1,
+        "pass_no_double_streak": true
+      }
+    }
+  ],
+  "thrust_harsh_portfolio": {
+    "max_consecutive_failures_any_sleeve": 1,
+    "pass_no_double_streak": true
+  },
+  "verdict": {
+    "pass_maxdd": false,
+    "pass_thrust_harsh": true,
+    "overall_pass": false
+  },
+  "data": {
+    "cache": "/workspace/examples/data/structure_gate_v13_vs_v11/cache_ohlcv_2019",
+    "n_symbols": 469,
+    "yf_start": "2019-01-01",
+    "yf_end": "2023-06-01"
+  },
+  "note": "OOS vs v13 tune windows (2023, 2025). Thrust failure = thrust_lock rising edge then harsh_ret|harsh_dd within 5 sessions."
+}

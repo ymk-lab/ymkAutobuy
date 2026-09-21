@@ -1,0 +1,8 @@
+=== Structure Gate v16 vs v13 ===
+窗：2025-08-07 → 2026-08-13｜資本 $50,000｜權重 SPY50/QQQ50
+
+v13 (20/60): +102.58%｜maxDD -18.94%｜trades 84｜vsSPY +79.1pp
+v16 (20/70): +106.77%｜maxDD -16.60%｜trades 78｜vsSPY +83.3pp
+Δ(v16−v13): ret +4.19pp｜maxDD +2.34pp｜trades -6
+
+v16 規則：雙窗 trail 20/70（sticky/strong/ers_lag 長窗 60→70）；模式滯後與防守同 v13。

@@ -1,0 +1,82 @@
+{
+  "with_slip_3bps": {
+    "preset": "v11_slip3",
+    "slippage_bps": 3.0,
+    "note": "Futu commissions kept; only slippage_bps changed",
+    "start": "2025-08-07",
+    "end": "2026-08-07",
+    "structure_gate_total_return": 0.9813696974517012,
+    "structure_gate_max_drawdown": -0.13253647722850215,
+    "structure_gate_sharpe": 2.4020142028697684,
+    "spy_bh_total_return": 0.22716536478736504,
+    "vs_spy_pp": 75.42043326643362,
+    "sleeves": [
+      {
+        "book": "SPY",
+        "total_return": 1.3045121542058067,
+        "max_drawdown": -0.25836187167477787,
+        "sharpe": 1.7937448947231456,
+        "n_trades": 73
+      },
+      {
+        "book": "QQQ",
+        "total_return": 0.7495419867733337,
+        "max_drawdown": -0.1625865837274033,
+        "sharpe": 2.3467808252687603,
+        "n_trades": 53
+      },
+      {
+        "book": "SMH",
+        "total_return": 0.7823407991245939,
+        "max_drawdown": -0.1802778505681476,
+        "sharpe": 1.8986549710394476,
+        "n_trades": 10
+      }
+    ]
+  },
+  "no_slip": {
+    "preset": "v11_noslip",
+    "slippage_bps": 0.0,
+    "note": "Futu commissions kept; only slippage_bps changed",
+    "start": "2025-08-07",
+    "end": "2026-08-07",
+    "structure_gate_total_return": 1.0086375146824227,
+    "structure_gate_max_drawdown": -0.12752371585277789,
+    "structure_gate_sharpe": 2.44811659816302,
+    "spy_bh_total_return": 0.22746363757872046,
+    "vs_spy_pp": 78.11738771037022,
+    "sleeves": [
+      {
+        "book": "SPY",
+        "total_return": 1.3522141881542136,
+        "max_drawdown": -0.25004516575408975,
+        "sharpe": 1.8325684457391485,
+        "n_trades": 73
+      },
+      {
+        "book": "QQQ",
+        "total_return": 0.7738939333333332,
+        "max_drawdown": -0.15846212106690383,
+        "sharpe": 2.4090266838546834,
+        "n_trades": 53
+      },
+      {
+        "book": "SMH",
+        "total_return": 0.7852788647357913,
+        "max_drawdown": -0.18066199957504792,
+        "sharpe": 1.894737701622808,
+        "n_trades": 10
+      }
+    ]
+  },
+  "noslip_minus_slip3": {
+    "total_return_pp": 2.726781723072147,
+    "max_drawdown_pp": 0.5012761375724262,
+    "sharpe_delta": 0.046102395293251774,
+    "sleeve_return_pp": {
+      "SPY": 4.770203394840689,
+      "QQQ": 2.4351946559999504,
+      "SMH": 0.2938065611197471
+    }
+  }
+}

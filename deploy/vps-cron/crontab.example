@@ -1,11 +1,16 @@
 # Structure Gate v11 · Futu OpenD SIMULATE
-# Adjust paths / timezone. US cash session: after close ~21:10 UTC (EDT) / 22:10 UTC (EST).
+# Official execution: prior-close signal → next RTH 09:40 ET submit (not 09:30).
+# Prefer deploy/vps/crontab.example on the 24×7 OpenD VPS.
 
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
+CRON_TZ=America/New_York
 
-# Daily signal + optional paper submit (controlled by QRESEARCH_SG_PAPER_SUBMIT in .env)
-10 22 * * 1-5  /opt/qresearch/deploy/vps-cron/run-sg.sh once >> /opt/qresearch/examples/data/structure_gate_v11_paper/logs/cron_stdout.log 2>&1
+# After US cash close: signal only
+30 16 * * 1-5  /opt/qresearch/deploy/vps-cron/run-sg.sh signal >> /opt/qresearch/examples/data/structure_gate_v11_paper/logs/cron_signal.log 2>&1
+
+# 09:40 ET: paper submit (requires QRESEARCH_SG_PAPER_SUBMIT=1)
+40 9 * * 1-5  /opt/qresearch/deploy/vps-cron/run-sg.sh once >> /opt/qresearch/examples/data/structure_gate_v11_paper/logs/cron_submit.log 2>&1
 
 # UI (optional supervised restart)
 @reboot  cd /opt/qresearch && PYTHONPATH=src /opt/qresearch/.venv/bin/python -m uvicorn qresearch.web.paper_app:app --host 0.0.0.0 --port 8787 >> /tmp/qresearch-ui.log 2>&1

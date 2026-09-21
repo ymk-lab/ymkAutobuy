@@ -1,0 +1,11 @@
+=== 實驗 1 重跑：v13 vs v17（陰跌防禦）===
+窗：2022-01-01 → 2022-12-31｜SPY50/QQQ50｜$50k
+
+診斷：v13 的 SPY bench≈69% 中 ~91% 被 sticky 鎖住；harsh_dd 幾乎不觸發（dd60≤−20% 僅 ~0.8%）。
+只降 harsh_defense_dd 幾乎無效；v17 = dd門檻 0.10 + harsh_dd 穿透 sticky（thrust 覆寫保留）。
+
+v13: ret -21.96%｜maxDD -22.87%｜trades 21｜SPY B/C 69/31｜MaxDD門 FAIL｜thrust連擊 PASS｜總判 FAIL
+v17: ret -20.29%｜maxDD -21.20%｜trades 25｜SPY B/C 61/39｜MaxDD門 PASS｜thrust連擊 FAIL｜總判 FAIL
+Δ(v17−v13): ret +1.67pp｜maxDD +1.66pp｜SPY cash +8.8pp｜SPY bench -8.8pp
+
+v17 總判決：FAIL (MaxDD<22%=PASS; thrust連擊=FAIL)

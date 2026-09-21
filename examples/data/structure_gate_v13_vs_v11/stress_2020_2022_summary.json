@@ -1,0 +1,644 @@
+{
+  "ok": true,
+  "note": "OOS stress windows; Yahoo bootstrap 2019-01\u21922023-06; v13 knobs from prior tune",
+  "data": {
+    "cache": "/agent/examples/data/structure_gate_v13_vs_v11/cache_ohlcv_2019",
+    "yf_start": "2019-01-01",
+    "yf_end": "2023-06-01",
+    "n_symbols": 483
+  },
+  "v11": [
+    {
+      "label": "v11",
+      "start": "2020-01-01",
+      "end": "2021-01-01",
+      "blend": {
+        "total_return": 0.462723820858046,
+        "max_drawdown": -0.13798381439075336,
+        "sharpe": 1.7268050376503523,
+        "end_equity": 73136.1910429023,
+        "vs_spy_bh_pp": 28.646677981998604,
+        "vs_static_etf_blend_pp": 9.447329534934902,
+        "n_trades": 93,
+        "mode_disagree_share": 0.43478260869565216
+      },
+      "spy_bh": {
+        "total_return": 0.17625704103805995,
+        "max_drawdown": -0.3362547854646587,
+        "sharpe": 0.6434718719793612,
+        "end_equity": 58812.852051903
+      },
+      "static_etf_403030": {
+        "total_return": 0.36825052550869697,
+        "max_drawdown": -0.3099474797785957,
+        "sharpe": 1.0365028226635806,
+        "end_equity": 68412.52627543485
+      },
+      "soft_pass": {
+        "soft_pass": true,
+        "beat_worse_baseline": true,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": -9.447329534934902,
+        "hard_pass_beat_both": true,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 441,
+          "total_return": 0.013247393649067352,
+          "max_drawdown": -0.19588728380894516,
+          "sharpe": 0.14438153539489867,
+          "bh_total_return": 0.1746325761767753,
+          "mode_distribution": {
+            "bench": 0.549407114624506,
+            "cash": 0.2608695652173913,
+            "ers": 0.16600790513833993,
+            "strong": 0.023715415019762844
+          },
+          "n_trades": 49,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 88,
+          "total_return": 1.0831397203777047,
+          "max_drawdown": -0.17170501008775252,
+          "sharpe": 2.077051473803841,
+          "bh_total_return": 0.4668369429410071,
+          "mode_distribution": {
+            "bench": 0.6758893280632411,
+            "cash": 0.2490118577075099,
+            "strong": 0.07509881422924901
+          },
+          "n_trades": 31,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 40,
+          "total_return": 0.4416098242836921,
+          "max_drawdown": -0.22778643176571733,
+          "sharpe": 1.318431329855959,
+          "bh_total_return": 0.5278213738522828,
+          "mode_distribution": {
+            "bench": 0.8616600790513834,
+            "cash": 0.10276679841897234,
+            "ers": 0.02766798418972332,
+            "strong": 0.007905138339920948
+          },
+          "n_trades": 13,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        }
+      ]
+    },
+    {
+      "label": "v11",
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "blend": {
+        "total_return": -0.25523912119867653,
+        "max_drawdown": -0.2688697135930632,
+        "sharpe": -1.8034725815223658,
+        "end_equity": 37238.04394006617,
+        "vs_spy_bh_pp": -7.1774557474972305,
+        "vs_static_etf_blend_pp": 1.586685572311597,
+        "n_trades": 57,
+        "mode_disagree_share": 0.4342629482071713
+      },
+      "spy_bh": {
+        "total_return": -0.18346456372370423,
+        "max_drawdown": -0.24380551604750011,
+        "sharpe": -0.7362537364642521,
+        "end_equity": 40826.77181381479
+      },
+      "static_etf_403030": {
+        "total_return": -0.2711059769217925,
+        "max_drawdown": -0.33315477646397895,
+        "sharpe": -0.9186504132887585,
+        "end_equity": 36444.70115391038
+      },
+      "soft_pass": {
+        "soft_pass": true,
+        "beat_worse_baseline": true,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": 7.1774557474972305,
+        "hard_pass_beat_both": false,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 451,
+          "total_return": -0.2197516035598115,
+          "max_drawdown": -0.23326737370285178,
+          "sharpe": -1.3854095900259291,
+          "bh_total_return": -0.18187178837484208,
+          "mode_distribution": {
+            "bench": 0.6653386454183267,
+            "cash": 0.3346613545816733
+          },
+          "n_trades": 9,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 93,
+          "total_return": -0.28128142950762935,
+          "max_drawdown": -0.2856008282814183,
+          "sharpe": -1.998813475577421,
+          "bh_total_return": -0.3228031673316002,
+          "mode_distribution": {
+            "cash": 0.6254980079681275,
+            "bench": 0.3665338645418327,
+            "ers": 0.00796812749003984
+          },
+          "n_trades": 16,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 42,
+          "total_return": -0.27651350307487765,
+          "max_drawdown": -0.33678515127353414,
+          "sharpe": -1.3113280433764454,
+          "bh_total_return": -0.3383877045745852,
+          "mode_distribution": {
+            "cash": 0.6613545816733067,
+            "bench": 0.32669322709163345,
+            "ers": 0.01195219123505976
+          },
+          "n_trades": 32,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        }
+      ]
+    }
+  ],
+  "v13": [
+    {
+      "label": "v13",
+      "start": "2020-01-01",
+      "end": "2021-01-01",
+      "blend": {
+        "total_return": 0.5950914133554455,
+        "max_drawdown": -0.13236827085269243,
+        "sharpe": 1.9744598295494176,
+        "end_equity": 79754.57066777228,
+        "vs_spy_bh_pp": 41.883437231738554,
+        "vs_static_etf_blend_pp": 22.68408878467485,
+        "n_trades": 67,
+        "mode_disagree_share": 0.466403162055336
+      },
+      "spy_bh": {
+        "total_return": 0.17625704103805995,
+        "max_drawdown": -0.3362547854646587,
+        "sharpe": 0.6434718719793612,
+        "end_equity": 58812.852051903
+      },
+      "static_etf_403030": {
+        "total_return": 0.36825052550869697,
+        "max_drawdown": -0.3099474797785957,
+        "sharpe": 1.0365028226635806,
+        "end_equity": 68412.52627543485
+      },
+      "soft_pass": {
+        "soft_pass": true,
+        "beat_worse_baseline": true,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": -22.68408878467485,
+        "hard_pass_beat_both": true,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 441,
+          "total_return": 0.02848907561371372,
+          "max_drawdown": -0.18252779476100578,
+          "sharpe": 0.2255112041195993,
+          "bh_total_return": 0.1746325761767753,
+          "mode_distribution": {
+            "bench": 0.5296442687747036,
+            "cash": 0.2648221343873518,
+            "ers": 0.15810276679841898,
+            "strong": 0.04743083003952569
+          },
+          "n_trades": 41,
+          "mode_switch_blocked_share": 0.05928853754940711,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 88,
+          "total_return": 1.591992906109656,
+          "max_drawdown": -0.21129996376030358,
+          "sharpe": 2.45648531439041,
+          "bh_total_return": 0.4668369429410071,
+          "mode_distribution": {
+            "bench": 0.6126482213438735,
+            "cash": 0.25296442687747034,
+            "strong": 0.13438735177865613
+          },
+          "n_trades": 17,
+          "mode_switch_blocked_share": 0.06324110671936758,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.003952569169960474
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 40,
+          "total_return": 0.3536597042568772,
+          "max_drawdown": -0.22778643176571733,
+          "sharpe": 1.100113973673185,
+          "bh_total_return": 0.5278213738522828,
+          "mode_distribution": {
+            "bench": 0.8695652173913043,
+            "cash": 0.10276679841897234,
+            "strong": 0.015810276679841896,
+            "ers": 0.011857707509881422
+          },
+          "n_trades": 9,
+          "mode_switch_blocked_share": 0.015810276679841896,
+          "risk_override_pierce_share": 0.003952569169960474,
+          "stock_crash_override_share": 0.0
+        }
+      ]
+    },
+    {
+      "label": "v13",
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "blend": {
+        "total_return": -0.24984663702312415,
+        "max_drawdown": -0.2655946844884286,
+        "sharpe": -1.7547226742888928,
+        "end_equity": 37507.66814884379,
+        "vs_spy_bh_pp": -6.6382073299419915,
+        "vs_static_etf_blend_pp": 2.125933989866835,
+        "n_trades": 41,
+        "mode_disagree_share": 0.41832669322709165
+      },
+      "spy_bh": {
+        "total_return": -0.18346456372370423,
+        "max_drawdown": -0.24380551604750011,
+        "sharpe": -0.7362537364642521,
+        "end_equity": 40826.77181381479
+      },
+      "static_etf_403030": {
+        "total_return": -0.2711059769217925,
+        "max_drawdown": -0.33315477646397895,
+        "sharpe": -0.9186504132887585,
+        "end_equity": 36444.70115391038
+      },
+      "soft_pass": {
+        "soft_pass": true,
+        "beat_worse_baseline": true,
+        "within_gap_of_better": true,
+        "gap_vs_better_pp": 6.6382073299419915,
+        "hard_pass_beat_both": false,
+        "max_gap_pp": 35.0
+      },
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 451,
+          "total_return": -0.2197516035598115,
+          "max_drawdown": -0.23326737370285178,
+          "sharpe": -1.3854095900259291,
+          "bh_total_return": -0.18187178837484208,
+          "mode_distribution": {
+            "bench": 0.6653386454183267,
+            "cash": 0.3346613545816733
+          },
+          "n_trades": 9,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 93,
+          "total_return": -0.26929737113391605,
+          "max_drawdown": -0.27368879243386424,
+          "sharpe": -1.9013610311020044,
+          "bh_total_return": -0.3228031673316002,
+          "mode_distribution": {
+            "cash": 0.6254980079681275,
+            "bench": 0.3745019920318725
+          },
+          "n_trades": 12,
+          "mode_switch_blocked_share": 0.00796812749003984,
+          "risk_override_pierce_share": 0.01195219123505976,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 42,
+          "total_return": -0.2705226141967493,
+          "max_drawdown": -0.3259379437399751,
+          "sharpe": -1.2751844100639718,
+          "bh_total_return": -0.3383877045745852,
+          "mode_distribution": {
+            "cash": 0.6613545816733067,
+            "bench": 0.3386454183266932
+          },
+          "n_trades": 20,
+          "mode_switch_blocked_share": 0.01195219123505976,
+          "risk_override_pierce_share": 0.00796812749003984,
+          "stock_crash_override_share": 0.0
+        }
+      ]
+    }
+  ],
+  "compare": [
+    {
+      "start": "2020-01-01",
+      "end": "2021-01-01",
+      "v11_ret": 0.462723820858046,
+      "v13_ret": 0.5950914133554455,
+      "delta_ret_pp": 13.236759249739949,
+      "v11_maxdd": -0.13798381439075336,
+      "v13_maxdd": -0.13236827085269243,
+      "delta_maxdd_pp": 0.561554353806093,
+      "v11_sharpe": 1.7268050376503523,
+      "v13_sharpe": 1.9744598295494176,
+      "v11_vs_spy_pp": 28.646677981998604,
+      "v13_vs_spy_pp": 41.883437231738554,
+      "v11_vs_static_pp": 9.447329534934902,
+      "v13_vs_static_pp": 22.68408878467485,
+      "v11_trades": 93,
+      "v13_trades": 67,
+      "v11_sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 441,
+          "total_return": 0.013247393649067352,
+          "max_drawdown": -0.19588728380894516,
+          "sharpe": 0.14438153539489867,
+          "bh_total_return": 0.1746325761767753,
+          "mode_distribution": {
+            "bench": 0.549407114624506,
+            "cash": 0.2608695652173913,
+            "ers": 0.16600790513833993,
+            "strong": 0.023715415019762844
+          },
+          "n_trades": 49,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 88,
+          "total_return": 1.0831397203777047,
+          "max_drawdown": -0.17170501008775252,
+          "sharpe": 2.077051473803841,
+          "bh_total_return": 0.4668369429410071,
+          "mode_distribution": {
+            "bench": 0.6758893280632411,
+            "cash": 0.2490118577075099,
+            "strong": 0.07509881422924901
+          },
+          "n_trades": 31,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 40,
+          "total_return": 0.4416098242836921,
+          "max_drawdown": -0.22778643176571733,
+          "sharpe": 1.318431329855959,
+          "bh_total_return": 0.5278213738522828,
+          "mode_distribution": {
+            "bench": 0.8616600790513834,
+            "cash": 0.10276679841897234,
+            "ers": 0.02766798418972332,
+            "strong": 0.007905138339920948
+          },
+          "n_trades": 13,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        }
+      ],
+      "v13_sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 441,
+          "total_return": 0.02848907561371372,
+          "max_drawdown": -0.18252779476100578,
+          "sharpe": 0.2255112041195993,
+          "bh_total_return": 0.1746325761767753,
+          "mode_distribution": {
+            "bench": 0.5296442687747036,
+            "cash": 0.2648221343873518,
+            "ers": 0.15810276679841898,
+            "strong": 0.04743083003952569
+          },
+          "n_trades": 41,
+          "mode_switch_blocked_share": 0.05928853754940711,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 88,
+          "total_return": 1.591992906109656,
+          "max_drawdown": -0.21129996376030358,
+          "sharpe": 2.45648531439041,
+          "bh_total_return": 0.4668369429410071,
+          "mode_distribution": {
+            "bench": 0.6126482213438735,
+            "cash": 0.25296442687747034,
+            "strong": 0.13438735177865613
+          },
+          "n_trades": 17,
+          "mode_switch_blocked_share": 0.06324110671936758,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.003952569169960474
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 40,
+          "total_return": 0.3536597042568772,
+          "max_drawdown": -0.22778643176571733,
+          "sharpe": 1.100113973673185,
+          "bh_total_return": 0.5278213738522828,
+          "mode_distribution": {
+            "bench": 0.8695652173913043,
+            "cash": 0.10276679841897234,
+            "strong": 0.015810276679841896,
+            "ers": 0.011857707509881422
+          },
+          "n_trades": 9,
+          "mode_switch_blocked_share": 0.015810276679841896,
+          "risk_override_pierce_share": 0.003952569169960474,
+          "stock_crash_override_share": 0.0
+        }
+      ],
+      "spy_bh_ret": 0.17625704103805995,
+      "static_etf_ret": 0.36825052550869697
+    },
+    {
+      "start": "2022-01-01",
+      "end": "2023-01-01",
+      "v11_ret": -0.25523912119867653,
+      "v13_ret": -0.24984663702312415,
+      "delta_ret_pp": 0.5392484175552381,
+      "v11_maxdd": -0.2688697135930632,
+      "v13_maxdd": -0.2655946844884286,
+      "delta_maxdd_pp": 0.3275029104634619,
+      "v11_sharpe": -1.8034725815223658,
+      "v13_sharpe": -1.7547226742888928,
+      "v11_vs_spy_pp": -7.1774557474972305,
+      "v13_vs_spy_pp": -6.6382073299419915,
+      "v11_vs_static_pp": 1.586685572311597,
+      "v13_vs_static_pp": 2.125933989866835,
+      "v11_trades": 57,
+      "v13_trades": 41,
+      "v11_sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 451,
+          "total_return": -0.2197516035598115,
+          "max_drawdown": -0.23326737370285178,
+          "sharpe": -1.3854095900259291,
+          "bh_total_return": -0.18187178837484208,
+          "mode_distribution": {
+            "bench": 0.6653386454183267,
+            "cash": 0.3346613545816733
+          },
+          "n_trades": 9,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 93,
+          "total_return": -0.28128142950762935,
+          "max_drawdown": -0.2856008282814183,
+          "sharpe": -1.998813475577421,
+          "bh_total_return": -0.3228031673316002,
+          "mode_distribution": {
+            "cash": 0.6254980079681275,
+            "bench": 0.3665338645418327,
+            "ers": 0.00796812749003984
+          },
+          "n_trades": 16,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 42,
+          "total_return": -0.27651350307487765,
+          "max_drawdown": -0.33678515127353414,
+          "sharpe": -1.3113280433764454,
+          "bh_total_return": -0.3383877045745852,
+          "mode_distribution": {
+            "cash": 0.6613545816733067,
+            "bench": 0.32669322709163345,
+            "ers": 0.01195219123505976
+          },
+          "n_trades": 32,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        }
+      ],
+      "v13_sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.4,
+          "n_members": 451,
+          "total_return": -0.2197516035598115,
+          "max_drawdown": -0.23326737370285178,
+          "sharpe": -1.3854095900259291,
+          "bh_total_return": -0.18187178837484208,
+          "mode_distribution": {
+            "bench": 0.6653386454183267,
+            "cash": 0.3346613545816733
+          },
+          "n_trades": 9,
+          "mode_switch_blocked_share": 0.0,
+          "risk_override_pierce_share": 0.0,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.3,
+          "n_members": 93,
+          "total_return": -0.26929737113391605,
+          "max_drawdown": -0.27368879243386424,
+          "sharpe": -1.9013610311020044,
+          "bh_total_return": -0.3228031673316002,
+          "mode_distribution": {
+            "cash": 0.6254980079681275,
+            "bench": 0.3745019920318725
+          },
+          "n_trades": 12,
+          "mode_switch_blocked_share": 0.00796812749003984,
+          "risk_override_pierce_share": 0.01195219123505976,
+          "stock_crash_override_share": 0.0
+        },
+        {
+          "book": "SMH",
+          "weight": 0.3,
+          "n_members": 42,
+          "total_return": -0.2705226141967493,
+          "max_drawdown": -0.3259379437399751,
+          "sharpe": -1.2751844100639718,
+          "bh_total_return": -0.3383877045745852,
+          "mode_distribution": {
+            "cash": 0.6613545816733067,
+            "bench": 0.3386454183266932
+          },
+          "n_trades": 20,
+          "mode_switch_blocked_share": 0.01195219123505976,
+          "risk_override_pierce_share": 0.00796812749003984,
+          "stock_crash_override_share": 0.0
+        }
+      ],
+      "spy_bh_ret": -0.18346456372370423,
+      "static_etf_ret": -0.2711059769217925
+    }
+  ]
+}

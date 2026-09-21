@@ -1,0 +1,19 @@
+=== 實驗 1：v13 2022 全年熊市外推 ===
+窗：2022-01-01 → 2022-12-31｜資本 $50,000｜權重 SPY50/QQQ50｜參數不變 v13
+資料：Yahoo 2019-01-01→2023-06-01｜symbols_ok=469
+
+Blend：ret -21.37%｜maxDD -22.29%｜Sharpe -1.64｜trades 21
+SPY B&H：-18.35%｜靜態 SPY50/QQQ50：-25.40%
+vsSPY -3.0pp｜vsStatic +4.0pp
+
+袖口：
+  SPY: -22.00%｜maxDD -23.37%｜trades 9｜thrust→harsh 0/59 (max連擊 0)
+  QQQ: -20.74%｜maxDD -21.22%｜trades 12｜thrust→harsh 1/57 (max連擊 1)
+
+判準：
+  1) MaxDD < 22%：FAIL (實際 -22.29%)
+  2) 無連續≥2次 thrust→5日內harsh：PASS (最大連擊 1)
+總判決：FAIL
+
+預期失效模式：Thrust 抄底後被主跌浪 harsh 打出。
+註：相對 v13 調參窗（2023/2025）為 OOS。

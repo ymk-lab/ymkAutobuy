@@ -1,0 +1,106 @@
+{
+  "experiment": "exp2_2024_tech_rotation",
+  "preset": "StructureGateConfig.v13",
+  "window": [
+    "2024-06-01",
+    "2024-10-31"
+  ],
+  "core_window": [
+    "2024-07-10",
+    "2024-08-15"
+  ],
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "criteria": {
+    "core_defense_share_min": 0.7,
+    "alpha_vs_qqq_min_pp": 5.0
+  },
+  "blend": {
+    "total_return": 0.09321245467581729,
+    "max_drawdown": -0.08378001293088855,
+    "sharpe": 1.2751748947731683,
+    "vs_spy_bh_pp": 1.1943003141994257,
+    "vs_qqq_bh_pp": 2.615244916840709,
+    "vs_static_etf_blend_pp": 1.98088973846271,
+    "n_trades": 22,
+    "core_defense_share_avg": 1.0
+  },
+  "spy_bh": {
+    "total_return": 0.08126945153382303,
+    "max_drawdown": -0.08403145048873595
+  },
+  "qqq_bh": {
+    "total_return": 0.0670600055074102,
+    "max_drawdown": -0.13526308322507674
+  },
+  "static_etf": {
+    "total_return": 0.07340355729119019,
+    "max_drawdown": -0.10579524404067298
+  },
+  "sleeves": [
+    {
+      "book": "SPY",
+      "weight": 0.5,
+      "n_members": 493,
+      "total_return": 0.07580495357296857,
+      "max_drawdown": -0.07282798450206218,
+      "sharpe": 1.5145165235465727,
+      "bh_total_return": 0.08039141182728882,
+      "mode_distribution": {
+        "bench": 0.8207547169811321,
+        "ers": 0.1320754716981132,
+        "cash": 0.04716981132075472
+      },
+      "n_trades": 5,
+      "core_defense": {
+        "defense_share": 1.0,
+        "cash_share": 0.18518518518518517,
+        "bench_share": 0.8148148148148148,
+        "ers_strong_share": 0.0,
+        "pass_defense": true,
+        "risk_override_pierce_days": 0,
+        "stock_crash_override_days": 0
+      }
+    },
+    {
+      "book": "QQQ",
+      "weight": 0.5,
+      "n_members": 96,
+      "total_return": 0.11061995577866623,
+      "max_drawdown": -0.1622290668868479,
+      "sharpe": 1.010332079754551,
+      "bh_total_return": 0.06641570275509112,
+      "mode_distribution": {
+        "bench": 0.6415094339622641,
+        "strong": 0.16037735849056603,
+        "cash": 0.1509433962264151,
+        "ers": 0.04716981132075472
+      },
+      "n_trades": 17,
+      "core_defense": {
+        "defense_share": 1.0,
+        "cash_share": 0.5925925925925926,
+        "bench_share": 0.4074074074074074,
+        "ers_strong_share": 0.0,
+        "pass_defense": true,
+        "risk_override_pierce_days": 0,
+        "stock_crash_override_days": 0
+      }
+    }
+  ],
+  "verdict": {
+    "pass_defense_cash_or_bench": true,
+    "pass_alpha_vs_qqq": false,
+    "overall_pass": false
+  },
+  "data": {
+    "cache": "/workspace/examples/data/structure_gate_v13_exp2_2024_rotation/cache_ohlcv",
+    "n_symbols": 505,
+    "yf_start": "2023-01-01",
+    "yf_end": "2024-11-15"
+  },
+  "note": "OOS vs v13 tune. Defense = cash+bench share in Jul10\u2013Aug15 core. Alpha = blend total return \u2212 QQQ B&H over full window."
+}

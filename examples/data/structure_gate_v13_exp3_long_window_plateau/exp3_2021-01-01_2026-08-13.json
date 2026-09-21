@@ -1,0 +1,223 @@
+{
+  "experiment": "exp3_long_window_plateau",
+  "preset_base": "StructureGateConfig.v13",
+  "window": [
+    "2021-01-01",
+    "2026-08-13"
+  ],
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "long_windows": [
+    55,
+    58,
+    60,
+    62,
+    65
+  ],
+  "criteria": {
+    "cv_ann_max": 0.15,
+    "cv_sharpe_max": 0.15,
+    "cliff_delta_ret_pp_vs_60": -20.0
+  },
+  "rows": [
+    {
+      "label": "L55",
+      "long_window": 55,
+      "total_return": 3.826153562751519,
+      "ann_return": 0.3242690114855107,
+      "max_drawdown": -0.34214772203297705,
+      "sharpe": 1.266464226032871,
+      "n_trades": 314,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 7.273931562273461,
+          "max_drawdown": -0.4234246613833792,
+          "sharpe": 1.3035879908927146,
+          "n_trades": 191
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 0.3783755632295773,
+          "max_drawdown": -0.31882774018805227,
+          "sharpe": 0.40272428108216846,
+          "n_trades": 123
+        }
+      ]
+    },
+    {
+      "label": "L58",
+      "long_window": 58,
+      "total_return": 2.8197603898005665,
+      "ann_return": 0.27014640308535753,
+      "max_drawdown": -0.4069314400245979,
+      "sharpe": 1.1044628532946283,
+      "n_trades": 348,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 5.015257057330011,
+          "max_drawdown": -0.5246074535211416,
+          "sharpe": 1.1236338677677788,
+          "n_trades": 189
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 0.624263722271122,
+          "max_drawdown": -0.27471862370623135,
+          "sharpe": 0.5141160610623658,
+          "n_trades": 159
+        }
+      ]
+    },
+    {
+      "label": "L60",
+      "long_window": 60,
+      "total_return": 4.205583377644382,
+      "ann_return": 0.3422733351352625,
+      "max_drawdown": -0.3867661503603719,
+      "sharpe": 1.3997998924838633,
+      "n_trades": 286,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 6.445102031668514,
+          "max_drawdown": -0.4809141194814709,
+          "sharpe": 1.2997245689660668,
+          "n_trades": 141
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 1.9660647236202502,
+          "max_drawdown": -0.2429004195709933,
+          "sharpe": 1.004257981447099,
+          "n_trades": 145
+        }
+      ]
+    },
+    {
+      "label": "L62",
+      "long_window": 62,
+      "total_return": 3.5046318341398033,
+      "ann_return": 0.3080779937568323,
+      "max_drawdown": -0.46267606539235295,
+      "sharpe": 1.1888499647319708,
+      "n_trades": 294,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 6.27427816232354,
+          "max_drawdown": -0.5061528898359566,
+          "sharpe": 1.2211666862972876,
+          "n_trades": 157
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 0.734985505956067,
+          "max_drawdown": -0.4620745210585826,
+          "sharpe": 0.5280673158317126,
+          "n_trades": 137
+        }
+      ]
+    },
+    {
+      "label": "L65",
+      "long_window": 65,
+      "total_return": 4.397235507687889,
+      "ann_return": 0.35096063017342893,
+      "max_drawdown": -0.34772286106651407,
+      "sharpe": 1.3488004889014222,
+      "n_trades": 312,
+      "sleeves": [
+        {
+          "book": "SPY",
+          "weight": 0.5,
+          "n_members": 498,
+          "total_return": 7.380651932620179,
+          "max_drawdown": -0.41483041972876533,
+          "sharpe": 1.3069750120346377,
+          "n_trades": 159
+        },
+        {
+          "book": "QQQ",
+          "weight": 0.5,
+          "n_members": 96,
+          "total_return": 1.413819082755598,
+          "max_drawdown": -0.292422179355764,
+          "sharpe": 0.7243945535562598,
+          "n_trades": 153
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "ann_returns": [
+      0.3242690114855107,
+      0.27014640308535753,
+      0.3422733351352625,
+      0.3080779937568323,
+      0.35096063017342893
+    ],
+    "sharpes": [
+      1.266464226032871,
+      1.1044628532946283,
+      1.3997998924838633,
+      1.1888499647319708,
+      1.3488004889014222
+    ],
+    "cv_ann": 0.08969042504587942,
+    "cv_sharpe": 0.08441168846313665,
+    "deltas_vs_60": [
+      {
+        "long_window": 55,
+        "delta_ret_pp_vs_60": -37.94298148928634
+      },
+      {
+        "long_window": 58,
+        "delta_ret_pp_vs_60": -138.58229878438158
+      },
+      {
+        "long_window": 60,
+        "delta_ret_pp_vs_60": 0.0
+      },
+      {
+        "long_window": 62,
+        "delta_ret_pp_vs_60": -70.0951543504579
+      },
+      {
+        "long_window": 65,
+        "delta_ret_pp_vs_60": 19.1652130043507
+      }
+    ]
+  },
+  "verdict": {
+    "pass_cv_ann": true,
+    "pass_cv_sharpe": true,
+    "pass_no_cliff": false,
+    "overall_pass": false
+  },
+  "data": {
+    "cache": "/workspace/examples/data/structure_gate_v13_exp3_long_window_plateau/cache_ohlcv",
+    "n_symbols": 510
+  },
+  "note": "Only sticky_trail_days/strong_lookback/ers_lag_lookback vary; all other knobs frozen at v13. CV = std/|mean| across the 5 settings."
+}
