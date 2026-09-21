@@ -1,7 +1,7 @@
-"""Structure Gate v13 production engine.
+"""Structure Gate v13 production engine loader.
 
-Splits the gzip payload across structure_gate.v13.part{0-3}.b64 so the
-engine can be pushed through the GitHub file API.
+The real engine lives in structure_gate.v13.part{0-3}.b64 (preferred)
+or structure_gate.v13.gz.b64. This file only assembles that payload.
 """
 from __future__ import annotations
 
@@ -10,16 +10,29 @@ import gzip
 from pathlib import Path
 
 _DIR = Path(__file__).resolve().parent
-_parts = []
-for _i in range(4):
-    _p = _DIR / f"structure_gate.v13.part{_i}.b64"
-    if not _p.is_file():
-        raise ImportError(
-            f"missing {_p.name}; restore structure_gate.py from commit "
-            "83a247aa8b00175145a5845933fffa65c60e9ec8 if v13 payload is absent"
-        )
-    _parts.append(_p.read_text().strip())
+
+
+def _payload() -> str:
+    parts: list[str] = []
+    for i in range(4):
+        path = _DIR / f"structure_gate.v13.part{i}.b64"
+        if path.is_file():
+            parts.append("".join(path.read_text().split()))
+    if len(parts) == 4 and all(parts):
+        return "".join(parts)
+    sidecar = _DIR / "structure_gate.v13.gz.b64"
+    if sidecar.is_file():
+        text = "".join(sidecar.read_text().split())
+        if text and "PLACEHOLDER" not in text:
+            return text
+    raise ImportError(
+        "v13 engine payload missing. Need structure_gate.v13.part0-3.b64 "
+        "or a complete structure_gate.v13.gz.b64. "
+        "Restore from branch cursor/structure-gate-v13-600b."
+    )
+
+
 exec(
-    compile(gzip.decompress(base64.b64decode("".join(_parts))), __file__, "exec"),
+    compile(gzip.decompress(base64.b64decode(_payload())), __file__, "exec"),
     globals(),
 )
