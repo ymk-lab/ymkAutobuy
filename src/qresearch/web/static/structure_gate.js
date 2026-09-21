@@ -659,51 +659,63 @@
     let buffer = "";
     let ok = false;
     let lastError = "";
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+
+    const applyChunk = (chunk) => {
+      const line = chunk
+        .split("\n")
+        .filter((l) => l.startsWith("data:"))
+        .map((l) => l.slice(5).trim())
+        .join("");
+      if (!line) return;
+      let evt;
+      try {
+        evt = JSON.parse(line);
+      } catch {
+        return;
+      }
+      const level = evt.level || (evt.phase === "error" ? "error" : "info");
+      if (evt.message) {
+        pushActivity(evt.message, level);
+        if (level === "ok" || level === "error" || evt.phase === "start") {
+          toast(evt.message, level === "log" ? "info" : level);
+        }
+        if (level === "error" || evt.phase === "error") {
+          lastError = String(evt.message);
+        }
+      }
+      if (evt.phase === "done") ok = !!evt.ok;
+      if (evt.data) {
+        if (
+          evt.data.signal ||
+          evt.data.backtest ||
+          evt.data.account ||
+          evt.data.diagnose ||
+          evt.data.diagnose_text
+        ) {
+          renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
+        }
+        if (evt.data.submit_enabled != null) {
+          submitEnabled = !!evt.data.submit_enabled;
+          renderSubmitBadge();
+        }
+      }
+    };
+
+    const drainBuffer = (flushDecoder) => {
+      if (flushDecoder) buffer += decoder.decode();
       const chunks = buffer.split("\n\n");
       buffer = chunks.pop() || "";
-      for (const chunk of chunks) {
-        const line = chunk
-          .split("\n")
-          .filter((l) => l.startsWith("data:"))
-          .map((l) => l.slice(5).trim())
-          .join("");
-        if (!line) continue;
-        let evt;
-        try {
-          evt = JSON.parse(line);
-        } catch {
-          continue;
-        }
-        const level = evt.level || (evt.phase === "error" ? "error" : "info");
-        if (evt.message) {
-          pushActivity(evt.message, level);
-          if (level === "ok" || level === "error" || evt.phase === "start") {
-            toast(evt.message, level === "log" ? "info" : level);
-          }
-          if (level === "error" || evt.phase === "error") {
-            lastError = String(evt.message);
-          }
-        }
-        if (evt.phase === "done") ok = !!evt.ok;
-        if (evt.data) {
-          if (
-            evt.data.signal ||
-            evt.data.backtest ||
-            evt.data.account ||
-            evt.data.diagnose ||
-            evt.data.diagnose_text
-          ) {
-            renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
-          }
-          if (evt.data.submit_enabled != null) {
-            submitEnabled = !!evt.data.submit_enabled;
-            renderSubmitBadge();
-          }
-        }
+      for (const chunk of chunks) applyChunk(chunk);
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (value) buffer += decoder.decode(value, { stream: !done });
+      drainBuffer(false);
+      if (done) {
+        drainBuffer(true);
+        if (buffer.trim()) applyChunk(buffer);
+        break;
       }
     }
     setBusy(false);

@@ -144,12 +144,24 @@ def _env_sg_submit() -> bool:
     return _env_truthy("QRESEARCH_SG_PAPER_SUBMIT", "0")
 
 
+_SSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
+
+
 def _sse(payload: dict[str, Any]) -> str:
     payload = {
         **payload,
         "ts": datetime.now(timezone.utc).strftime("%H:%M:%S"),
     }
     return f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
+
+
+def _sse_response(gen: AsyncIterator[str]) -> StreamingResponse:
+    """Unbuffered SSE so proxies (nginx / Cloudflare) and the UI flush `phase=done`."""
+    return StreamingResponse(gen, media_type="text/event-stream", headers=_SSE_HEADERS)
 
 
 def _python() -> str:
@@ -769,7 +781,7 @@ async def api_sg_run_diagnose() -> StreamingResponse:
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 @app.get("/api/sg/fills")
@@ -856,7 +868,7 @@ async def api_sg_sync_account() -> StreamingResponse:
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 def _sg_log_files(log_dir: Path) -> list[Path]:
@@ -1165,7 +1177,7 @@ async def api_sg_run(
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 @app.get("/api/sg/set-submit")
@@ -1217,7 +1229,7 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 @app.get("/api/status")
@@ -1285,7 +1297,7 @@ async def api_sync_account() -> StreamingResponse:
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 @app.get("/api/run")
@@ -1393,7 +1405,7 @@ async def api_run(
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 @app.get("/api/set-submit")
@@ -1439,7 +1451,7 @@ async def api_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingResp
         finally:
             _lock.release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return _sse_response(gen())
 
 
 if STATIC.is_dir():
