@@ -1,4 +1,4 @@
-"""Universe-agnostic Structure Gate: modes cash / ers / strong / bench.
+"""Structure Gate v13 production engine.
 
 Canonical names (code = docs):
 - Modes: cash | ers | strong | bench
@@ -18,11 +18,11 @@ mode hysteresis + risk-override cooldown pierce (see ``stabilize_modes_v13``).
 ``v14()`` keeps v13 locks but enters stock immediately when unlocked and
 enforces a minimum hold before soft exit.
 """
-
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from typing import Literal
+import base64
+import gzip
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
