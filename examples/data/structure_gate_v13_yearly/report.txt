@@ -1,0 +1,16 @@
+=== Structure Gate v13 yearly 2019–2026 ===
+preset=StructureGateConfig.v13()  weights=SPY50/QQQ50  capital=$50k
+exec=next-open + Futu fees + 3bps  members=current book (survivorship)
+
+year         v13       SPY       QQQ     vsSPY     vsQQQ     maxDD   trd
+2019      19.91%    33.17%    41.83%    -13.3pp    -21.9pp   -16.55%    42
+2020      81.16%    17.58%    47.08%    +63.6pp    +34.1pp   -13.88%    58
+2021      33.76%    28.04%    26.68%     +5.7pp     +7.1pp   -26.23%    36
+2022     -21.34%   -18.30%   -32.61%     -3.0pp    +11.3pp   -22.27%    21
+2023      29.27%    25.43%    53.20%     +3.8pp    -23.9pp   -12.58%    56
+2024      38.28%    25.60%    26.50%    +12.7pp    +11.8pp   -10.08%    67
+2025      83.89%    16.93%    19.82%    +67.0pp    +64.1pp   -16.19%    64
+2026      27.52%    11.83%    16.42%    +15.7pp    +11.1pp   -11.05%    40
+
+years vs SPY win: 6/8
+=== END ===
