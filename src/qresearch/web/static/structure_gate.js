@@ -661,42 +661,47 @@
     let lastError = "";
 
     const applyChunk = (chunk) => {
-      const line = chunk
+      const lines = chunk
         .split("\n")
         .filter((l) => l.startsWith("data:"))
         .map((l) => l.slice(5).trim())
-        .join("");
-      if (!line) return;
-      let evt;
-      try {
-        evt = JSON.parse(line);
-      } catch {
-        return;
-      }
-      const level = evt.level || (evt.phase === "error" ? "error" : "info");
-      if (evt.message) {
-        pushActivity(evt.message, level);
-        if (level === "ok" || level === "error" || evt.phase === "start") {
-          toast(evt.message, level === "log" ? "info" : level);
+        .filter(Boolean);
+      for (const line of lines) {
+        let evt;
+        try {
+          evt = JSON.parse(line);
+        } catch {
+          continue;
         }
-        if (level === "error" || evt.phase === "error") {
-          lastError = String(evt.message);
+        const level = evt.level || (evt.phase === "error" ? "error" : "info");
+        if (evt.message) {
+          pushActivity(evt.message, level);
+          if (level === "ok" || level === "error" || evt.phase === "start") {
+            toast(evt.message, level === "log" ? "info" : level);
+          }
+          if (level === "error" || evt.phase === "error") {
+            lastError = String(evt.message);
+          }
+          const msg = String(evt.message);
+          if (level === "ok" || /=== END ===/.test(msg) || /wrote .*sleeve_diagnose/.test(msg)) {
+            ok = true;
+          }
         }
-      }
-      if (evt.phase === "done") ok = !!evt.ok;
-      if (evt.data) {
-        if (
-          evt.data.signal ||
-          evt.data.backtest ||
-          evt.data.account ||
-          evt.data.diagnose ||
-          evt.data.diagnose_text
-        ) {
-          renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
-        }
-        if (evt.data.submit_enabled != null) {
-          submitEnabled = !!evt.data.submit_enabled;
-          renderSubmitBadge();
+        if (evt.phase === "done") ok = !!evt.ok || ok;
+        if (evt.data) {
+          if (
+            evt.data.signal ||
+            evt.data.backtest ||
+            evt.data.account ||
+            evt.data.diagnose ||
+            evt.data.diagnose_text
+          ) {
+            renderSgStatus({ ...(statusCache || {}), ...evt.data, submit_enabled: submitEnabled });
+          }
+          if (evt.data.submit_enabled != null) {
+            submitEnabled = !!evt.data.submit_enabled;
+            renderSubmitBadge();
+          }
         }
       }
     };
@@ -720,7 +725,8 @@
     }
     setBusy(false);
     try {
-      await refreshStatus({ live: false });
+      const data = await refreshStatus({ live: false });
+      if (data && (data.diagnose || data.diagnose_text)) ok = true;
     } catch {
       /* ignore */
     }

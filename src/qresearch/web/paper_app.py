@@ -756,17 +756,18 @@ async def api_sg_run_diagnose() -> StreamingResponse:
 
             status = await asyncio.to_thread(lambda: _sg_status_payload(live=False))
             diagnose = status.get("diagnose") or {}
-            if code == 0 and (diagnose or status.get("diagnose_text")):
+            if code == 0:
                 asof = diagnose.get("asof") or "—"
+                # Do not embed the full status (diagnose_text is huge) — it drops the
+                # `phase=done` frame on long SSE. Client refreshes /api/sg/status.
                 yield _sse(
                     {
                         "phase": "progress",
                         "message": f"完成：袖口診斷 asof={asof}",
                         "level": "ok",
-                        "data": status,
                     }
                 )
-                yield _sse({"phase": "done", "ok": True, "data": status})
+                yield _sse({"phase": "done", "ok": True})
             else:
                 # Prefer surfacing last stderr-ish log via exit code; keep prior report in data.
                 yield _sse(
