@@ -17,8 +17,8 @@ class TargetWeightExecutor:
     broker: BrokerAdapter
     min_trade_notional: float = 1.0
     min_qty: float = 1e-8
-    # Leave a small cash cushion so fees / rounding don't reject buys.
     cash_buffer: float = 0.01
+    rebalance_band: float = 0.0
 
     def rebalance(
         self,
@@ -35,12 +35,15 @@ class TargetWeightExecutor:
         eq = float(equity) if equity is not None else self.broker.get_equity(marks)
         if eq <= 0:
             raise ValueError("equity must be positive to rebalance")
+        gross_eq = eq
         eq *= max(0.0, 1.0 - self.cash_buffer)
 
         positions = {str(k).upper(): float(v) for k, v in self.broker.get_positions().items()}
         symbols = sorted(set(marks) | set(positions) | {str(k).upper() for k in target_weights})
+        flatten = all(float(w) <= 1e-12 for w in target_weights.values()) and any(
+            abs(q) > self.min_qty for q in positions.values()
+        )
 
-        # Build orders first (sells before buys helps cash availability).
         sells: list[Order] = []
         buys: list[Order] = []
         for sym in symbols:
@@ -50,6 +53,17 @@ class TargetWeightExecutor:
             target_w = float(target_weights.get(sym, 0.0))
             target_qty = (target_w * eq) / px
             current_qty = positions.get(sym, 0.0)
+            current_w = (current_qty * px / gross_eq) if gross_eq > 0 else 0.0
+            is_entry = abs(current_qty) < self.min_qty and target_w > 1e-12
+            is_exit = target_w <= 1e-12 and abs(current_qty) >= self.min_qty
+            if (
+                self.rebalance_band > 0
+                and not flatten
+                and not is_entry
+                and not is_exit
+                and abs(target_w - current_w) < self.rebalance_band
+            ):
+                continue
             delta = target_qty - current_qty
             if abs(delta) * px < self.min_trade_notional or abs(delta) < self.min_qty:
                 continue
@@ -79,10 +93,9 @@ class TargetWeightExecutor:
                         timestamp=pd.Timestamp(timestamp),
                     )
                 )
-            except Exception as exc:  # noqa: BLE001 — keep going so later legs still try
+            except Exception as exc:  # noqa: BLE001
                 side = order.side.value if hasattr(order.side, "value") else str(order.side)
                 errors.append(f"{side} {order.quantity:g} {order.symbol}: {exc}")
         if errors:
-            # Successful fills remain on broker.fills_log / ``fills``; caller should persist them.
             raise RuntimeError("rebalance partial failure: " + " | ".join(errors))
         return fills
