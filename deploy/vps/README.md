@@ -1,5 +1,7 @@
 # Linux VPS：OpenD + Structure Gate v13（24×7）
 
+給其他 AI 看的完整實機說明（目錄、timer、密文、cutover、紅線）：[`GROK_VPS_SETUP.md`](./GROK_VPS_SETUP.md)。
+
 便宜小機（建議 **Ubuntu 22.04/24.04 x86_64、≥2GB RAM**）上常駐：
 
 ```
