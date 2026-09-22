@@ -1,6 +1,60 @@
 # Quant Research Trading
 
-研究與可實盤對齊的量化交易決策：在 QQQ 成分宇宙中，於大盤上升時買入「剛轉強」個股，分批出場，並用餘資承接下一波；整本帳要勝過 QQQ 買進持有。
+研究與可實盤對齊的量化交易決策。研究詞彙（下方 Language）仍描述 QQQ 成分輪動書；**可送單的生產帳本只有 Structure Gate v13**。
+
+## Production Language
+
+**Production Book**:
+唯一准產生可送單目標的帳本：Structure Gate v13。袖口基準固定 QQQ 50% / SPY 50%。
+_Avoid_: 把 v11／v14–v17／Emerging RS／舊 Core-Sat 當可送單
+
+**Sleeve Benchmark**:
+無個股時的基準配比；生產鎖定 QQQ 50% / SPY 50%。人手不可改配比，只可改名義。
+_Avoid_: 權重、倉位、策略參數、Mode Overlay
+
+**Sleeve Notional**:
+這本帳用來計算目標股數的美元名義。預設為 Notional Cap 與帳戶權益的較小值。變更只作用於 Next-Once。
+_Avoid_: 用整戶權益自動加碼、把名義當成即時現倉
+
+**Notional Cap**:
+操作者設定的名義上限（例如 2 萬或 5 萬）。MAX 表示「用當前規則算到的最大名義」，不是購買力。
+_Avoid_: MAX = 購買力、MAX = 現金
+
+**Buying-Power Cap**:
+經確認後，用購買力代替權益代入 min(Cap, …) 的可選名義規則。預設關閉。開啓是 Next-Once，並不自行下融資單型。
+_Avoid_: 靜默用購買力、把戶口已開融資當成系統已開 Buying-Power Cap
+
+**Mode Overlay**:
+v13 在 ers／strong 時對領導股與 ETF 的分配。由 Production Book 輸出，不是網頁滑桿。
+_Avoid_: 與 Sleeve Benchmark 混稱、人手改 Overlay 卻叫改基準
+
+**Once**:
+下一個被允許把已鎖定目標送去券商的執行窗；生產定在美東 09:40。
+_Avoid_: 開盤、09:30、盤中再平衡
+
+**Next-Once**:
+名義、Trading Environment、Buying-Power Cap 的變更只影響下一轉 Once，不重打當前窗已在飛的單。
+_Avoid_: 即開即打今日單、盤中按新名義加倉
+
+**Submit Gate**:
+是否允許 Once 送單的開關。關閘仍可算訊號。網頁可關；開 REAL 另見 Trading Environment。
+_Avoid_: 用「切換送單」兼指改策略
+
+**Trading Environment**:
+富途 SIMULATE 或 REAL。預設 SIMULATE。REAL 需要伺服器 ALLOW_LIVE 鎖加上網頁確認；網頁不能自己打開 ALLOW_LIVE。
+_Avoid_: paper／示範盤／內部 PaperBroker 互代
+
+**Freeze**:
+執行或營運失敗後停止再送單，不自動補腳去貼近目標。解除要人手。
+_Avoid_: 重試到成交完、把部分成交當成功
+
+**Flatten**:
+撤未完成單，把 Production Book 出現過的標的收到現金，並關 Submit Gate。一鍵只清本書；清整戶美股要第二次確認。
+_Avoid_: 當成 v13 的 cash mode、當成只改名義
+
+**Rebalance Band**:
+目標權重與現倉權重偏離未滿 2% 時，Once 不出單。進場、清倉、Flatten 不受此限。
+_Avoid_: 用 1 股或 1 美元當門檻、把價格漂移當成新訊號
 
 ## Language
 
@@ -69,8 +123,8 @@ Mode 裁決由高到低：`harsh_ret` → `thrust` → `sticky` → `harsh_dd` �
 _Avoid_: 用舊 mask 直覺推斷、讓 `index_lean` 蓋過 Mild、Sticky ON 卻出現 `cash`
 
 **Structure Universal Tune**:
-在同一評估窗對多宇宙做參數搜尋時，以軟過關數為主、硬過關與 vs B&H 穩健統計為輔；入選預設須標明「窗內探索、非鎖定 OOS」。現行預設為 v8（50 次搜尋、軟過關 7/10）。
-_Avoid_: 窗內調參後宣稱樣本外已驗證、為單一 ETF 單獨閾值
+在同一評估窗對多宇宙做參數搜尋時，以軟過關數為主、硬過關與 vs B&H 穩健統計為輔；入選預設須標明「窗內探索、非鎖定 OOS」。研究預設曾為 v8；生產帳本是 v13。
+_Avoid_: 窗內調參後宣稱樣本外已驗證、為單一 ETF 單獨閾值、稱 v8 仍是可送單預設
 
 **Book Peak DD Stop**:
 帳本權益相對高峰回撤觸及門檻（變體常用 12%）→ 次日開盤清倉並暫停，直到非 cash 訊號連續確認日數後才允許再進場。因 next-open 執行，實現最大回撤可能略差於門檻（隔夜缺口）。
@@ -145,16 +199,16 @@ _Avoid_: 主賽窗內調參再報同一窗成績
 _Avoid_: 純紙上優化、看著未來調參
 
 **No Leverage**:
-組合淨曝險介於 0% 到 100%，不使用槓桿。
-_Avoid_: 用槓桿硬追買進持有報酬
+預設名義規則下，本書按權益而非購買力計曝險，淨曝險目標介於 0% 到 100%。Buying-Power Cap 是經確認的例外，不是預設。
+_Avoid_: 未確認就用購買力加碼、用槓桿硬追買進持有報酬
 
 **Execution Cost**:
 交易成本按富途牛牛美股固定式收費估算，外加 3 bps 滑價；權重變動設 2% 調倉門檻（進場／清倉除外）。
 _Avoid_: 零成本、無視最低收費的每日微調
 
 **Rebalance Cadence**:
-收盤決策、次日開盤執行（next-bar）。
-_Avoid_: 同根 K 線成交、無成本假設
+收盤決策、次日開盤執行（next-bar）。生產成交窗是 Once（09:40 ET），不是 09:30。
+_Avoid_: 同根 K 線成交、無成本假設、稱開盤即 Once
 
 ## Legacy (superseded defaults)
 
