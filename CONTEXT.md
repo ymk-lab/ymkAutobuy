@@ -13,39 +13,59 @@ _Avoid_: 把 v11／v14–v17／Emerging RS／舊 Core-Sat 當可送單
 _Avoid_: 權重、倉位、策略參數、Mode Overlay
 
 **Sleeve Notional**:
-這本帳用來計算目標股數的美元名義。預設為 Notional Cap 與帳戶權益的較小值。變更只作用於 Next-Once。
-_Avoid_: 用整戶權益自動加碼、把名義當成即時現倉
+這本帳用來計算目標股數的美元名義。預設為 Notional Cap 與帳戶權益的較小值。變更只作用於下一轉 Signal。
+_Avoid_: 用整戶權益自動加碼、把名義當成即時現倉、改完名義就改已鎖定的 Locked Plan
 
 **Notional Cap**:
 操作者設定的名義上限（例如 2 萬或 5 萬）。MAX 表示「用當前規則算到的最大名義」，不是購買力。
 _Avoid_: MAX = 購買力、MAX = 現金
 
 **Buying-Power Cap**:
-經確認後，用購買力代替權益代入 min(Cap, …) 的可選名義規則。預設關閉。開啓是 Next-Once，並不自行下融資單型。
+經確認後，用購買力代替權益代入 min(Cap, …) 的可選名義規則。預設關閉。開啟是下一轉 Signal，並不自行下融資單型。
 _Avoid_: 靜默用購買力、把戶口已開融資當成系統已開 Buying-Power Cap
 
 **Mode Overlay**:
 v13 在 ers／strong 時對領導股與 ETF 的分配。由 Production Book 輸出，不是網頁滑桿。
 _Avoid_: 與 Sleeve Benchmark 混稱、人手改 Overlay 卻叫改基準
 
+**Signal**:
+收市後按當前 Sleeve 輸入跑 v13、寫出 Locked Plan 的步驟。生產定在美東 16:30。
+_Avoid_: 與 Once 混稱、盤中重算當 Signal
+
+**Locked Plan**:
+Signal 寫下、Once 唯一可送的目標檔。寫好之後不可用新名義或新 mode 重算。
+_Avoid_: ৴0 現場重算、把網頁上看到的權重當成已鎖定
+
 **Once**:
-下一個被允許把已鎖定目標送去券商的執行窗；生產定在美東 09:40。
-_Avoid_: 開盤、09:30、盤中再平衡
+把 Locked Plan 送去券商的執行窗；生產定在美東 09:40。
+_Avoid_: 開盤、09:30、盤中再平衡、現場重跑 v13
+
+**Next-Signal**:
+Sleeve Notional、Notional Cap、Buying-Power Cap 的變更只進下一轉 Signal，再由那份新 Locked Plan 的 Once 執行。
+_Avoid_: 改完名義朝早就按新名義加減倉
 
 **Next-Once**:
-名義、Trading Environment、Buying-Power Cap 的變更只影響下一轉 Once，不重打當前窗已在飛的單。
-_Avoid_: 即開即打今日單、盤中按新名義加倉
+Trading Environment 與 Submit Gate 的變更影響下一轉 Once，不改已鎖定的目標內容，也不重打當前窗已在飛的單。
+_Avoid_: 即開 REAL 就重打今日單、盤中按新名義加倉
 
 **Submit Gate**:
-是否允許 Once 送單的開關。關閘仍可算訊號。網頁可關；開 REAL 另見 Trading Environment。
+是否允許 Once 送單的開關。關閘仍可算 Signal。網頁可關；開 REAL 另見 Trading Environment。
 _Avoid_: 用「切換送單」兼指改策略
 
 **Trading Environment**:
 富途 SIMULATE 或 REAL。預設 SIMULATE。REAL 需要伺服器 ALLOW_LIVE 鎖加上網頁確認；網頁不能自己打開 ALLOW_LIVE。
 _Avoid_: paper／示範盤／內部 PaperBroker 互代
 
+**Confirm Action**:
+改 REAL、Flatten、開 Submit Gate、開 Buying-Power Cap 時，要在已有 token 之外再確認一次。
+_Avoid_: 單一 token 就能做危險動作
+
+**Alert Channel**:
+Freeze 與 Once 失敗的通知走 email。
+_Avoid_: 只寫 log 當已通知、與 Telegram 混稱
+
 **Freeze**:
-執行或營運失敗後停止再送單，不自動補腳去貼近目標。解除要人手。
+執行或營運失敗後停止再送單，不自動補腳去貼近目標。解除要人手。觸發：OpenD 斷或登入失效；Once 任一腳失敗或超時；預覽與成交對帳不符；單筆滑價超過 50bps；Signal asof 不是上一完整美股交易日；REAL 但 ALLOW_LIVE 關著。
 _Avoid_: 重試到成交完、把部分成交當成功
 
 **Flatten**:
@@ -143,7 +163,7 @@ _Avoid_: 與 Sticky／Thrust 混稱、破線仍因 index_lean 滿倉 ETF
 _Avoid_: Sticky ON 與 `cash` 並存、稱 Sticky Index-Strong／index_regime
 
 **Thrust**（指數衝刺）:
-基準絕對大漲／復甦袖套（短窗報酬、自近低反彈、站回 SMA50），與 Sticky 正交。觸發時鎖定 `bench`，可覆蓋滯後 `harsh_dd`；`harsh_ret` 仍為空手。
+基準絕對大漲／復蘇袖套（短窗報酬、自近低反彈、站回 SMA50），與 Sticky 正交。觸發時鎖定 `bench`，可覆蓋滯後 `harsh_dd`；`harsh_ret` 仍為空手。
 _Avoid_: 用推力取代 Locus、在 ret20 仍急跌時當 Thrust
 
 **Crowded** *(Structure)*（集中領漲）:
@@ -200,7 +220,7 @@ _Avoid_: 純紙上優化、看著未來調參
 
 **No Leverage**:
 預設名義規則下，本書按權益而非購買力計曝險，淨曝險目標介於 0% 到 100%。Buying-Power Cap 是經確認的例外，不是預設。
-_Avoid_: 未確認就用購買力加碼、用槓桿硬追買進持有報酬
+_Avoid_: 未確認就用購買力加碼、用機桿硬追買進持有報酬
 
 **Execution Cost**:
 交易成本按富途牛牛美股固定式收費估算，外加 3 bps 滑價；權重變動設 2% 調倉門檻（進場／清倉除外）。
