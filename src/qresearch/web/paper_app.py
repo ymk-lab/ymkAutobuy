@@ -584,6 +584,55 @@ def _publish_v13_backtest() -> dict[str, Any]:
     return flat
 
 
+def _real_ledger_rows(rows: list[dict[str, Any]], account: dict[str, Any]) -> list[dict[str, Any]]:
+    """Real fills, with the current real holding as the opening buy when no fill covers it.
+
+    Simulated rows stay out. A missing ``latest_run.json`` does not invent a paper fill.
+    """
+    real = [row for row in rows if str(row.get("trd_env") or "").strip().upper() == "REAL"]
+    if str(account.get("trd_env") or "").strip().upper() != "REAL":
+        return real
+    net: dict[str, float] = {}
+    for row in real:
+        symbol = str(row.get("symbol") or "").strip().upper()
+        side = str(row.get("side") or "").strip().lower()
+        try:
+            qty = float(row.get("quantity") if row.get("quantity") is not None else row.get("qty") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not symbol or side not in {"buy", "sell"} or qty <= 0:
+            continue
+        net[symbol] = net.get(symbol, 0.0) + (qty if side == "buy" else -qty)
+    opening: list[dict[str, Any]] = []
+    for holding in account.get("holdings") or []:
+        if not isinstance(holding, dict):
+            continue
+        symbol = str(holding.get("symbol") or "").strip().upper()
+        try:
+            qty = float(holding.get("quantity") or 0)
+            price = float(holding.get("cost_price") or 0)
+        except (TypeError, ValueError):
+            continue
+        gap = qty - net.get(symbol, 0.0)
+        if not symbol or gap <= 1e-9 or price <= 0:
+            continue
+        opening.append(
+            {
+                "symbol": symbol,
+                "side": "buy",
+                "quantity": gap,
+                "price": price,
+                "fee": 0.0,
+                "trd_env": "REAL",
+                "order_id": "",
+                "timestamp": account.get("updated_at_utc") or "",
+                "asof": "",
+                "basis_note": "真倉現有持倉，按券商成本價記入",
+            }
+        )
+    return opening + real
+
+
 def _money_ledger(rows: list[dict[str, Any]], *, real_only: bool = False) -> dict[str, Any]:
     """Average-cost cash ledger for display. Does not place or amend orders.
 
@@ -620,6 +669,8 @@ def _money_ledger(rows: list[dict[str, Any]], *, real_only: bool = False) -> dic
             pos["qty"] += qty
             pos["cost"] += notional + fee
             buy_notional += notional
+            if not basis_note and raw.get("basis_note"):
+                basis_note = str(raw["basis_note"])
         else:
             sell_notional += notional
             if avg_before is None or pos["qty"] <= 1e-12:
@@ -751,7 +802,7 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     else:
         account = _account_from_files(sg=True)
     weights = signal.get("weights") or {"SPY": 0.5, "QQQ": 0.5}
-    audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
+    audit = audit_from_out_dir(out)
     diagnose = _read_json(out / "latest_sleeve_diagnose.json") or {}
     diagnose_txt_path = out / "latest_sleeve_diagnose.txt"
     diagnose_text = (
@@ -810,7 +861,10 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
         "ops": _ops_view(out, equity),
-        "ledger": _money_ledger(load_fills_ledger(out, limit=500), real_only=True),
+        "ledger": _money_ledger(
+            _real_ledger_rows(load_fills_ledger(out, limit=500), account),
+            real_only=True,
+        ),
         "trd_env": account.get("trd_env") or "SIMULATE",
     }
 

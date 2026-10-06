@@ -3,7 +3,7 @@
 from qresearch.ops.control import freeze
 from qresearch.ops.plan import write_locked_plan
 from qresearch.paper.sleeve_daily import record_sleeve_day
-from qresearch.web.paper_app import _money_ledger, _ops_view
+from qresearch.web.paper_app import _money_ledger, _ops_view, _real_ledger_rows
 
 
 def test_ops_view_reads_freeze_plan_notional_and_blotter(tmp_path):
@@ -51,6 +51,29 @@ def test_ops_view_full_account_uses_equity(tmp_path, monkeypatch):
     assert view["full_account"] is True
     assert view["notional_cap"] is None
     assert view["sleeve_notional"] == 59_393.7
+
+
+def test_real_ledger_opens_with_current_amd_holding():
+    rows = _real_ledger_rows(
+        [
+            {"symbol": "QQQ.US", "side": "buy", "quantity": 10, "price": 480, "fee": 1, "trd_env": "SIMULATE"},
+        ],
+        {
+            "trd_env": "REAL",
+            "updated_at_utc": "2026-10-06T17:25:00+00:00",
+            "holdings": [
+                {"symbol": "AMD.US", "quantity": 50, "cost_price": 640.51},
+            ],
+        },
+    )
+    ledger = _money_ledger(rows, real_only=True)
+    assert ledger["n"] == 1
+    row = ledger["rows"][0]
+    assert row["symbol"] == "AMD.US"
+    assert row["side"] == "buy"
+    assert row["quantity"] == 50
+    assert row["price"] == 640.51
+    assert "真倉現有持倉" in row["basis_note"]
 
 
 def test_money_ledger_counts_only_real_fills():
