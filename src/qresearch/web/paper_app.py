@@ -584,8 +584,14 @@ def _publish_v13_backtest() -> dict[str, Any]:
     return flat
 
 
-def _money_ledger(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Average-cost cash ledger for display. Does not place or amend orders."""
+def _money_ledger(rows: list[dict[str, Any]], *, real_only: bool = False) -> dict[str, Any]:
+    """Average-cost cash ledger for display. Does not place or amend orders.
+
+    ``real_only`` keeps rows tagged ``trd_env=REAL``. Simulated fills and older
+    rows with no environment tag stay out of the 買賣金額明細 totals.
+    """
+    if real_only:
+        rows = [row for row in rows if str(row.get("trd_env") or "").strip().upper() == "REAL"]
     book: dict[str, dict[str, float]] = {}
     out_rows: list[dict[str, Any]] = []
     buy_notional = 0.0
@@ -671,7 +677,7 @@ def _money_ledger(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
     """Read-only projection of the ops files. Does not change trading logic."""
     from qresearch.ops.control import SLIP_BPS_LIMIT, load_ops
-    from qresearch.ops.notional import sleeve_notional
+    from qresearch.ops.notional import resolve_sleeve_cap, sleeve_notional
     from qresearch.ops.plan import load_locked_plan
     from qresearch.paper.sleeve_daily import LATEST, load_sleeve_daily
 
@@ -684,10 +690,19 @@ def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
             equity = float(latest["equity"])
         except (TypeError, ValueError):
             equity = None
+    cap = state.notional_cap
+    full_account = False
+    raw_cap = os.getenv("QRESEARCH_SLEEVE_USD")
+    if raw_cap is not None and raw_cap.strip() != "":
+        try:
+            cap = resolve_sleeve_cap(raw_cap, unset=state.notional_cap)
+        except ValueError:
+            cap = state.notional_cap
+        full_account = cap is None
     sized = None
     if equity is not None:
         sized = sleeve_notional(
-            cap=state.notional_cap,
+            cap=cap,
             equity=float(equity),
             buying_power=None,
             buying_power_cap=state.buying_power_cap,
@@ -700,7 +715,8 @@ def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
         "ops_submit_enabled": state.submit_enabled,
         "trading_env": state.trading_env,
         "buying_power_cap": state.buying_power_cap,
-        "notional_cap": state.notional_cap,
+        "notional_cap": cap,
+        "full_account": full_account,
         "sleeve_notional": sized,
         "notional_base": "buying_power" if state.buying_power_cap else "equity",
         "rebalance_band_rule": 0.02,
@@ -794,7 +810,7 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
         "ops": _ops_view(out, equity),
-        "ledger": _money_ledger(load_fills_ledger(out, limit=500)),
+        "ledger": _money_ledger(load_fills_ledger(out, limit=500), real_only=True),
         "trd_env": account.get("trd_env") or "SIMULATE",
     }
 

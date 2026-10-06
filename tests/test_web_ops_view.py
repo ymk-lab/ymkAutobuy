@@ -45,6 +45,31 @@ def test_ops_view_reads_freeze_plan_notional_and_blotter(tmp_path):
     assert fallback["sleeve_notional"] == 40_000
 
 
+def test_ops_view_full_account_uses_equity(tmp_path, monkeypatch):
+    monkeypatch.setenv("QRESEARCH_SLEEVE_USD", "equity")
+    view = _ops_view(tmp_path, 59_393.7)
+    assert view["full_account"] is True
+    assert view["notional_cap"] is None
+    assert view["sleeve_notional"] == 59_393.7
+
+
+def test_money_ledger_counts_only_real_fills():
+    ledger = _money_ledger(
+        [
+            {"symbol": "QQQ.US", "side": "buy", "quantity": 10, "price": 100, "fee": 1, "trd_env": "SIMULATE"},
+            {"symbol": "AMD.US", "side": "buy", "quantity": 2, "price": 50, "fee": 1},
+            {"symbol": "AMD.US", "side": "sell", "quantity": 2, "price": 60, "fee": 1, "trd_env": "REAL"},
+        ],
+        real_only=True,
+    )
+    assert ledger["n"] == 1
+    assert ledger["rows"][0]["symbol"] == "AMD.US"
+    assert ledger["rows"][0]["side"] == "sell"
+    assert ledger["buy_notional"] == 0
+    assert ledger["sell_notional"] == 120
+    assert ledger["rows"][0]["realized_pnl"] is None
+
+
 def test_money_ledger_traces_cash_and_realized_pnl():
     ledger = _money_ledger(
         [

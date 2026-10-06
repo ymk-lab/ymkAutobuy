@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=ledger-ui-1" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=ledger-ui-1" />
+    <link rel="stylesheet" href="/static/styles.css?v=sleeve-real-1" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=sleeve-real-1" />
     <script src="/config.js"></script>
   </head>
   <body class="sg-page sg-monitor">
@@ -98,7 +98,7 @@
           <article class="sg-ops-card" id="sg-ops-notional">
             <h3>袖口名義</h3>
             <strong id="sg-ops-notional-value">—</strong>
-            <p id="sg-ops-notional-detail">預設 min(上限, 權益)。改名義只進下一轉 Signal。</p>
+            <p id="sg-ops-notional-detail">袖口可以等於戶口權益的 100%，或是 min(上限, 戶口權益)。改名義只進下一轉 Signal。</p>
           </article>
           <article class="sg-ops-card" id="sg-ops-band">
             <h3>再平衡帶</h3>
@@ -244,7 +244,7 @@
 
         <div class="sg-pane sg-pane-wide" aria-labelledby="ledger-title">
           <h2 id="ledger-title">買賣金額明細</h2>
-          <p class="sg-pane-support">每一筆成交的金額、費用、現金進出，以及用平均成本算出的已實現盈虧。用來同券商結單對帳。</p>
+          <p class="sg-pane-support">只列真倉成交的金額、費用、現金進出，以及用平均成本算出的已實現盈虧。模擬盤成交不計入。用來同券商真倉結單對帳。</p>
           <div class="sg-ops-grid sg-ledger-kpis" id="sg-ledger-kpis" aria-label="成交合計"></div>
           <div class="table-scroll">
             <table class="sg-table" id="sg-ledger-table">
@@ -422,6 +422,6 @@
       <button type="button" id="sg-api-base" class="btn btn-ghost">API: 未設定</button>
     </footer>
 
-    <script src="/static/structure_gate.js?v=ledger-ui-1" defer></script>
+    <script src="/static/structure_gate.js?v=sleeve-real-1" defer></script>
   </body>
 </html>

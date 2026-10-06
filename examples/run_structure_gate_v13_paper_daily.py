@@ -630,9 +630,20 @@ def main() -> int:
 
         cash = broker.get_cash()
         eq = broker.get_equity(marks)
-        cap = _env_float("QRESEARCH_SLEEVE_USD", None)
-        if cap is not None and cap > 0:
+        from qresearch.ops.notional import resolve_sleeve_cap
+
+        try:
+            cap = resolve_sleeve_cap(os.getenv("QRESEARCH_SLEEVE_USD"), unset=None)
+        except ValueError as exc:
+            log(f"REFUSE: {exc}")
+            return 3
+        if cap is None:
+            log(f"sleeve=100% of account equity {eq:.2f}")
+        elif cap > 0:
             eq = min(eq, cap)
+            log(f"sleeve=min(cap {cap:.2f}, equity) -> {eq:.2f}")
+        else:
+            log(f"sleeve cap {cap:.2f} is not positive; sizing base stays {eq:.2f}")
 
         plan = {
             "asof": asof,
@@ -813,7 +824,13 @@ def main() -> int:
             append_fills_ledger(
                 base,
                 ledger_rows,
-                meta={"asof": str(asof), "run_at": str(ts), "broker": "futu", "preset": "v13"},
+                meta={
+                    "asof": str(asof),
+                    "run_at": str(ts),
+                    "broker": "futu",
+                    "preset": "v13",
+                    "trd_env": trd_env,
+                },
             )
             audit = reconcile_fills(
                 preview_orders=plan.get("preview_orders") or [],

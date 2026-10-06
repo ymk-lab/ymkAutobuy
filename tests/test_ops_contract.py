@@ -9,8 +9,17 @@ from qresearch.backtest.costs import CostModel
 from qresearch.execution.sim_broker import SimBrokerAdapter
 from qresearch.execution.targets import TargetWeightExecutor
 from qresearch.ops.control import OpsState, freeze, load_ops, refuse_once_reason, unfreeze
-from qresearch.ops.notional import sleeve_notional
+from qresearch.ops.notional import resolve_sleeve_cap, sleeve_notional
 from qresearch.ops.plan import load_locked_plan, slip_bps, write_locked_plan
+
+
+def test_resolve_sleeve_cap_full_account():
+    assert resolve_sleeve_cap("equity") is None
+    assert resolve_sleeve_cap("100%") is None
+    assert resolve_sleeve_cap("account") is None
+    assert resolve_sleeve_cap("50000") == 50_000
+    assert resolve_sleeve_cap(None, unset=50_000) == 50_000
+    assert sleeve_notional(cap=None, equity=59_393.7) == 59_393.7
 
 
 def test_sleeve_notional_min_cap_equity():

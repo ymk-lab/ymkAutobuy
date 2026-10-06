@@ -501,7 +501,7 @@
         .join("");
     }
     if (!rows.length) {
-      body.innerHTML = `<tr><td colspan="10" class="empty">尚未寫入成交帳。同步並送單之後，每一筆金額會出現在這裡。</td></tr>`;
+      body.innerHTML = `<tr><td colspan="10" class="empty">尚未有真倉成交。模擬盤的成交不計入這張表。</td></tr>`;
       return;
     }
     body.innerHTML = rows
@@ -690,11 +690,15 @@
     const notionalDetail = $("#sg-ops-notional-detail");
     if (notionalValue) notionalValue.textContent = money(ops.sleeve_notional);
     if (notionalDetail) {
-      const base = ops.notional_base === "buying_power" ? "購買力" : "權益";
-      const cap = money(ops.notional_cap);
-      notionalDetail.textContent = ops.buying_power_cap
-        ? `上限 ${cap} · 已開購買力代替${base}。只會影響下一轉 Signal。`
-        : `上限 ${cap} · 名義 = min(上限, ${base})。只會影響下一轉 Signal。`;
+      const base = ops.notional_base === "buying_power" ? "購買力" : "戶口權益";
+      if (ops.full_account) {
+        notionalDetail.textContent = `袖口等於${base}的 100%。沒有另外的美元上限。只會影響下一轉 Signal。`;
+      } else {
+        const cap = money(ops.notional_cap);
+        notionalDetail.textContent = ops.buying_power_cap
+          ? `上限 ${cap} · 已開購買力代替${base}。只會影響下一轉 Signal。`
+          : `上限 ${cap} · 袖口 = min(上限, ${base})。只會影響下一轉 Signal。`;
+      }
     }
 
     if (bandCard) bandCard.classList.add("is-off");
