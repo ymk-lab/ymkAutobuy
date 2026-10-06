@@ -1,0 +1,107 @@
+{
+  "note": "Not a new version. V13 modes and G1 entry/exit. Each sleeve up to 2 ERS names at 25% of total capital; unfilled sleeve weight and the strong-mode residual stay in QQQ.",
+  "start": "2019-01-02",
+  "end": "2026-10-06",
+  "capital": 50000.0,
+  "weights": {
+    "SPY": 0.5,
+    "QQQ": 0.5
+  },
+  "yearly": [
+    {
+      "year": "2019",
+      "dual_slot": 0.13767065142769241,
+      "v13": 0.1838721201080451,
+      "vs_v13_pp": -4.620146868035269
+    },
+    {
+      "year": "2020",
+      "dual_slot": 0.5431777163400922,
+      "v13": 0.8736912034087567,
+      "vs_v13_pp": -33.051348706866456
+    },
+    {
+      "year": "2021",
+      "dual_slot": 0.20214247651847117,
+      "v13": 0.19663750372649202,
+      "vs_v13_pp": 0.5504972791979146
+    },
+    {
+      "year": "2022",
+      "dual_slot": -0.2138731631516354,
+      "v13": -0.21363407943211832,
+      "vs_v13_pp": -0.023908371951708585
+    },
+    {
+      "year": "2023",
+      "dual_slot": 0.2954499158926318,
+      "v13": 0.3838025179211455,
+      "vs_v13_pp": -8.83526020285137
+    },
+    {
+      "year": "2024",
+      "dual_slot": 0.1813052432361042,
+      "v13": 0.25729057438220604,
+      "vs_v13_pp": -7.598533114610184
+    },
+    {
+      "year": "2025",
+      "dual_slot": 0.47265611074144687,
+      "v13": 0.7607940336581072,
+      "vs_v13_pp": -28.81379229166603
+    },
+    {
+      "year": "2026 YTD",
+      "dual_slot": 0.3078795447081131,
+      "v13": 0.4103427708664551,
+      "vs_v13_pp": -10.246322615834202
+    }
+  ],
+  "full": {
+    "dual_total_return": 3.890270850285189,
+    "v13_total_return": 8.018475208639284,
+    "vs_v13_pp": -412.8204358354095,
+    "dual_max_drawdown": -0.26345056468745887,
+    "v13_max_drawdown": -0.31492148598192504,
+    "dual_sharpe": 1.2514843197350782,
+    "v13_sharpe": 1.3975262014951089,
+    "dual_end_equity": 244513.54251425946,
+    "v13_end_equity": 450923.76043196424,
+    "span_2019_2025_dual": 2.739083518869912,
+    "span_2019_2025_v13": 5.394527199298305,
+    "avg_stock_names": 0.6965658636596617
+  },
+  "sleeves": [
+    {
+      "book": "SPY",
+      "n_members": 499,
+      "v13_total_return": 5.569848261750568,
+      "v13_max_drawdown": -0.4810700400818666,
+      "v13_trades": 201,
+      "dual_total_return": 2.4180347260794504,
+      "dual_max_drawdown": -0.3779913863678537,
+      "dual_trades": 469,
+      "dual_avg_stock_names": 0.44643772424397743
+    },
+    {
+      "book": "QQQ",
+      "n_members": 96,
+      "v13_total_return": 10.467102155528002,
+      "v13_max_drawdown": -0.24319099676824008,
+      "v13_trades": 181,
+      "dual_total_return": 5.362506974490928,
+      "dual_max_drawdown": -0.23273608765185472,
+      "dual_trades": 352,
+      "dual_avg_stock_names": 0.2501281394156843
+    }
+  ],
+  "rules": {
+    "ers_slots_per_sleeve": 2,
+    "full_slot_of_total": 0.25,
+    "residual": "QQQ",
+    "strong_leader_of_total": 0.25,
+    "strong_residual": "QQQ",
+    "bench": "sleeve ETF",
+    "risk_override_stock_1d": 0.08
+  }
+}
