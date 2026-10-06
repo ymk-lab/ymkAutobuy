@@ -396,6 +396,7 @@ def _save_account(snap: dict[str, Any], *, sg: bool = True) -> dict[str, Any]:
         "quotes": snap.get("quotes") or {},
         "holdings": snap.get("holdings") or [],
         "pnl": snap.get("pnl") or {},
+        "trd_env": snap.get("trd_env"),
         "updated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     if snap.get("quote_warning"):
@@ -583,6 +584,90 @@ def _publish_v13_backtest() -> dict[str, Any]:
     return flat
 
 
+def _money_ledger(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Average-cost cash ledger for display. Does not place or amend orders."""
+    book: dict[str, dict[str, float]] = {}
+    out_rows: list[dict[str, Any]] = []
+    buy_notional = 0.0
+    sell_notional = 0.0
+    fees = 0.0
+    realized = 0.0
+    realized_known = False
+    for raw in rows:
+        symbol = str(raw.get("symbol") or "").strip().upper()
+        side = str(raw.get("side") or "").strip().lower()
+        try:
+            qty = float(raw.get("quantity") if raw.get("quantity") is not None else raw.get("qty") or 0)
+            price = float(raw.get("price") if raw.get("price") is not None else raw.get("dealt_avg_price") or 0)
+            fee = float(raw.get("fee") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not symbol or side not in {"buy", "sell"} or qty <= 0 or price <= 0:
+            continue
+        notional = qty * price
+        pos = book.setdefault(symbol, {"qty": 0.0, "cost": 0.0})
+        avg_before = (pos["cost"] / pos["qty"]) if pos["qty"] > 1e-12 else None
+        realized_pnl = None
+        basis_note = ""
+        if side == "buy":
+            cash = -(notional + fee)
+            pos["qty"] += qty
+            pos["cost"] += notional + fee
+            buy_notional += notional
+        else:
+            sell_notional += notional
+            if avg_before is None or pos["qty"] <= 1e-12:
+                cash = notional - fee
+                basis_note = "無先前成本，這筆賣出未能計算已實現盈虧"
+            elif qty <= pos["qty"] + 1e-9:
+                realized_pnl = notional - fee - avg_before * qty
+                pos["cost"] -= avg_before * qty
+                pos["qty"] -= qty
+                if pos["qty"] <= 1e-9:
+                    pos["qty"] = 0.0
+                    pos["cost"] = 0.0
+                cash = notional - fee
+                realized += realized_pnl
+                realized_known = True
+            else:
+                held = pos["qty"]
+                realized_pnl = price * held - fee * (held / qty) - pos["cost"]
+                cash = notional - fee
+                basis_note = "賣出股數多過記錄中的持倉，只對得上的部分計了已實現盈虧"
+                pos["qty"] = 0.0
+                pos["cost"] = 0.0
+                realized += realized_pnl
+                realized_known = True
+        fees += fee
+        avg_after = (pos["cost"] / pos["qty"]) if pos["qty"] > 1e-12 else None
+        out_rows.append(
+            {
+                "asof": raw.get("asof"),
+                "timestamp": raw.get("timestamp") or raw.get("ledger_at_utc") or raw.get("at") or "",
+                "order_id": str(raw.get("order_id") or ""),
+                "symbol": symbol,
+                "side": side,
+                "quantity": qty,
+                "price": price,
+                "notional": notional,
+                "fee": fee,
+                "cash": cash,
+                "position_after": pos["qty"],
+                "avg_cost_after": avg_after,
+                "realized_pnl": realized_pnl,
+                "basis_note": basis_note,
+            }
+        )
+    return {
+        "rows": out_rows,
+        "n": len(out_rows),
+        "buy_notional": buy_notional,
+        "sell_notional": sell_notional,
+        "fees": fees,
+        "realized_pnl": realized if realized_known else None,
+    }
+
+
 def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
     """Read-only projection of the ops files. Does not change trading logic."""
     from qresearch.ops.control import SLIP_BPS_LIMIT, load_ops
@@ -642,11 +727,11 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     backtest = _read_json(out / "latest_backtest.json") or {}
     if live:
         snap = _account_snapshot()
-        account = (
-            _save_account(snap, sg=True)
-            if snap.get("ok")
-            else {**snap, "positions": {}, "quotes": {}}
-        )
+        if snap.get("ok"):
+            account = _save_account(snap, sg=True)
+        else:
+            account = dict(_account_from_files(sg=True))
+            account["live_error"] = snap.get("error") or "同步帳戶失敗，仍顯示上次成功同步的持倉。"
     else:
         account = _account_from_files(sg=True)
     weights = signal.get("weights") or {"SPY": 0.5, "QQQ": 0.5}
@@ -709,6 +794,8 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
         "ops": _ops_view(out, equity),
+        "ledger": _money_ledger(load_fills_ledger(out, limit=500)),
+        "trd_env": account.get("trd_env") or "SIMULATE",
     }
 
 

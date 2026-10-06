@@ -183,7 +183,8 @@
   line-height: 1.45;
 }
 
-.sg-blotter {
+.sg-blotter,
+.sg-ledger-kpis {
   margin-top: 1.15rem;
 }
 
@@ -270,7 +271,7 @@
 
 .sg-kv > div {
   display: grid;
-  grid-template-columns: 5rem 1fr;
+  grid-template-columns: 8.5rem 1fr;
   gap: 0.5rem;
   align-items: baseline;
   padding-bottom: 0.4rem;
@@ -588,7 +589,7 @@
 
 .sg-priority li {
   display: grid;
-  grid-template-columns: 2rem 9rem 1fr;
+  grid-template-columns: 2rem 1fr;
   gap: 0.5rem;
   align-items: baseline;
   padding: 0.4rem 0;

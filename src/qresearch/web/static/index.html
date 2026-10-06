@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Structure Gate · v13 Paper</title>
+    <title>結構閘 · 持倉與成交</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=ops-ui-1" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=ops-ui-1" />
+    <link rel="stylesheet" href="/static/styles.css?v=ledger-ui-1" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=ledger-ui-1" />
     <script src="/config.js"></script>
   </head>
   <body class="sg-page sg-monitor">
@@ -33,7 +33,7 @@
       <!-- First viewport: brand + one signal line + CTA -->
       <section class="sg-hero" aria-label="即時訊號">
         <p class="brand">Structure Gate</p>
-        <p class="brand-sub">v13 paper · Futu SIMULATE · SPY 50 / QQQ 50</p>
+        <p class="brand-sub" id="sg-env-line">結構閘 v13 · 袖口為標普 500 指數基金一半、納斯達克 100 指數基金一半</p>
         <h1 class="sg-hero-title">
           <span class="sg-hero-mode" id="sg-mode-hero">—</span>
           <span class="sg-hero-target" id="sg-target-hero">讀取中…</span>
@@ -134,23 +134,23 @@
       <section class="sg-monitor-grid" aria-label="監控面板">
         <div class="sg-pane" aria-labelledby="target-title">
           <h2 id="target-title">目標</h2>
-          <p class="sg-pane-support">今日 mode 與合併權重。</p>
+          <p class="sg-pane-support">今天的持倉方式，以及合併後要持有的比例。</p>
           <dl class="sg-kv" id="target-kv">
-            <div><dt>Book</dt><dd id="sg-book">—</dd></div>
-            <div><dt>Mode</dt><dd id="sg-mode">—</dd></div>
-            <div><dt>Target</dt><dd id="sg-target">—</dd></div>
-            <div><dt>Flags</dt><dd id="sg-flags">—</dd></div>
+            <div><dt>袖口</dt><dd id="sg-book">—</dd></div>
+            <div><dt>持倉方式</dt><dd id="sg-mode">—</dd></div>
+            <div><dt>目標持股</dt><dd id="sg-target">—</dd></div>
+            <div><dt>正在生效的規則</dt><dd id="sg-flags">—</dd></div>
           </dl>
         </div>
 
         <div class="sg-pane" aria-labelledby="orders-title">
           <h2 id="orders-title">掛單</h2>
           <p class="sg-pane-support">預覽與最近成交。</p>
-          <h3 class="sg-mini">預覽／計畫</h3>
+          <h3 class="sg-mini">計劃要做的買賣</h3>
           <ul class="sg-order-list" id="preview-list">
             <li class="empty">尚無預覽單</li>
           </ul>
-          <h3 class="sg-mini">最近成交</h3>
+          <h3 class="sg-mini">這一次的成交</h3>
           <ul class="sg-order-list" id="fill-list">
             <li class="empty">尚無成交紀錄</li>
           </ul>
@@ -160,8 +160,8 @@
         <div class="sg-pane sg-pane-wide" aria-labelledby="fills-audit-title">
           <div class="sg-pane-head">
             <div>
-              <h2 id="fills-audit-title">逐筆成交查核</h2>
-              <p class="sg-pane-support">比對預覽單、實際成交與持倉變化。</p>
+              <h2 id="fills-audit-title">這一次送單對得上嗎</h2>
+              <p class="sg-pane-support">把計劃要買賣的股數和價格，同實際成交、帳戶持倉變化逐筆核對。</p>
             </div>
             <div class="sg-pane-head-meta">
               <span id="sg-audit-badge" class="badge badge-idle">查核 …</span>
@@ -173,34 +173,34 @@
             <table class="sg-table" id="fills-audit-table">
               <thead>
                 <tr>
-                  <th>狀態</th>
-                  <th>方向</th>
-                  <th>標的</th>
-                  <th>預覽股數</th>
+                  <th>核對結果</th>
+                  <th>這一筆</th>
+                  <th>計劃股數</th>
                   <th>成交股數</th>
-                  <th>預覽價</th>
-                  <th>成交價</th>
-                  <th>價差bps</th>
-                  <th>名義</th>
+                  <th>計劃價格</th>
+                  <th>成交價格</th>
+                  <th>價格相差</th>
+                  <th>成交金額</th>
+                  <th>費用</th>
                 </tr>
               </thead>
               <tbody id="fills-audit-body">
                 <tr>
-                  <td colspan="9" class="empty">尚無成交可查核（需 latest_run 或 ledger）</td>
+                  <td colspan="9" class="empty">尚未有這一次的計劃單或成交可以核對</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <h3 class="sg-mini">持倉對帳</h3>
+          <h3 class="sg-mini">持倉有沒有跟著成交變</h3>
           <div class="table-scroll">
             <table class="sg-table" id="fills-pos-table">
               <thead>
                 <tr>
                   <th>標的</th>
-                  <th>送單前</th>
-                  <th>成交後預期</th>
-                  <th>帳戶現況</th>
-                  <th>結果</th>
+                  <th>送單前股數</th>
+                  <th>按成交應有股數</th>
+                  <th>帳戶現在股數</th>
+                  <th>是否相符</th>
                 </tr>
               </thead>
               <tbody id="fills-pos-body">
@@ -214,24 +214,57 @@
         </div>
 
         <div class="sg-pane sg-pane-wide" aria-labelledby="holdings-title">
-          <h2 id="holdings-title">持倉</h2>
-          <p class="sg-pane-support">富途 OpenD 模擬盤；按「同步帳戶」更新。</p>
+          <h2 id="holdings-title">真倉持倉</h2>
+          <p class="sg-pane-support" id="sg-holdings-note">每一行是帳戶裡仍持有的股票：股數、成本金額、市值，以及尚未賣出的盈虧。</p>
+          <p class="sg-state-line" id="sg-pnl-trace">尚未同步帳戶，未能計算盈虧。</p>
           <div class="table-scroll">
             <table class="sg-table holdings-table">
               <thead>
                 <tr>
                   <th>標的</th>
-                  <th>股數</th>
-                  <th>成本</th>
+                  <th>持有股數</th>
+                  <th>可賣股數</th>
+                  <th>每股成本</th>
+                  <th>成本金額</th>
                   <th>現價</th>
                   <th>市值</th>
-                  <th>未實現</th>
-                  <th>今日</th>
+                  <th>佔權益</th>
+                  <th>未實現盈虧</th>
+                  <th>今日盈虧</th>
                 </tr>
               </thead>
               <tbody id="holdings-body">
                 <tr>
-                  <td colspan="7" class="empty">尚未同步帳戶</td>
+                  <td colspan="10" class="empty">尚未同步帳戶</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="sg-pane sg-pane-wide" aria-labelledby="ledger-title">
+          <h2 id="ledger-title">買賣金額明細</h2>
+          <p class="sg-pane-support">每一筆成交的金額、費用、現金進出，以及用平均成本算出的已實現盈虧。用來同券商結單對帳。</p>
+          <div class="sg-ops-grid sg-ledger-kpis" id="sg-ledger-kpis" aria-label="成交合計"></div>
+          <div class="table-scroll">
+            <table class="sg-table" id="sg-ledger-table">
+              <thead>
+                <tr>
+                  <th>時間</th>
+                  <th>這一筆</th>
+                  <th>股數</th>
+                  <th>成交價</th>
+                  <th>成交金額</th>
+                  <th>費用</th>
+                  <th>現金進出</th>
+                  <th>成交後持倉</th>
+                  <th>成交後均價</th>
+                  <th>這筆已實現盈虧</th>
+                </tr>
+              </thead>
+              <tbody id="sg-ledger-body">
+                <tr>
+                  <td colspan="10" class="empty">尚未有成交紀錄</td>
                 </tr>
               </tbody>
             </table>
@@ -242,7 +275,7 @@
           <div class="sg-pane-head">
             <div>
               <h2 id="diagnose-title">袖口診斷</h2>
-              <p class="sg-pane-support">為何 BENCH、trail／旗標，以及接近 ERS 的個股。</p>
+              <p class="sg-pane-support">為什麼是現在這個持倉方式，領先了多少，以及哪些股票接近可以買入。</p>
             </div>
             <div class="sg-pane-head-meta">
               <span id="sg-diagnose-asof" class="badge badge-idle">尚未診斷</span>
@@ -250,7 +283,7 @@
             </div>
           </div>
           <div id="sg-diagnose-body" class="sg-diagnose">
-            <p class="empty">尚無診斷。請按「重新診斷」（約需數十秒讀 cache）。</p>
+            <p class="empty">還沒有診斷。按「重新診斷」會讀取已儲存的行情，大約需要幾十秒。</p>
           </div>
           <details class="sg-diagnose-raw">
             <summary>完整文字報告</summary>
@@ -260,18 +293,18 @@
 
         <div class="sg-pane sg-pane-wide" aria-labelledby="analysis-title">
           <h2 id="analysis-title">過程</h2>
-          <p class="sg-pane-support">抓數、算 mode、送單日誌。</p>
+          <p class="sg-pane-support">讀取行情、計算持倉方式，以及送單時的紀錄。</p>
           <div class="sg-activity" id="sg-activity" aria-live="polite"></div>
         </div>
       </section>
 
       <section class="sg-section sg-tools" id="tools" aria-labelledby="tools-title">
         <h2 id="tools-title">操作</h2>
-        <p class="sg-support">確認目標後再開送單。配置固定為 v13 · SPY50/QQQ50。</p>
+        <p class="sg-support">先確認目標，再打開送單。兩個袖口的比例是固定的，這個頁面不能改策略。</p>
 
         <div class="sg-tool-row">
           <span class="sg-book-label">配置</span>
-          <strong id="sg-config-label">v13 · SPY 50% / QQQ 50%</strong>
+          <strong id="sg-config-label">標普 500 指數基金一半，納斯達克 100 指數基金一半</strong>
         </div>
 
         <div class="sg-actions">
@@ -284,7 +317,7 @@
             <p class="sg-btn-hint">開關模擬盤送單。</p>
           </div>
           <div class="sg-action">
-            <button type="button" class="btn" data-sg-action="backtest">v13 回測</button>
+            <button type="button" class="btn" data-sg-action="backtest">跑一段回測</button>
             <p class="sg-btn-hint">用下方區間跑 blend。</p>
           </div>
         </div>
@@ -313,75 +346,70 @@
             <strong id="sg-bt-range">—</strong>
           </div>
           <div class="sg-kpi">
-            <span class="sg-kpi-label">SG</span>
+            <span class="sg-kpi-label">策略報酬</span>
             <strong id="sg-bt-sg">—</strong>
           </div>
           <div class="sg-kpi">
-            <span class="sg-kpi-label">SPY BH</span>
+            <span class="sg-kpi-label">同期持有標普</span>
             <strong id="sg-bt-bh">—</strong>
           </div>
           <div class="sg-kpi">
-            <span class="sg-kpi-label">Gate</span>
+            <span class="sg-kpi-label">檢驗</span>
             <strong id="sg-bt-gate">—</strong>
           </div>
         </div>
       </section>
 
       <section class="sg-section" id="modes" aria-labelledby="modes-title">
-        <h2 id="modes-title">四種 Mode</h2>
-        <p class="sg-support">每天一個持倉模式；次日開盤成交假設。</p>
+        <h2 id="modes-title">四種持倉方式</h2>
+        <p class="sg-support">每個交易日只會選其中一種。訊號在收市後寫下，實際買賣放在下一個交易日上午 9 時 40 分。</p>
         <div class="sg-mode-rail" role="list">
           <button type="button" class="sg-mode is-active" data-mode="cash" role="listitem">
-            <span class="sg-mode-code">cash</span>
-            <span class="sg-mode-name">空手防守</span>
+            <span class="sg-mode-name">持有現金</span>
           </button>
           <button type="button" class="sg-mode" data-mode="ers" role="listitem">
-            <span class="sg-mode-code">ers</span>
-            <span class="sg-mode-name">新興轉強</span>
+            <span class="sg-mode-name">買入剛轉強的股票</span>
           </button>
           <button type="button" class="sg-mode" data-mode="strong" role="listitem">
-            <span class="sg-mode-code">strong</span>
-            <span class="sg-mode-name">已強領導</span>
+            <span class="sg-mode-name">買入已經領先的股票</span>
           </button>
           <button type="button" class="sg-mode" data-mode="bench" role="listitem">
-            <span class="sg-mode-code">bench</span>
-            <span class="sg-mode-name">基準滿倉</span>
+            <span class="sg-mode-name">滿倉持有基準指數基金</span>
           </button>
         </div>
         <p id="mode-detail" class="sg-mode-detail" aria-live="polite"></p>
       </section>
 
       <section class="sg-section" id="priority" aria-labelledby="priority-title">
-        <h2 id="priority-title">裁決優先序</h2>
-        <p class="sg-support">由高到低；高優先覆蓋低優先。</p>
+        <h2 id="priority-title">每天先看哪條規則</h2>
+        <p class="sg-support">由上到下。上面的句子成立，就不會再採用下面的持倉方式。</p>
         <ol class="sg-priority">
-          <li><strong>harsh_ret</strong><span>急跌 → 空手</span></li>
-          <li><strong>thrust</strong><span>指數衝刺 → 抱 ETF</span></li>
-          <li><strong>sticky</strong><span>選股黏不住 → 抱 ETF</span></li>
-          <li><strong>harsh_dd</strong><span>深回撤 → 空手</span></li>
-          <li><strong>mild</strong><span>輕度轉弱 → 空手</span></li>
-          <li><strong>index_lean</strong><span>指數偏強 → 抱 ETF</span></li>
-          <li><strong>stock_led + crowded</strong><span>集中領漲 → strong</span></li>
-          <li><strong>ers</strong><span>風險開且非指數偏強 → 選股</span></li>
-          <li><strong>cash</strong><span>其餘 → 空手</span></li>
+          <li><span>基準指數最近 20 日跌得太急，當天改為持有現金。</span></li>
+          <li><span>基準指數短期衝高，改為滿倉持有該指數基金。</span></li>
+          <li><span>原本領先的股票相對基準掉下來，而且連續多日未能守住，改為持有指數基金。</span></li>
+          <li><span>基準指數自高位回撤已經很深，改為持有現金。</span></li>
+          <li><span>基準只是輕度轉弱，改為持有現金。</span></li>
+          <li><span>漲勢由指數帶動、個股並未領先，改為持有指數基金。</span></li>
+          <li><span>少數股票集中領漲，而且彼此重疊，改為持有那些已經領先的股票。</span></li>
+          <li><span>風險已經打開，而且不是指數單獨偏強，改為買入剛轉強的股票。</span></li>
+          <li><span>以上都不成立，就持有現金。</span></li>
         </ol>
       </section>
 
       <section class="sg-section" id="params" aria-labelledby="params-title">
-        <h2 id="params-title">v13 參數</h2>
-        <p class="sg-support">來自 <code>StructureGateConfig.v13()</code>。</p>
+        <h2 id="params-title">這套規則的門檻</h2>
+        <p class="sg-support">下面是目前生產規則使用的數字。策略計算不會在這個頁面被改動。</p>
         <div class="table-scroll">
           <table class="sg-table" id="params-table">
             <thead>
               <tr>
-                <th>參數</th>
-                <th>值</th>
-                <th>含義</th>
+                <th>這條規則在說什麼</th>
+                <th>目前數值</th>
               </tr>
             </thead>
             <tbody id="params-body">
               <tr>
-                <td colspan="3" class="empty">載入中…</td>
+                <td colspan="2" class="empty">載入中…</td>
               </tr>
             </tbody>
           </table>
@@ -390,10 +418,10 @@
     </main>
 
     <footer class="footer">
-      <span>Structure Gate v13 · Futu OpenD SIMULATE</span>
+      <span id="sg-footer-env">結構閘 v13 · 持倉與成交以最近一次帳戶同步為準</span>
       <button type="button" id="sg-api-base" class="btn btn-ghost">API: 未設定</button>
     </footer>
 
-    <script src="/static/structure_gate.js?v=ops-ui-1" defer></script>
+    <script src="/static/structure_gate.js?v=ledger-ui-1" defer></script>
   </body>
 </html>
