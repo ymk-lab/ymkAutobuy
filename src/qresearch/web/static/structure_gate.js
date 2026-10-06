@@ -782,15 +782,20 @@
             .map(([k, v]) => `${k} ${(Number(v) * 100).toFixed(0)}%`)
             .join(", ");
 
+    const opsSleeve = data.ops || {};
+    const sleeveFromOps = opsSleeve.sleeve_notional != null ? Number(opsSleeve.sleeve_notional) : null;
     const sleeveCap = data.sleeve_usd ? Number(data.sleeve_usd) : null;
     const sleeveFromSig = sig.sleeve_equity_usd != null ? Number(sig.sleeve_equity_usd) : null;
     const equity = pnl.equity_usd != null ? Number(pnl.equity_usd) : null;
-    const sleeve =
-      sleeveCap != null && sleeveCap > 0
-        ? sleeveCap
-        : sleeveFromSig != null
-          ? sleeveFromSig
-          : equity;
+    const sleeve = opsSleeve.full_account && equity != null
+      ? equity
+      : sleeveFromOps != null && sleeveFromOps > 0
+        ? sleeveFromOps
+        : sleeveCap != null && sleeveCap > 0
+          ? sleeveCap
+          : sleeveFromSig != null
+            ? sleeveFromSig
+            : equity;
 
     $("#m-sleeve") && ($("#m-sleeve").textContent = money(sleeve));
     $("#m-cash") && ($("#m-cash").textContent = money2(account.cash_usd ?? sig.cash_usd));
