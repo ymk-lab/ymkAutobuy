@@ -594,6 +594,11 @@ def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
     plan = load_locked_plan(out) or {}
     days = load_sleeve_daily(out, limit=12)
     latest = _read_json(out / LATEST) or (days[-1] if days else None)
+    if equity is None and isinstance(latest, dict) and latest.get("equity") is not None:
+        try:
+            equity = float(latest["equity"])
+        except (TypeError, ValueError):
+            equity = None
     sized = None
     if equity is not None:
         sized = sleeve_notional(

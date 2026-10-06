@@ -532,8 +532,9 @@
     if (freezeDetail) {
       const reason = ops.freeze_reason ? String(ops.freeze_reason) : "";
       const limit = ops.slip_bps_limit != null ? `${ops.slip_bps_limit} bps` : "50 bps";
+      const when = ops.frozen_at ? fmtHktClock(ops.frozen_at) : "";
       freezeDetail.textContent = ops.frozen
-        ? `${reason || "人手凍結"}${ops.frozen_at ? ` · ${ops.frozen_at}` : ""}`
+        ? `${reason || "人手凍結"}${when ? ` · ${when}` : ""}`
         : `送單環境 ${ops.trading_env || "SIMULATE"}。單筆滑價超過 ${limit} 會凍結。`;
     }
 

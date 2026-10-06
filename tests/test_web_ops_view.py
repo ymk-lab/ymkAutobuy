@@ -40,3 +40,6 @@ def test_ops_view_reads_freeze_plan_notional_and_blotter(tmp_path):
     assert view["locked_plan"]["locked"] is True
     assert view["sleeve_days"][-1]["asof"] == "2026-10-02"
     assert view["sleeve_days"][-1]["n_fills"] == 1
+
+    fallback = _ops_view(tmp_path, None)
+    assert fallback["sleeve_notional"] == 40_000
