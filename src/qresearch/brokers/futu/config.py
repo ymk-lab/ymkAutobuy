@@ -41,6 +41,11 @@ def futu_trd_env_simulate() -> bool:
     return raw in {"SIMULATE", "SIM", "PAPER", "1", "TRUE"}
 
 
+def configured_trd_env() -> str:
+    """``REAL`` only when ``FUTU_TRD_ENV`` asks for the live book. Default ``SIMULATE``."""
+    return "SIMULATE" if futu_trd_env_simulate() else "REAL"
+
+
 def has_futu_opend() -> bool:
     """Best-effort TCP check that OpenD is listening."""
     import socket

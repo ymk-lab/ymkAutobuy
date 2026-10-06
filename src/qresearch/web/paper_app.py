@@ -232,7 +232,6 @@ def _account_snapshot() -> dict[str, Any]:
             dry_run=True,
             currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
             default_market="US",
-            simulate=True,
         )
     except Exception as exc:  # noqa: BLE001
         return {
@@ -361,7 +360,7 @@ def _account_snapshot() -> dict[str, Any]:
         out: dict[str, Any] = {
             "ok": True,
             "broker": "futu",
-            "trd_env": "SIMULATE",
+            "trd_env": "SIMULATE" if broker.simulate else "REAL",
             "cash_usd": cash,
             "positions": positions,
             "quotes": quotes,
@@ -501,6 +500,7 @@ def structure_gate_v8_config() -> JSONResponse:
     sys.path.insert(0, str(ROOT / "src"))
     from dataclasses import asdict
 
+    from qresearch.brokers.futu.config import configured_trd_env
     from qresearch.strategy.structure_gate import V13_BOOK_WEIGHTS, StructureGateConfig
 
     cfg = StructureGateConfig.v13()
@@ -535,7 +535,7 @@ def structure_gate_v8_config() -> JSONResponse:
                 "out_dir": str(_sg_out_dir()),
                 "submit_env": "QRESEARCH_SG_PAPER_SUBMIT",
                 "paper_only": True,
-                "trd_env": "SIMULATE",
+                "trd_env": configured_trd_env(),
             },
         }
     )
@@ -957,7 +957,16 @@ async def api_sg_sync_account() -> StreamingResponse:
             yield _sse({"phase": "done", "ok": False})
             return
         try:
-            yield _sse({"phase": "progress", "message": "處理中：讀取模擬盤現金與持倉…", "level": "info"})
+            from qresearch.brokers.futu.config import configured_trd_env
+
+            book_label = "真倉" if configured_trd_env() == "REAL" else "模擬盤"
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": f"處理中：讀取{book_label}現金與持倉…",
+                    "level": "info",
+                }
+            )
             snap = await asyncio.to_thread(_account_snapshot)
             if not snap.get("ok"):
                 yield _sse({"phase": "error", "message": f"失敗：{snap.get('error')}", "level": "error"})
@@ -993,7 +1002,8 @@ async def api_sg_sync_account() -> StreamingResponse:
                 {
                     "phase": "progress",
                     "message": (
-                        f"完成帳戶同步（Futu SIMULATE）：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
+                        f"完成帳戶同步（富途{('真倉' if str(saved.get('trd_env') or '').upper() == 'REAL' else '模擬盤')}）："
+                        f"現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
                         f"權益 {float(pnl.get('equity_usd') or 0):,.2f}，持倉 {pos_txt}；"
                         f"成交查核 {audit_st}"
                     ),
@@ -1194,8 +1204,10 @@ async def api_sg_run(
 
             if mode == "backtest":
                 label = "v13 blend 回測（不下單）"
+            elif want_submit and str(env.get("FUTU_TRD_ENV") or "SIMULATE").strip().upper() == "REAL":
+                label = "送單到富途真倉"
             elif want_submit:
-                label = "送單到富途模擬盤（paper only）"
+                label = "送單到富途模擬盤"
             else:
                 label = "只算訊號（不下單）"
             yield _sse(
@@ -1355,7 +1367,7 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
 
             await asyncio.to_thread(_write)
             msg = (
-                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1；含 cron）"
+                "已開啟 Structure Gate 送單（SG_PAPER_SUBMIT=1；含排程）"
                 if enabled
                 else "已關閉 Structure Gate 送單（只計畫）"
             )
