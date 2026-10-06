@@ -490,6 +490,121 @@
     body.innerHTML = blocks;
   }
 
+  function bps(x) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    const n = Number(x);
+    const sign = n > 0 ? "+" : "";
+    return `${sign}${n.toFixed(1)} bps`;
+  }
+
+  function targetLabel(target) {
+    const entries = Object.entries(target || {});
+    if (!entries.length) return "尚未寫入目標";
+    return entries
+      .map(([k, v]) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return k;
+        return `${k} ${(n * 100).toFixed(0)}%`;
+      })
+      .join(" · ");
+  }
+
+  function renderOps(ops) {
+    const freezeBadge = $("#sg-badge-freeze");
+    const freezeCard = $("#sg-ops-freeze");
+    const bandCard = $("#sg-ops-band");
+    if (!ops) {
+      if (freezeBadge) {
+        freezeBadge.textContent = "凍結 —";
+        freezeBadge.className = "badge badge-idle";
+      }
+      return;
+    }
+
+    if (freezeBadge) {
+      freezeBadge.textContent = ops.frozen ? "已凍結" : "未凍結";
+      freezeBadge.className = ops.frozen ? "badge badge-off" : "badge badge-on";
+    }
+    if (freezeCard) freezeCard.classList.toggle("is-alert", !!ops.frozen);
+    const freezeValue = $("#sg-ops-freeze-value");
+    const freezeDetail = $("#sg-ops-freeze-detail");
+    if (freezeValue) freezeValue.textContent = ops.frozen ? "已凍結" : "未凍結";
+    if (freezeDetail) {
+      const reason = ops.freeze_reason ? String(ops.freeze_reason) : "";
+      const limit = ops.slip_bps_limit != null ? `${ops.slip_bps_limit} bps` : "50 bps";
+      freezeDetail.textContent = ops.frozen
+        ? `${reason || "人手凍結"}${ops.frozen_at ? ` · ${ops.frozen_at}` : ""}`
+        : `送單環境 ${ops.trading_env || "SIMULATE"}。單筆滑價超過 ${limit} 會凍結。`;
+    }
+
+    const plan = ops.locked_plan || {};
+    const planValue = $("#sg-ops-plan-value");
+    const planDetail = $("#sg-ops-plan-detail");
+    if (planValue) planValue.textContent = plan.present ? plan.asof || "已鎖定" : "未鎖定";
+    if (planDetail) {
+      planDetail.textContent = plan.present
+        ? `${plan.locked ? "已鎖定" : "有檔未標鎖定"} · ${targetLabel(plan.target)}`
+        : "尚無 locked_plan.json。Once 仍未改為只讀這份檔。";
+    }
+
+    const notionalValue = $("#sg-ops-notional-value");
+    const notionalDetail = $("#sg-ops-notional-detail");
+    if (notionalValue) notionalValue.textContent = money(ops.sleeve_notional);
+    if (notionalDetail) {
+      const base = ops.notional_base === "buying_power" ? "購買力" : "權益";
+      const cap = money(ops.notional_cap);
+      notionalDetail.textContent = ops.buying_power_cap
+        ? `上限 ${cap} · 已開購買力代替${base}。只會影響下一轉 Signal。`
+        : `上限 ${cap} · 名義 = min(上限, ${base})。只會影響下一轉 Signal。`;
+    }
+
+    if (bandCard) bandCard.classList.add("is-off");
+    const bandValue = $("#sg-ops-band-value");
+    const bandDetail = $("#sg-ops-band-detail");
+    const rulePct = ops.rebalance_band_rule != null ? `${(Number(ops.rebalance_band_rule) * 100).toFixed(0)}%` : "2%";
+    if (bandValue) bandValue.textContent = `規則 ${rulePct}`;
+    if (bandDetail) {
+      bandDetail.textContent =
+        "每日送單帶寬仍是 0，微調單尚未被跳過。進場、清倉、一鍵平倉不受此限。";
+    }
+
+    const body = $("#sg-blotter-body");
+    if (!body) return;
+    const days = Array.isArray(ops.sleeve_days) ? ops.sleeve_days.slice().reverse() : [];
+    body.replaceChildren();
+    if (!days.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 6;
+      td.className = "empty";
+      td.textContent = "尚未寫入 sleeve_daily.jsonl。每日流程未呼叫對帳。";
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+    for (const row of days) {
+      const tr = document.createElement("tr");
+      const cells = [
+        row.asof || "—",
+        money2(row.equity),
+        signedMoney(row.day_pnl),
+        bps(row.realized_slip_bps),
+        row.n_fills == null ? "—" : String(row.n_fills),
+        money(row.sleeve_notional),
+      ];
+      cells.forEach((text, i) => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        if (i === 2) td.className = pnlClass(row.day_pnl);
+        if (i === 3 && row.realized_slip_bps != null) {
+          td.className = Number(row.realized_slip_bps) > 0 ? "is-down" : "";
+        }
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    }
+  }
+
   function renderSgStatus(data) {
     if (!data) return;
     statusCache = data;
@@ -590,6 +705,7 @@
     renderFillAudit(data.fill_audit || null);
     renderHoldings(account);
     renderDiagnose(data.diagnose || null, data.diagnose_text || "");
+    renderOps(data.ops || null);
 
     $("#sg-bt-sg") && ($("#sg-bt-sg").textContent = pct(bt.structure_gate_total_return));
     $("#sg-bt-bh") && ($("#sg-bt-bh").textContent = pct(bt.bench_bh_total_return));

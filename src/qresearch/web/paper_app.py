@@ -583,6 +583,51 @@ def _publish_v13_backtest() -> dict[str, Any]:
     return flat
 
 
+def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
+    """Read-only projection of the ops files. Does not change trading logic."""
+    from qresearch.ops.control import SLIP_BPS_LIMIT, load_ops
+    from qresearch.ops.notional import sleeve_notional
+    from qresearch.ops.plan import load_locked_plan
+    from qresearch.paper.sleeve_daily import LATEST, load_sleeve_daily
+
+    state = load_ops(out)
+    plan = load_locked_plan(out) or {}
+    days = load_sleeve_daily(out, limit=12)
+    latest = _read_json(out / LATEST) or (days[-1] if days else None)
+    sized = None
+    if equity is not None:
+        sized = sleeve_notional(
+            cap=state.notional_cap,
+            equity=float(equity),
+            buying_power=None,
+            buying_power_cap=state.buying_power_cap,
+        )
+    target = plan.get("target") or plan.get("weights") or {}
+    return {
+        "frozen": state.frozen,
+        "freeze_reason": state.freeze_reason,
+        "frozen_at": state.frozen_at,
+        "ops_submit_enabled": state.submit_enabled,
+        "trading_env": state.trading_env,
+        "buying_power_cap": state.buying_power_cap,
+        "notional_cap": state.notional_cap,
+        "sleeve_notional": sized,
+        "notional_base": "buying_power" if state.buying_power_cap else "equity",
+        "rebalance_band_rule": 0.02,
+        "rebalance_band_active": 0.0,
+        "slip_bps_limit": SLIP_BPS_LIMIT,
+        "locked_plan": {
+            "present": bool(plan),
+            "asof": plan.get("asof"),
+            "locked": bool(plan.get("locked")),
+            "target": target if isinstance(target, dict) else {},
+        },
+        "sleeve_days": days,
+        "latest_sleeve_day": latest,
+        "consumed_by_daily": False,
+    }
+
+
 def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     _load_dotenv()
     out = _sg_out_dir()
@@ -624,6 +669,11 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     )
     account_updated = _best_updated_at(account.get("updated_at_utc"))
     now_utc = datetime.now(timezone.utc)
+    equity_raw = (account.get("pnl") or {}).get("equity_usd")
+    try:
+        equity = float(equity_raw) if equity_raw is not None else None
+    except (TypeError, ValueError):
+        equity = None
     return {
         "ok": True,
         "out_dir": str(out),
@@ -653,6 +703,7 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "diagnose_updated_at_hkt": _fmt_hkt(diagnose_updated),
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
+        "ops": _ops_view(out, equity),
     }
 
 

@@ -1,0 +1,42 @@
+"""Ops panel is a read-only view. It must not change strategy or order logic."""
+
+from qresearch.ops.control import freeze
+from qresearch.ops.plan import write_locked_plan
+from qresearch.paper.sleeve_daily import record_sleeve_day
+from qresearch.web.paper_app import _ops_view
+
+
+def test_ops_view_reads_freeze_plan_notional_and_blotter(tmp_path):
+    freeze(tmp_path, "OpenD down")
+    write_locked_plan(
+        tmp_path,
+        {"asof": "2026-10-02", "target": {"QQQ.US": 0.5, "SPY.US": 0.5}},
+    )
+    record_sleeve_day(
+        tmp_path,
+        asof="2026-10-02",
+        job="once",
+        env="SIMULATE",
+        sleeve_notional=40_000,
+        cash=12_000,
+        equity=40_000,
+        positions={"QQQ.US": 20},
+        marks={"QQQ.US": 500},
+        fills=[
+            {"symbol": "QQQ.US", "side": "buy", "price": 501, "quantity": 2, "fee": 1.0},
+        ],
+    )
+
+    view = _ops_view(tmp_path, 40_000)
+
+    assert view["frozen"] is True
+    assert view["freeze_reason"] == "OpenD down"
+    assert view["consumed_by_daily"] is False
+    assert view["notional_cap"] == 50_000
+    assert view["sleeve_notional"] == 40_000
+    assert view["rebalance_band_rule"] == 0.02
+    assert view["rebalance_band_active"] == 0.0
+    assert view["locked_plan"]["asof"] == "2026-10-02"
+    assert view["locked_plan"]["locked"] is True
+    assert view["sleeve_days"][-1]["asof"] == "2026-10-02"
+    assert view["sleeve_days"][-1]["n_fills"] == 1

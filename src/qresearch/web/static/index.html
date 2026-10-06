@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=v13-sse-1" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=v13-sse-1" />
+    <link rel="stylesheet" href="/static/styles.css?v=ops-ui-1" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=ops-ui-1" />
     <script src="/config.js"></script>
   </head>
   <body class="sg-page sg-monitor">
@@ -23,6 +23,7 @@
     <header class="topbar topbar-slim">
       <nav class="top-meta" aria-label="狀態">
         <span id="sg-badge-submit" class="badge badge-off">PAPER …</span>
+        <span id="sg-badge-freeze" class="badge badge-idle">凍結 …</span>
         <span id="sg-badge-busy" class="badge badge-idle">待命</span>
         <span id="sg-badge-clock" class="badge">—</span>
       </nav>
@@ -71,6 +72,62 @@
         <div class="sg-kpi">
           <span class="sg-kpi-label">更新時間</span>
           <strong id="m-asof">—</strong>
+        </div>
+      </section>
+
+      <section class="sg-ops" id="ops" aria-labelledby="ops-title">
+        <div class="sg-pane-head">
+          <div>
+            <h2 id="ops-title">營運</h2>
+            <p class="sg-pane-support" id="sg-ops-note">
+              只讀已寫入的營運檔。V13 選股與每日送單邏輯未改，signal／once 尚未讀取這份狀態。
+            </p>
+          </div>
+        </div>
+        <div class="sg-ops-grid">
+          <article class="sg-ops-card" id="sg-ops-freeze">
+            <h3>凍結</h3>
+            <strong id="sg-ops-freeze-value">—</strong>
+            <p id="sg-ops-freeze-detail">OpenD、對帳、50 bps 滑價或實盤鎖會停止再送單。</p>
+          </article>
+          <article class="sg-ops-card" id="sg-ops-plan">
+            <h3>鎖定計劃</h3>
+            <strong id="sg-ops-plan-value">—</strong>
+            <p id="sg-ops-plan-detail">Once 只准送 signal 寫下的目標，不可現場重算。</p>
+          </article>
+          <article class="sg-ops-card" id="sg-ops-notional">
+            <h3>袖口名義</h3>
+            <strong id="sg-ops-notional-value">—</strong>
+            <p id="sg-ops-notional-detail">預設 min(上限, 權益)。改名義只進下一轉 Signal。</p>
+          </article>
+          <article class="sg-ops-card" id="sg-ops-band">
+            <h3>再平衡帶</h3>
+            <strong id="sg-ops-band-value">—</strong>
+            <p id="sg-ops-band-detail">偏離未滿 2% 不出微調。進場、清倉、平倉仍出單。</p>
+          </article>
+        </div>
+        <div class="sg-pane sg-blotter">
+          <h3 class="sg-mini">袖口每日對帳</h3>
+          <p class="sg-pane-support">權益、當日損益，以及成交價相對標記價的滑價。</p>
+          <div class="table-scroll">
+            <table class="sg-table" id="sg-blotter-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>權益</th>
+                  <th>當日損益</th>
+                  <th>滑價</th>
+                  <th>成交</th>
+                  <th>名義</th>
+                </tr>
+              </thead>
+              <tbody id="sg-blotter-body">
+                <tr>
+                  <td colspan="6" class="empty">尚未寫入對帳</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -337,6 +394,6 @@
       <button type="button" id="sg-api-base" class="btn btn-ghost">API: 未設定</button>
     </footer>
 
-    <script src="/static/structure_gate.js?v=v13-sse-1" defer></script>
+    <script src="/static/structure_gate.js?v=ops-ui-1" defer></script>
   </body>
 </html>
