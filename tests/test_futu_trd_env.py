@@ -34,6 +34,69 @@ def test_adapter_allows_real_when_allow_live_on(monkeypatch: pytest.MonkeyPatch)
     assert broker.simulate is False
 
 
+def _install_fake_futu(monkeypatch: pytest.MonkeyPatch) -> None:
+    import types
+
+    mod = types.ModuleType("futu")
+    mod.RET_OK = 0
+
+    class Currency:
+        USD = "USD"
+
+    class TrdEnv:
+        SIMULATE = "SIMULATE"
+        REAL = "REAL"
+
+    mod.Currency = Currency
+    mod.TrdEnv = TrdEnv
+    monkeypatch.setitem(sys.modules, "futu", mod)
+
+
+def test_equity_uses_usd_marks_not_hkd_total_assets(monkeypatch: pytest.MonkeyPatch) -> None:
+    """HK OpenD total_assets is HKD; sizing must stay on USD cash + USD marks."""
+    import pandas as pd
+
+    _install_fake_futu(monkeypatch)
+
+    class Ctx:
+        def accinfo_query(self, trd_env=None, currency=None):  # noqa: ANN001
+            if currency == "USD":
+                return 0, pd.DataFrame([{"total_assets": 58_935.0, "us_cash": 26_641.7}])
+            return 0, pd.DataFrame(
+                [{"total_assets": 459_000.0, "us_cash": 26_641.7, "cash": 26_641.7}]
+            )
+
+        def position_list_query(self, trd_env=None):  # noqa: ANN001
+            return 0, pd.DataFrame([{"code": "US.AMD", "qty": 50.0}])
+
+    broker = FutuBrokerAdapter(trade_ctx=Ctx(), dry_run=True, simulate=True)
+    eq = broker.get_equity({"AMD.US": 645.86})
+    assert eq == pytest.approx(26_641.7 + 50 * 645.86)
+    assert eq < 100_000
+
+
+def test_equity_missing_mark_asks_for_usd_assets(monkeypatch: pytest.MonkeyPatch) -> None:
+    import pandas as pd
+
+    _install_fake_futu(monkeypatch)
+    seen: list[object] = []
+
+    class Ctx:
+        def accinfo_query(self, trd_env=None, currency=None):  # noqa: ANN001
+            seen.append(currency)
+            if currency == "USD":
+                return 0, pd.DataFrame([{"total_assets": 58_935.0, "us_cash": 26_641.7}])
+            return 0, pd.DataFrame([{"total_assets": 459_000.0, "us_cash": 26_641.7}])
+
+        def position_list_query(self, trd_env=None):  # noqa: ANN001
+            return 0, pd.DataFrame([{"code": "US.AMD", "qty": 50.0}])
+
+    broker = FutuBrokerAdapter(trade_ctx=Ctx(), dry_run=True, simulate=True)
+    eq = broker.get_equity({})
+    assert eq == pytest.approx(58_935.0)
+    assert "USD" in seen
+
+
 def test_account_snapshot_reports_real_book(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FUTU_TRD_ENV", "REAL")
     monkeypatch.setenv("QRESEARCH_FUTU_ALLOW_LIVE", "1")
