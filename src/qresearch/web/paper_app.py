@@ -232,7 +232,6 @@ def _account_snapshot() -> dict[str, Any]:
             dry_run=True,
             currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
             default_market="US",
-            simulate=True,
         )
     except Exception as exc:  # noqa: BLE001
         return {
@@ -361,7 +360,7 @@ def _account_snapshot() -> dict[str, Any]:
         out: dict[str, Any] = {
             "ok": True,
             "broker": "futu",
-            "trd_env": "SIMULATE",
+            "trd_env": "SIMULATE" if broker.simulate else "REAL",
             "cash_usd": cash,
             "positions": positions,
             "quotes": quotes,
@@ -396,6 +395,7 @@ def _save_account(snap: dict[str, Any], *, sg: bool = True) -> dict[str, Any]:
         "quotes": snap.get("quotes") or {},
         "holdings": snap.get("holdings") or [],
         "pnl": snap.get("pnl") or {},
+        "trd_env": snap.get("trd_env"),
         "updated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     if snap.get("quote_warning"):
@@ -500,6 +500,7 @@ def structure_gate_v8_config() -> JSONResponse:
     sys.path.insert(0, str(ROOT / "src"))
     from dataclasses import asdict
 
+    from qresearch.brokers.futu.config import configured_trd_env
     from qresearch.strategy.structure_gate import V13_BOOK_WEIGHTS, StructureGateConfig
 
     cfg = StructureGateConfig.v13()
@@ -534,7 +535,7 @@ def structure_gate_v8_config() -> JSONResponse:
                 "out_dir": str(_sg_out_dir()),
                 "submit_env": "QRESEARCH_SG_PAPER_SUBMIT",
                 "paper_only": True,
-                "trd_env": "SIMULATE",
+                "trd_env": configured_trd_env(),
             },
         }
     )
@@ -583,6 +584,207 @@ def _publish_v13_backtest() -> dict[str, Any]:
     return flat
 
 
+def _real_ledger_rows(rows: list[dict[str, Any]], account: dict[str, Any]) -> list[dict[str, Any]]:
+    """Real fills, with the current real holding as the opening buy when no fill covers it.
+
+    Simulated rows stay out. A missing ``latest_run.json`` does not invent a paper fill.
+    """
+    real = [row for row in rows if str(row.get("trd_env") or "").strip().upper() == "REAL"]
+    if str(account.get("trd_env") or "").strip().upper() != "REAL":
+        return real
+    net: dict[str, float] = {}
+    for row in real:
+        symbol = str(row.get("symbol") or "").strip().upper()
+        side = str(row.get("side") or "").strip().lower()
+        try:
+            qty = float(row.get("quantity") if row.get("quantity") is not None else row.get("qty") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not symbol or side not in {"buy", "sell"} or qty <= 0:
+            continue
+        net[symbol] = net.get(symbol, 0.0) + (qty if side == "buy" else -qty)
+    opening: list[dict[str, Any]] = []
+    for holding in account.get("holdings") or []:
+        if not isinstance(holding, dict):
+            continue
+        symbol = str(holding.get("symbol") or "").strip().upper()
+        try:
+            qty = float(holding.get("quantity") or 0)
+            price = float(holding.get("cost_price") or 0)
+        except (TypeError, ValueError):
+            continue
+        gap = qty - net.get(symbol, 0.0)
+        if not symbol or gap <= 1e-9 or price <= 0:
+            continue
+        opening.append(
+            {
+                "symbol": symbol,
+                "side": "buy",
+                "quantity": gap,
+                "price": price,
+                "fee": 0.0,
+                "trd_env": "REAL",
+                "order_id": "",
+                "timestamp": account.get("updated_at_utc") or "",
+                "asof": "",
+                "basis_note": "真倉現有持倉，按券商成本價記入",
+            }
+        )
+    return opening + real
+
+
+def _money_ledger(rows: list[dict[str, Any]], *, real_only: bool = False) -> dict[str, Any]:
+    """Average-cost cash ledger for display. Does not place or amend orders.
+
+    ``real_only`` keeps rows tagged ``trd_env=REAL``. Simulated fills and older
+    rows with no environment tag stay out of the 買賣金額明細 totals.
+    """
+    if real_only:
+        rows = [row for row in rows if str(row.get("trd_env") or "").strip().upper() == "REAL"]
+    book: dict[str, dict[str, float]] = {}
+    out_rows: list[dict[str, Any]] = []
+    buy_notional = 0.0
+    sell_notional = 0.0
+    fees = 0.0
+    realized = 0.0
+    realized_known = False
+    for raw in rows:
+        symbol = str(raw.get("symbol") or "").strip().upper()
+        side = str(raw.get("side") or "").strip().lower()
+        try:
+            qty = float(raw.get("quantity") if raw.get("quantity") is not None else raw.get("qty") or 0)
+            price = float(raw.get("price") if raw.get("price") is not None else raw.get("dealt_avg_price") or 0)
+            fee = float(raw.get("fee") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not symbol or side not in {"buy", "sell"} or qty <= 0 or price <= 0:
+            continue
+        notional = qty * price
+        pos = book.setdefault(symbol, {"qty": 0.0, "cost": 0.0})
+        avg_before = (pos["cost"] / pos["qty"]) if pos["qty"] > 1e-12 else None
+        realized_pnl = None
+        basis_note = ""
+        if side == "buy":
+            cash = -(notional + fee)
+            pos["qty"] += qty
+            pos["cost"] += notional + fee
+            buy_notional += notional
+            if not basis_note and raw.get("basis_note"):
+                basis_note = str(raw["basis_note"])
+        else:
+            sell_notional += notional
+            if avg_before is None or pos["qty"] <= 1e-12:
+                cash = notional - fee
+                basis_note = "無先前成本，這筆賣出未能計算已實現盈虧"
+            elif qty <= pos["qty"] + 1e-9:
+                realized_pnl = notional - fee - avg_before * qty
+                pos["cost"] -= avg_before * qty
+                pos["qty"] -= qty
+                if pos["qty"] <= 1e-9:
+                    pos["qty"] = 0.0
+                    pos["cost"] = 0.0
+                cash = notional - fee
+                realized += realized_pnl
+                realized_known = True
+            else:
+                held = pos["qty"]
+                realized_pnl = price * held - fee * (held / qty) - pos["cost"]
+                cash = notional - fee
+                basis_note = "賣出股數多過記錄中的持倉，只對得上的部分計了已實現盈虧"
+                pos["qty"] = 0.0
+                pos["cost"] = 0.0
+                realized += realized_pnl
+                realized_known = True
+        fees += fee
+        avg_after = (pos["cost"] / pos["qty"]) if pos["qty"] > 1e-12 else None
+        out_rows.append(
+            {
+                "asof": raw.get("asof"),
+                "timestamp": raw.get("timestamp") or raw.get("ledger_at_utc") or raw.get("at") or "",
+                "order_id": str(raw.get("order_id") or ""),
+                "symbol": symbol,
+                "side": side,
+                "quantity": qty,
+                "price": price,
+                "notional": notional,
+                "fee": fee,
+                "cash": cash,
+                "position_after": pos["qty"],
+                "avg_cost_after": avg_after,
+                "realized_pnl": realized_pnl,
+                "basis_note": basis_note,
+            }
+        )
+    return {
+        "rows": out_rows,
+        "n": len(out_rows),
+        "buy_notional": buy_notional,
+        "sell_notional": sell_notional,
+        "fees": fees,
+        "realized_pnl": realized if realized_known else None,
+    }
+
+
+def _ops_view(out: Path, equity: float | None) -> dict[str, Any]:
+    """Read-only projection of the ops files. Does not change trading logic."""
+    from qresearch.ops.control import SLIP_BPS_LIMIT, load_ops
+    from qresearch.ops.notional import resolve_sleeve_cap, sleeve_notional
+    from qresearch.ops.plan import load_locked_plan
+    from qresearch.paper.sleeve_daily import LATEST, load_sleeve_daily
+
+    state = load_ops(out)
+    plan = load_locked_plan(out) or {}
+    days = load_sleeve_daily(out, limit=12)
+    latest = _read_json(out / LATEST) or (days[-1] if days else None)
+    if equity is None and isinstance(latest, dict) and latest.get("equity") is not None:
+        try:
+            equity = float(latest["equity"])
+        except (TypeError, ValueError):
+            equity = None
+    cap = state.notional_cap
+    full_account = False
+    raw_cap = os.getenv("QRESEARCH_SLEEVE_USD")
+    if raw_cap is not None and raw_cap.strip() != "":
+        try:
+            cap = resolve_sleeve_cap(raw_cap, unset=state.notional_cap)
+        except ValueError:
+            cap = state.notional_cap
+        full_account = cap is None
+    sized = None
+    if equity is not None:
+        sized = sleeve_notional(
+            cap=cap,
+            equity=float(equity),
+            buying_power=None,
+            buying_power_cap=state.buying_power_cap,
+        )
+    target = plan.get("target") or plan.get("weights") or {}
+    return {
+        "frozen": state.frozen,
+        "freeze_reason": state.freeze_reason,
+        "frozen_at": state.frozen_at,
+        "ops_submit_enabled": state.submit_enabled,
+        "trading_env": state.trading_env,
+        "buying_power_cap": state.buying_power_cap,
+        "notional_cap": cap,
+        "full_account": full_account,
+        "sleeve_notional": sized,
+        "notional_base": "buying_power" if state.buying_power_cap else "equity",
+        "rebalance_band_rule": 0.02,
+        "rebalance_band_active": 0.0,
+        "slip_bps_limit": SLIP_BPS_LIMIT,
+        "locked_plan": {
+            "present": bool(plan),
+            "asof": plan.get("asof"),
+            "locked": bool(plan.get("locked")),
+            "target": target if isinstance(target, dict) else {},
+        },
+        "sleeve_days": days,
+        "latest_sleeve_day": latest,
+        "consumed_by_daily": False,
+    }
+
+
 def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     _load_dotenv()
     out = _sg_out_dir()
@@ -592,15 +794,15 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     backtest = _read_json(out / "latest_backtest.json") or {}
     if live:
         snap = _account_snapshot()
-        account = (
-            _save_account(snap, sg=True)
-            if snap.get("ok")
-            else {**snap, "positions": {}, "quotes": {}}
-        )
+        if snap.get("ok"):
+            account = _save_account(snap, sg=True)
+        else:
+            account = dict(_account_from_files(sg=True))
+            account["live_error"] = snap.get("error") or "同步帳戶失敗，仍顯示上次成功同步的持倉。"
     else:
         account = _account_from_files(sg=True)
     weights = signal.get("weights") or {"SPY": 0.5, "QQQ": 0.5}
-    audit = _read_json(out / "latest_fill_audit.json") or audit_from_out_dir(out)
+    audit = audit_from_out_dir(out)
     diagnose = _read_json(out / "latest_sleeve_diagnose.json") or {}
     diagnose_txt_path = out / "latest_sleeve_diagnose.txt"
     diagnose_text = (
@@ -624,6 +826,11 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
     )
     account_updated = _best_updated_at(account.get("updated_at_utc"))
     now_utc = datetime.now(timezone.utc)
+    equity_raw = (account.get("pnl") or {}).get("equity_usd")
+    try:
+        equity = float(equity_raw) if equity_raw is not None else None
+    except (TypeError, ValueError):
+        equity = None
     return {
         "ok": True,
         "out_dir": str(out),
@@ -653,6 +860,12 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "diagnose_updated_at_hkt": _fmt_hkt(diagnose_updated),
         "recent_logs": _recent_sg_log_meta(8),
         "log_view": _default_sg_log_view(),
+        "ops": _ops_view(out, equity),
+        "ledger": _money_ledger(
+            _real_ledger_rows(load_fills_ledger(out, limit=500), account),
+            real_only=True,
+        ),
+        "trd_env": account.get("trd_env") or "SIMULATE",
     }
 
 
@@ -814,7 +1027,16 @@ async def api_sg_sync_account() -> StreamingResponse:
             yield _sse({"phase": "done", "ok": False})
             return
         try:
-            yield _sse({"phase": "progress", "message": "處理中：讀取模擬盤現金與持倉…", "level": "info"})
+            from qresearch.brokers.futu.config import configured_trd_env
+
+            book_label = "真倉" if configured_trd_env() == "REAL" else "模擬盤"
+            yield _sse(
+                {
+                    "phase": "progress",
+                    "message": f"處理中：讀取{book_label}現金與持倉…",
+                    "level": "info",
+                }
+            )
             snap = await asyncio.to_thread(_account_snapshot)
             if not snap.get("ok"):
                 yield _sse({"phase": "error", "message": f"失敗：{snap.get('error')}", "level": "error"})
@@ -850,7 +1072,8 @@ async def api_sg_sync_account() -> StreamingResponse:
                 {
                     "phase": "progress",
                     "message": (
-                        f"完成帳戶同步（Futu SIMULATE）：現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
+                        f"完成帳戶同步（富途{('真倉' if str(saved.get('trd_env') or '').upper() == 'REAL' else '模擬盤')}）："
+                        f"現金 USD {float(saved.get('cash_usd') or 0):,.2f}，"
                         f"權益 {float(pnl.get('equity_usd') or 0):,.2f}，持倉 {pos_txt}；"
                         f"成交查核 {audit_st}"
                     ),
@@ -1051,8 +1274,10 @@ async def api_sg_run(
 
             if mode == "backtest":
                 label = "v13 blend 回測（不下單）"
+            elif want_submit and str(env.get("FUTU_TRD_ENV") or "SIMULATE").strip().upper() == "REAL":
+                label = "送單到富途真倉"
             elif want_submit:
-                label = "送單到富途模擬盤（paper only）"
+                label = "送單到富途模擬盤"
             else:
                 label = "只算訊號（不下單）"
             yield _sse(
@@ -1212,7 +1437,7 @@ async def api_sg_set_submit(enabled: int = Query(..., ge=0, le=1)) -> StreamingR
 
             await asyncio.to_thread(_write)
             msg = (
-                "已開啟 Structure Gate 模擬盤送單（SG_PAPER_SUBMIT=1；含 cron）"
+                "已開啟 Structure Gate 送單（SG_PAPER_SUBMIT=1；含排程）"
                 if enabled
                 else "已關閉 Structure Gate 送單（只計畫）"
             )

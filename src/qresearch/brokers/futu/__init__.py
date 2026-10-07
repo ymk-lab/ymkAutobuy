@@ -2,6 +2,7 @@
 
 from qresearch.brokers.futu.adapter import FutuBrokerAdapter
 from qresearch.brokers.futu.config import (
+    configured_trd_env,
     futu_opend_host,
     futu_opend_port,
     futu_trd_env_simulate,
@@ -15,5 +16,6 @@ __all__ = [
     "futu_opend_host",
     "futu_opend_port",
     "futu_trd_env_simulate",
+    "configured_trd_env",
     "load_dotenv_if_present",
 ]

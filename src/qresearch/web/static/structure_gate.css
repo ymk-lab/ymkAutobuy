@@ -6,12 +6,12 @@
 
 .sg-hero {
   position: relative;
-  min-height: min(78vh, 36rem);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 1.2rem 0 1.8rem;
-  margin-bottom: 0.4rem;
+  padding: 0.4rem 0 1.15rem;
+  margin-bottom: 0.2rem;
   border-bottom: 1px solid var(--line);
   animation: rise 0.75s ease both;
 }
@@ -29,7 +29,7 @@
 }
 
 .sg-hero .brand {
-  font-size: clamp(3.2rem, 11vw, 6rem);
+  font-size: clamp(2.4rem, 7vw, 4.1rem);
 }
 
 .sg-hero .brand-sub {
@@ -128,6 +128,66 @@
   color: var(--err);
 }
 
+.sg-ops {
+  margin: 0 0 1.6rem;
+  padding-bottom: 0.4rem;
+}
+
+.sg-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.sg-ops-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  padding: 0.8rem 0.85rem 0.9rem;
+  background: rgba(255, 252, 247, 0.55);
+}
+
+.sg-ops-card.is-alert {
+  border-color: var(--err);
+  background: rgba(166, 48, 32, 0.06);
+}
+
+.sg-ops-card.is-off {
+  border-style: dashed;
+}
+
+.sg-ops-card h3 {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sg-ops-card strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.sg-ops-card p {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.sg-blotter,
+.sg-ledger-kpis {
+  margin-top: 1.15rem;
+}
+
 .sg-monitor-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -211,7 +271,7 @@
 
 .sg-kv > div {
   display: grid;
-  grid-template-columns: 5rem 1fr;
+  grid-template-columns: 8.5rem 1fr;
   gap: 0.5rem;
   align-items: baseline;
   padding-bottom: 0.4rem;
@@ -529,7 +589,7 @@
 
 .sg-priority li {
   display: grid;
-  grid-template-columns: 2rem 9rem 1fr;
+  grid-template-columns: 2rem 1fr;
   gap: 0.5rem;
   align-items: baseline;
   padding: 0.4rem 0;
@@ -605,6 +665,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .sg-ops-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sg-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -642,6 +706,10 @@
 
   .sg-kpi-rail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sg-ops-grid {
+    grid-template-columns: 1fr;
   }
 
   .sg-hero-cta .btn {

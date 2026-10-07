@@ -84,32 +84,62 @@
     return true;
   }
 
+  const MODE_NAME = {
+    cash: "持有現金",
+    ers: "買入剛轉強的股票",
+    strong: "買入已經領先的股票",
+    bench: "滿倉持有基準指數基金",
+  };
+
   const MODE_COPY = {
-    cash: "空手防守：結構轉弱或不在 risk-on 時持有現金。",
-    ers: "新興轉強：持有剛相對基準轉強的個股（G1 ERS）。",
-    strong: "已強領導：個股領漲且 crowded 時，持有確認領導股。",
-    bench: "基準滿倉：Sticky／Thrust／指數偏強時，滿倉基準 ETF。",
+    cash: "市場結構轉弱，或者還沒有打開風險時，這個袖口不持股，把錢留成現金。",
+    ers: "有股票剛剛相對基準轉強，而且連續幾天守住，這個袖口會買入這些剛轉強的股票。",
+    strong: "漲勢集中在已經領先的股票，這個袖口會買入那些確認領先的股票。",
+    bench: "指數自己偏強，或者原本領先的股票守不住時，這個袖口改為滿倉持有基準指數基金。",
+  };
+
+  const FLAG_SENTENCE = {
+    sticky: "原本領先的股票相對基準掉了下來，這條黏住規則正在生效。",
+    thrust: "基準指數短期衝高，這條衝刺規則正在生效。",
+    mild: "基準只是輕度轉弱，這條輕度防守正在生效。",
+    harsh_ret: "基準最近 20 日跌得太急，這條急跌規則正在生效。",
+    harsh_dd: "基準自高位回撤已經很深，這條深度回撤規則正在生效。",
+    index_lean: "漲勢由指數帶動，個股並未領先。",
+    stock_led: "個股相對基準領先，漲勢由股票帶動。",
+    crowded: "領漲集中在少數股票，而且持股彼此重疊。",
+  };
+
+  const AUDIT_STATUS = {
+    ok: "股數和價格都對得上",
+    pass: "對得上",
+    pending: "計劃已寫下，尚未成交",
+    warn: "成交了，但價格偏離計劃",
+    fail: "對不上",
+    extra_fill: "帳戶有這筆成交，但計劃裡沒有",
+    missing_fill: "計劃有這筆，但帳戶尚未成交",
+    qty_mismatch: "成交股數和計劃股數不同",
+    price_warn: "成交價偏離計劃價超過容許範圍",
   };
 
   const PARAM_META = [
-    ["sticky_enter_trail", "Sticky 進場：領導股 60 日超額落後門檻"],
-    ["sticky_enter_confirm", "Sticky 進場確認日數"],
-    ["sticky_exit_trail", "Sticky 出場：落後收斂門檻"],
-    ["sticky_exit_confirm", "Sticky 出場確認日數"],
-    ["sticky_require_above50", "Sticky 需站上 SMA50"],
-    ["thrust_ret5_min", "Thrust：5 日報酬門檻"],
-    ["thrust_ret10_min", "Thrust：10 日報酬門檻"],
-    ["thrust_bounce20_min", "Thrust：20 日自低反彈門檻"],
-    ["thrust_ret20_min", "Thrust：20 日報酬門檻"],
-    ["thrust_require_above50", "Thrust 需站上 SMA50"],
-    ["mild_defense_dd", "Mild：60 日回撤門檻（絕對值）"],
-    ["mild_defense_ret20", "Mild：20 日報酬門檻"],
-    ["harsh_defense_dd", "Harsh DD：60 日回撤門檻"],
-    ["harsh_defense_ret20", "Harsh Ret：20 日急跌門檻"],
-    ["stock_led_min_trail", "個股領漲 trail20 門檻"],
-    ["index_lean_max_trail", "指數偏強 trail20 門檻"],
-    ["bench_slippage_bps", "ETF 滑價（bps）"],
-    ["stock_slippage_bps", "個股滑價（bps）"],
+    ["sticky_enter_trail", "領先股票相對基準的 60 日超額跌破這個幅度，才開始考慮結束黏住、改持指數基金。"],
+    ["sticky_enter_confirm", "上面的落後要連續出現這麼多天，才確認領先股票守不住。"],
+    ["sticky_exit_trail", "落後收斂到這個幅度以內，才考慮結束黏住。"],
+    ["sticky_exit_confirm", "落後收斂要連續這麼多天，才確認可以離開黏住狀態。"],
+    ["sticky_require_above50", "黏住期間是否還要求股價站在 50 日均線之上。"],
+    ["thrust_ret5_min", "基準最近 5 日漲幅至少要達到這個數，才算短期衝高。"],
+    ["thrust_ret10_min", "基準最近 10 日漲幅至少要達到這個數，才算短期衝高。"],
+    ["thrust_bounce20_min", "基準用 20 日低點反彈至少這個幅度，才算衝刺。"],
+    ["thrust_ret20_min", "基準最近 20 日漲幅至少要達到這個數，才算衝刺。"],
+    ["thrust_require_above50", "衝刺時是否還要求基準站在 50 日均線之上。"],
+    ["mild_defense_dd", "基準自 60 日高位回撤達到這個幅度，視為輕度轉弱並改持現金。"],
+    ["mild_defense_ret20", "基準最近 20 日跌幅達到這個數，視為輕度轉弱。"],
+    ["harsh_defense_dd", "基準自高位回撤達到這個幅度，視為深度回撤並改持現金。"],
+    ["harsh_defense_ret20", "基準最近 20 日跌幅達到這個數，視為急跌並當天改持現金。"],
+    ["stock_led_min_trail", "個股相對基準的 20 日超額至少這個數，才算股票帶動漲勢。"],
+    ["index_lean_max_trail", "個股相對基準的 20 日超額低於這個數，才算指數單獨偏強。"],
+    ["bench_slippage_bps", "回測買賣指數基金時，假設成交價再滑這個基點數。1 個基點是萬分之一。"],
+    ["stock_slippage_bps", "回測買賣個股時，假設成交價再滑這個基點數。"],
   ];
 
   let submitEnabled = false;
@@ -229,7 +259,7 @@
   function renderSubmitBadge() {
     const b = $("#sg-badge-submit");
     if (!b) return;
-    b.textContent = submitEnabled ? "PAPER 送單 ON" : "PAPER 只計畫";
+    b.textContent = submitEnabled ? "模擬盤送單已開" : "只計算，不送單";
     b.className = submitEnabled ? "badge badge-on" : "badge badge-off";
   }
 
@@ -254,7 +284,11 @@
     for (const o of rows) {
       const li = document.createElement("li");
       const side = (o.side || "").toLowerCase();
-      li.innerHTML = `<span class="side ${side}">${side}</span> <strong>${o.quantity}</strong> ${o.symbol} <span class="px">@ ${Number(o.price).toFixed(2)}</span>`;
+      const verb = side === "buy" ? "買入" : side === "sell" ? "賣出" : "交易";
+      const qty = Number(o.quantity);
+      const px = Number(o.price);
+      const notion = Number.isFinite(qty) && Number.isFinite(px) ? money2(qty * px) : "—";
+      li.textContent = `${verb} ${o.symbol || "未命名標的"} ${Number.isFinite(qty) ? qty : "—"} 股，每股 ${Number.isFinite(px) ? px.toFixed(2) : "—"} 美元，金額 ${notion}。`;
       listEl.appendChild(li);
     }
   }
@@ -275,11 +309,11 @@
 
     if (!audit || (!audit.n_fills && !audit.n_preview && !(audit.lines || []).length)) {
       if (badge) {
-        badge.textContent = "無成交";
+        badge.textContent = "沒有可核對的成交";
         badge.className = "badge badge-idle";
       }
-      if (summary) summary.textContent = "尚未有 latest_run／fills_ledger 可查核";
-      body.innerHTML = `<tr><td colspan="9" class="empty">尚無成交可查核（需 latest_run 或 ledger）</td></tr>`;
+      if (summary) summary.textContent = "這一次還沒有計劃單或成交紀錄可以對帳。";
+      body.innerHTML = `<tr><td colspan="9" class="empty">尚未有這一次的計劃單或成交可以核對</td></tr>`;
       if (posBody) posBody.innerHTML = `<tr><td colspan="5" class="empty">—</td></tr>`;
       if (issuesEl) issuesEl.innerHTML = "";
       return;
@@ -287,7 +321,7 @@
 
     const st = audit.status || (audit.ok ? "pass" : "fail");
     if (badge) {
-      badge.textContent = `查核 ${String(st).toUpperCase()}`;
+      badge.textContent = AUDIT_STATUS[st] || "需要再看";
       badge.className =
         st === "pass"
           ? "badge badge-on"
@@ -298,29 +332,32 @@
     if (summary) {
       const src = audit.sources || {};
       summary.textContent =
-        `asof ${audit.asof || "—"} · preview ${audit.n_preview ?? 0} · fills ${audit.n_fills ?? 0}` +
-        ` · issues ${audit.n_issues ?? 0}` +
-        ` · run=${src.latest_run ? "Y" : "N"} account=${src.account_live ? "Y" : "N"}`;
+        `訊號日 ${audit.asof || "未標明"}。計劃 ${audit.n_preview ?? 0} 筆，實際成交 ${audit.n_fills ?? 0} 筆，有 ${audit.n_issues ?? 0} 項對不上。` +
+        `${src.latest_run ? "已讀到這一次的執行結果。" : "尚未讀到這一次的執行結果。"}` +
+        `${src.account_live ? "已讀到帳戶快照。" : "尚未讀到帳戶快照。"}`;
     }
 
     const lines = audit.lines || [];
     if (!lines.length) {
-      body.innerHTML = `<tr><td colspan="9" class="empty">無逐筆資料</td></tr>`;
+      body.innerHTML = `<tr><td colspan="9" class="empty">沒有可以逐筆列出的資料</td></tr>`;
     } else {
       body.innerHTML = lines
         .map((r) => {
-          const bps = r.price_bps == null ? "—" : Number(r.price_bps).toFixed(1);
+          const verb = r.side === "buy" ? "買入" : r.side === "sell" ? "賣出" : "交易";
+          const sentence = `${verb} ${r.symbol || "未命名標的"}`;
+          const bpsTxt = r.price_bps == null ? "—" : `${Number(r.price_bps).toFixed(1)} 個基點`;
           const notion = r.notional == null ? "—" : money2(r.notional);
+          const fee = r.fee == null ? "—" : money2(r.fee);
           return `<tr>
-            <td class="${auditStatusClass(r.status)}">${r.status}</td>
-            <td>${r.side || "—"}</td>
-            <td>${r.symbol || "—"}</td>
+            <td class="${auditStatusClass(r.status)}">${AUDIT_STATUS[r.status] || "需要再看"}</td>
+            <td>${sentence}</td>
             <td>${r.preview_qty == null ? "—" : r.preview_qty}</td>
             <td>${r.fill_qty == null ? "—" : r.fill_qty}</td>
             <td>${r.preview_price == null ? "—" : Number(r.preview_price).toFixed(2)}</td>
             <td>${r.fill_price == null ? "—" : Number(r.fill_price).toFixed(2)}</td>
-            <td>${bps}</td>
+            <td>${bpsTxt}</td>
             <td>${notion}</td>
+            <td>${fee}</td>
           </tr>`;
         })
         .join("");
@@ -333,7 +370,7 @@
       } else {
         posBody.innerHTML = pos
           .map((p) => {
-            const okTxt = p.ok == null ? "—" : p.ok ? "ok" : "mismatch";
+            const okTxt = p.ok == null ? "帳戶股數尚未讀到" : p.ok ? "相符" : "不相符";
             const cls = p.ok === false ? "sg-status-fail" : p.ok ? "sg-status-ok" : "";
             return `<tr>
               <td>${p.symbol}</td>
@@ -353,21 +390,63 @@
     }
   }
 
-  function renderHoldings(account) {
+  function envSentence(env) {
+    const key = String(env || "").toUpperCase();
+    if (key === "REAL") return "這份持倉來自真倉。";
+    if (key === "SIMULATE") return "這份持倉來自富途模擬倉。接上真倉並同步之後，同一張表會改顯示真倉。";
+    return "尚未標明這份持倉是真倉還是模擬倉。";
+  }
+
+  function renderHoldings(account, trdEnv) {
     const body = $("#holdings-body");
+    const note = $("#sg-holdings-note");
+    const trace = $("#sg-pnl-trace");
+    if (note) {
+      const err = account?.live_error ? ` ${account.live_error}` : "";
+      note.textContent = `${envSentence(account?.trd_env || trdEnv)}${err}`;
+    }
     if (!body) return;
+    const pnl = account?.pnl || {};
+    const equity = pnl.equity_usd;
+    if (trace) {
+      const parts = [
+        `現金 ${money2(account?.cash_usd)}`,
+        `持倉市值 ${money2(pnl.market_value)}`,
+        `持倉成本 ${money2(pnl.cost_value)}`,
+        `未賣出的盈虧 ${signedMoney(pnl.unrealized_pnl)}`,
+        `今日市價變動 ${signedMoney(pnl.day_pnl)}`,
+        `帳戶權益 ${money2(equity)}`,
+      ];
+      trace.textContent = parts.join("。") + "。";
+    }
     const holdings = account?.holdings || [];
+    const emptyRow = `<tr><td colspan="10" class="empty">帳戶裡目前沒有持倉。</td></tr>`;
     if (!holdings.length) {
       const pos = account?.positions || {};
       const keys = Object.keys(pos);
       if (!keys.length) {
-        body.innerHTML = `<tr><td colspan="7" class="empty">無持倉</td></tr>`;
+        body.innerHTML = emptyRow;
         return;
       }
       body.innerHTML = keys
         .map((k) => {
           const q = account?.quotes?.[k];
-          return `<tr><td>${k}</td><td>${pos[k]}</td><td>—</td><td>${q != null ? Number(q).toFixed(2) : "—"}</td><td>—</td><td>—</td><td>—</td></tr>`;
+          const qty = Number(pos[k]);
+          const last = q != null ? Number(q) : null;
+          const mv = last != null && Number.isFinite(qty) ? last * qty : null;
+          const weight = mv != null && equity ? mv / Number(equity) : null;
+          return `<tr>
+            <td>${k}</td>
+            <td>${pos[k]}</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>${last != null ? last.toFixed(2) : "—"}</td>
+            <td>${mv != null ? money2(mv) : "—"}</td>
+            <td>${weight != null ? pct(weight) : "—"}</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>`;
         })
         .join("");
       return;
@@ -376,14 +455,74 @@
       .map((h) => {
         const up = h.unrealized_pnl;
         const day = h.day_pnl;
+        const mv = h.market_value;
+        const weight = mv != null && equity ? Number(mv) / Number(equity) : null;
+        const upTxt =
+          up == null
+            ? "—"
+            : `${signedMoney(up)}${h.unrealized_pnl_pct != null ? `（${pct(h.unrealized_pnl_pct)}）` : ""}`;
+        const dayTxt =
+          day == null
+            ? "—"
+            : `${signedMoney(day)}${h.day_pnl_pct != null ? `（${pct(h.day_pnl_pct)}）` : ""}`;
         return `<tr>
           <td>${h.symbol}${h.name ? `<small>${h.name}</small>` : ""}</td>
           <td>${h.quantity}</td>
-          <td>${h.cost_price != null ? Number(h.cost_price).toFixed(2) : "—"}</td>
+          <td>${h.available_quantity != null ? h.available_quantity : "—"}</td>
+          <td>${h.cost_price != null ? Number(h.cost_price).toFixed(4) : "—"}</td>
+          <td>${h.cost_value != null ? money2(h.cost_value) : "—"}</td>
           <td>${h.last != null ? Number(h.last).toFixed(2) : "—"}</td>
-          <td>${h.market_value != null ? money2(h.market_value) : "—"}</td>
-          <td class="${pnlClass(up)}">${up != null ? signedMoney(up) : "—"}</td>
-          <td class="${pnlClass(day)}">${day != null ? signedMoney(day) : "—"}</td>
+          <td>${mv != null ? money2(mv) : "—"}</td>
+          <td>${weight != null ? pct(weight) : "—"}</td>
+          <td class="${pnlClass(up)}">${upTxt}</td>
+          <td class="${pnlClass(day)}">${dayTxt}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function renderLedger(ledger) {
+    const body = $("#sg-ledger-body");
+    const kpis = $("#sg-ledger-kpis");
+    if (!body) return;
+    const rows = ledger?.rows || [];
+    if (kpis) {
+      const cards = [
+        ["買入金額合計", money2(ledger?.buy_notional)],
+        ["賣出金額合計", money2(ledger?.sell_notional)],
+        ["費用合計", money2(ledger?.fees)],
+        ["已實現盈虧", signedMoney(ledger?.realized_pnl)],
+      ];
+      kpis.innerHTML = cards
+        .map(
+          ([label, value]) =>
+            `<article class="sg-ops-card"><h3>${label}</h3><strong>${value}</strong></article>`
+        )
+        .join("");
+    }
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="10" class="empty">尚未有真倉成交。模擬盤的成交不計入這張表。</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows
+      .map((r) => {
+        const verb = r.side === "buy" ? "買入" : "賣出";
+        const when = fmtHktClock(r.timestamp) || r.asof || "時間未標明";
+        let sentence = `${verb} ${r.symbol}`;
+        if (r.order_id) sentence += `，單號 ${r.order_id}`;
+        if (r.basis_note) sentence += `。${r.basis_note}`;
+        const avg = r.avg_cost_after != null ? Number(r.avg_cost_after).toFixed(4) : "已清倉";
+        return `<tr>
+          <td>${when}</td>
+          <td>${sentence}</td>
+          <td>${r.quantity}</td>
+          <td>${Number(r.price).toFixed(4)}</td>
+          <td>${money2(r.notional)}</td>
+          <td>${money2(r.fee)}</td>
+          <td class="${pnlClass(r.cash)}">${signedMoney(r.cash)}</td>
+          <td>${r.position_after}</td>
+          <td>${avg}</td>
+          <td class="${pnlClass(r.realized_pnl)}">${r.realized_pnl == null ? "買入不計算已實現盈虧" : signedMoney(r.realized_pnl)}</td>
         </tr>`;
       })
       .join("");
@@ -402,15 +541,15 @@
       .slice(0, 10)
       .map((r, i) => {
         const miss = [];
-        if (r.just_turned === false) miss.push("缺just_turned");
-        if (r.persist3 === false) miss.push("缺persist3");
-        if (r.excess_mid_ok === false) miss.push("缺mid+");
-        if (r.not_already_strong === false) miss.push("已過強");
+        if (r.just_turned === false) miss.push("還沒有剛剛轉強");
+        if (r.persist3 === false) miss.push("未連續三天維持轉強");
+        if (r.excess_mid_ok === false) miss.push("中期超額報酬不夠");
+        if (r.not_already_strong === false) miss.push("已經太強，不再當作剛轉強");
         const note = r.entry_ok
-          ? "合格"
+          ? "四項條件都成立，可以買入"
           : miss.length
-            ? miss.join(",")
-            : `legs=${r.legs_pass ?? "—"}/4`;
+            ? miss.join("；")
+            : `四項條件過了 ${r.legs_pass ?? "—"} 項`;
         return `<tr>
           <td>${i + 1}</td>
           <td>${r.symbol || "—"}</td>
@@ -422,7 +561,7 @@
       })
       .join("");
     return `<div class="table-scroll"><table class="sg-table">
-      <thead><tr><th>#</th><th>標的</th><th>ex20</th><th>ex10</th><th>ex60</th><th>狀態</th></tr></thead>
+      <thead><tr><th>名次</th><th>標的</th><th>20 日超額</th><th>10 日超額</th><th>60 日超額</th><th>能不能買</th></tr></thead>
       <tbody>${body}</tbody>
     </table></div>`;
   }
@@ -436,7 +575,7 @@
 
     if (!diagnose || !diagnose.books || !Object.keys(diagnose.books).length) {
       body.innerHTML =
-        `<p class="empty">尚無診斷。請按「重新診斷」（約需數十秒讀 cache）。</p>`;
+        `<p class="empty">還沒有診斷。按「重新診斷」會讀取已儲存的行情，大約需要幾十秒。</p>`;
       if (asofBadge) {
         asofBadge.textContent = "尚未診斷";
         asofBadge.className = "badge badge-idle";
@@ -459,8 +598,8 @@
       .map(([book, blk]) => {
         const flags = Object.entries(blk.flags || {})
           .filter(([, v]) => !!v)
-          .map(([k]) => k)
-          .join(" · ");
+          .map(([k]) => FLAG_SENTENCE[k] || `${k} 這條規則正在生效。`)
+          .join("");
         const reasons = (blk.reasons || [])
           .map((r) => `<li>${r}</li>`)
           .join("");
@@ -470,24 +609,143 @@
         const entryRows = sc.entry_ok_ranked || [];
         const nearRows = sc.near_miss_ranked || [];
         return `<article class="sg-diagnose-book">
-          <h3>${book} · ${blk.mode || "—"}</h3>
+          <h3>${book} 袖口 · ${MODE_NAME[blk.mode] || "持倉方式未標明"}</h3>
           <p class="sg-diagnose-meta">
-            flags：${flags || "—"} ·
-            trail20=${pctNum(blk.leader_vs_bench_trail20)} ·
-            trail60=${pctNum(blk.leader_vs_bench_trail60)} ·
-            若ers→${ers.symbol || "無"} ·
-            若strong→${strong.symbol || "無"} ·
-            新ERS合格=${sc.n_entry_ok ?? 0}
+            ${flags || "沒有額外規則正在生效。"}
+            領先股票相對基準的 20 日超額是 ${pctNum(blk.leader_vs_bench_trail20)}，60 日超額是 ${pctNum(blk.leader_vs_bench_trail60)}。
+            如果改買剛轉強的股票，會是 ${ers.symbol || "沒有合格股票"}。
+            如果改買已經領先的股票，會是 ${strong.symbol || "沒有合格股票"}。
+            今天新符合轉強條件的有 ${sc.n_entry_ok ?? 0} 隻。
           </p>
           <ul class="sg-diagnose-reasons">${reasons || "<li>無解釋</li>"}</ul>
-          <h3 class="sg-mini">今日 ERS 合格</h3>
-          ${renderNameTable(entryRows, "無合格股")}
-          <h3 class="sg-mini">接近 ERS（≥2/4 條件）</h3>
-          ${renderNameTable(nearRows, "無接近名單")}
+          <h3 class="sg-mini">今天可以當作剛轉強而買入的股票</h3>
+          ${renderNameTable(entryRows, "沒有股票四項條件都成立")}
+          <h3 class="sg-mini">接近可以買入的股票（四項裡至少過了兩項）</h3>
+          ${renderNameTable(nearRows, "沒有接近合格的股票")}
         </article>`;
       })
       .join("");
     body.innerHTML = blocks;
+  }
+
+  function bps(x) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    const n = Number(x);
+    const sign = n > 0 ? "+" : "";
+    return `${sign}${n.toFixed(1)} bps`;
+  }
+
+  function targetLabel(target) {
+    const entries = Object.entries(target || {});
+    if (!entries.length) return "尚未寫入目標";
+    return entries
+      .map(([k, v]) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return k;
+        return `${k} ${(n * 100).toFixed(0)}%`;
+      })
+      .join(" · ");
+  }
+
+  function renderOps(ops) {
+    const freezeBadge = $("#sg-badge-freeze");
+    const freezeCard = $("#sg-ops-freeze");
+    const bandCard = $("#sg-ops-band");
+    if (!ops) {
+      if (freezeBadge) {
+        freezeBadge.textContent = "凍結 —";
+        freezeBadge.className = "badge badge-idle";
+      }
+      return;
+    }
+
+    if (freezeBadge) {
+      freezeBadge.textContent = ops.frozen ? "已凍結" : "未凍結";
+      freezeBadge.className = ops.frozen ? "badge badge-off" : "badge badge-on";
+    }
+    if (freezeCard) freezeCard.classList.toggle("is-alert", !!ops.frozen);
+    const freezeValue = $("#sg-ops-freeze-value");
+    const freezeDetail = $("#sg-ops-freeze-detail");
+    if (freezeValue) freezeValue.textContent = ops.frozen ? "已凍結" : "未凍結";
+    if (freezeDetail) {
+      const reason = ops.freeze_reason ? String(ops.freeze_reason) : "";
+      const limit = ops.slip_bps_limit != null ? `${ops.slip_bps_limit} bps` : "50 bps";
+      const when = ops.frozen_at ? fmtHktClock(ops.frozen_at) : "";
+      freezeDetail.textContent = ops.frozen
+        ? `${reason || "人手凍結"}${when ? ` · ${when}` : ""}`
+        : `送單環境 ${ops.trading_env || "SIMULATE"}。單筆滑價超過 ${limit} 會凍結。`;
+    }
+
+    const plan = ops.locked_plan || {};
+    const planValue = $("#sg-ops-plan-value");
+    const planDetail = $("#sg-ops-plan-detail");
+    if (planValue) planValue.textContent = plan.present ? plan.asof || "已鎖定" : "未鎖定";
+    if (planDetail) {
+      planDetail.textContent = plan.present
+        ? `${plan.locked ? "已鎖定" : "有檔未標鎖定"} · ${targetLabel(plan.target)}`
+        : "尚無 locked_plan.json。Once 仍未改為只讀這份檔。";
+    }
+
+    const notionalValue = $("#sg-ops-notional-value");
+    const notionalDetail = $("#sg-ops-notional-detail");
+    if (notionalValue) notionalValue.textContent = money(ops.sleeve_notional);
+    if (notionalDetail) {
+      const base = ops.notional_base === "buying_power" ? "購買力" : "戶口權益";
+      if (ops.full_account) {
+        notionalDetail.textContent = `袖口等於${base}的 100%。沒有另外的美元上限。只會影響下一轉 Signal。`;
+      } else {
+        const cap = money(ops.notional_cap);
+        notionalDetail.textContent = ops.buying_power_cap
+          ? `上限 ${cap} · 已開購買力代替${base}。只會影響下一轉 Signal。`
+          : `上限 ${cap} · 袖口 = min(上限, ${base})。只會影響下一轉 Signal。`;
+      }
+    }
+
+    if (bandCard) bandCard.classList.add("is-off");
+    const bandValue = $("#sg-ops-band-value");
+    const bandDetail = $("#sg-ops-band-detail");
+    const rulePct = ops.rebalance_band_rule != null ? `${(Number(ops.rebalance_band_rule) * 100).toFixed(0)}%` : "2%";
+    if (bandValue) bandValue.textContent = `規則 ${rulePct}`;
+    if (bandDetail) {
+      bandDetail.textContent =
+        "每日送單帶寬仍是 0，微調單尚未被跳過。進場、清倉、一鍵平倉不受此限。";
+    }
+
+    const body = $("#sg-blotter-body");
+    if (!body) return;
+    const days = Array.isArray(ops.sleeve_days) ? ops.sleeve_days.slice().reverse() : [];
+    body.replaceChildren();
+    if (!days.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 6;
+      td.className = "empty";
+      td.textContent = "尚未寫入 sleeve_daily.jsonl。每日流程未呼叫對帳。";
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+    for (const row of days) {
+      const tr = document.createElement("tr");
+      const cells = [
+        row.asof || "—",
+        money2(row.equity),
+        signedMoney(row.day_pnl),
+        bps(row.realized_slip_bps),
+        row.n_fills == null ? "—" : String(row.n_fills),
+        money(row.sleeve_notional),
+      ];
+      cells.forEach((text, i) => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        if (i === 2) td.className = pnlClass(row.day_pnl);
+        if (i === 3 && row.realized_slip_bps != null) {
+          td.className = Number(row.realized_slip_bps) > 0 ? "is-down" : "";
+        }
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    }
   }
 
   function renderSgStatus(data) {
@@ -515,7 +773,7 @@
     const run = data.last_run || {};
     const state = data.state || {};
 
-    const mode = sig.mode || "—";
+    const mode = MODE_NAME[sig.mode] || (sig.mode ? "持倉方式未標明" : "尚未算出持倉方式");
     const tgt = sig.target || {};
     const tgtS =
       Object.keys(tgt).length === 0
@@ -524,15 +782,20 @@
             .map(([k, v]) => `${k} ${(Number(v) * 100).toFixed(0)}%`)
             .join(", ");
 
+    const opsSleeve = data.ops || {};
+    const sleeveFromOps = opsSleeve.sleeve_notional != null ? Number(opsSleeve.sleeve_notional) : null;
     const sleeveCap = data.sleeve_usd ? Number(data.sleeve_usd) : null;
     const sleeveFromSig = sig.sleeve_equity_usd != null ? Number(sig.sleeve_equity_usd) : null;
     const equity = pnl.equity_usd != null ? Number(pnl.equity_usd) : null;
-    const sleeve =
-      sleeveCap != null && sleeveCap > 0
-        ? sleeveCap
-        : sleeveFromSig != null
-          ? sleeveFromSig
-          : equity;
+    const sleeve = opsSleeve.full_account && equity != null
+      ? equity
+      : sleeveFromOps != null && sleeveFromOps > 0
+        ? sleeveFromOps
+        : sleeveCap != null && sleeveCap > 0
+          ? sleeveCap
+          : sleeveFromSig != null
+            ? sleeveFromSig
+            : equity;
 
     $("#m-sleeve") && ($("#m-sleeve").textContent = money(sleeve));
     $("#m-cash") && ($("#m-cash").textContent = money2(account.cash_usd ?? sig.cash_usd));
@@ -556,26 +819,25 @@
     $("#sg-mode-hero") && ($("#sg-mode-hero").textContent = mode);
     $("#sg-target-hero") && ($("#sg-target-hero").textContent = tgtS);
     const weights = data.weights || sig.weights || { SPY: 0.5, QQQ: 0.5 };
-    const bookLabel =
-      "V13 · " +
-      Object.entries(weights)
-        .map(([k, v]) => `${k}${(Number(v) * 100).toFixed(0)}`)
-        .join(" / ");
+    const bookLabel = Object.entries(weights)
+      .map(([k, v]) => `${k} 佔 ${(Number(v) * 100).toFixed(0)}%`)
+      .join("，");
     $("#sg-book") && ($("#sg-book").textContent = bookLabel);
     $("#sg-mode") && ($("#sg-mode").textContent = mode);
     $("#sg-target") && ($("#sg-target").textContent = tgtS);
 
     const flags = ["sticky", "thrust", "mild", "harsh_ret", "harsh_dd", "index_lean", "stock_led", "crowded"]
       .filter((k) => sig[k])
-      .join(" · ");
-    $("#sg-flags") && ($("#sg-flags").textContent = flags || "—");
+      .map((k) => FLAG_SENTENCE[k])
+      .join("");
+    $("#sg-flags") && ($("#sg-flags").textContent = flags || "沒有額外規則正在生效。");
 
     const sub = $("#sg-monitor-sub");
     if (sub) {
-      const submitTxt = submitEnabled ? "送單開啟（模擬盤）" : "只計畫、不送單";
-      const asofPart = sig.asof ? `asof ${sig.asof}` : "asof —";
-      const updPart = updatedHkt ? `更新 ${updatedHkt}` : "更新 —";
-      sub.textContent = `${asofPart} · ${updPart} · ${submitTxt} · paper only`;
+      const submitTxt = submitEnabled ? "模擬盤送單已經打開。" : "現在只計算，不會送單。";
+      const asofPart = sig.asof ? `訊號日是 ${sig.asof}` : "還沒有訊號日";
+      const updPart = updatedHkt ? `上次更新是 ${updatedHkt}` : "還沒有更新時間";
+      sub.textContent = `${asofPart}。${updPart}。${submitTxt}`;
     }
 
     renderOrders($("#preview-list"), sig.preview_orders || [], "尚無預覽單");
@@ -583,13 +845,24 @@
     const st = $("#state-line");
     if (st) {
       st.textContent = state.asof
-        ? `state：asof=${state.asof} submitted=${!!state.submitted}${state.mode ? ` mode=${state.mode}` : ""}`
-        : "state：尚無";
+        ? `訊號日 ${state.asof}。${state.submitted ? "這一天的單已經送出。" : "這一天尚未送出。"}持倉方式是${MODE_NAME[state.mode] || "尚未標明"}。`
+        : "還沒有送單狀態。";
     }
 
     renderFillAudit(data.fill_audit || null);
-    renderHoldings(account);
+    renderHoldings(account, data.trd_env);
+    renderLedger(data.ledger || null);
     renderDiagnose(data.diagnose || null, data.diagnose_text || "");
+    renderOps(data.ops || null);
+
+    const envLine = $("#sg-env-line");
+    if (envLine) {
+      envLine.textContent = `${envSentence(data.trd_env)} 兩個袖口固定為標普 500 指數基金一半、納斯達克 100 指數基金一半。`;
+    }
+    const footer = $("#sg-footer-env");
+    if (footer) {
+      footer.textContent = `${envSentence(data.trd_env)} 買賣明細用來同券商結單對帳。`;
+    }
 
     $("#sg-bt-sg") && ($("#sg-bt-sg").textContent = pct(bt.structure_gate_total_return));
     $("#sg-bt-bh") && ($("#sg-bt-bh").textContent = pct(bt.bench_bh_total_return));
@@ -600,7 +873,7 @@
       ($("#sg-bt-gate").textContent =
         bt.soft_pass == null
           ? "—"
-          : `${bt.soft_pass ? "soft✓" : "soft✗"} / ${bt.hard_pass_beat_both ? "hard✓" : "hard✗"}`);
+          : `${bt.soft_pass ? "寬鬆檢驗通過" : "寬鬆檢驗未過"}，${bt.hard_pass_beat_both ? "同時打敗兩個基準" : "未同時打敗兩個基準"}`);
 
     const sel = $("#sg-book-select");
     if (sel && (data.book || sig.book)) sel.value = data.book || sig.book;
@@ -628,14 +901,18 @@
       for (const [key, meaning] of PARAM_META) {
         if (!(key in cfg)) continue;
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${key}</td><td>${fmt(cfg[key])}</td><td>${meaning}</td>`;
+        const rule = document.createElement("td");
+        const value = document.createElement("td");
+        rule.textContent = meaning;
+        value.textContent = typeof cfg[key] === "boolean" ? (cfg[key] ? "是" : "否") : fmt(cfg[key]);
+        tr.append(rule, value);
         body.appendChild(tr);
       }
       if (!body.children.length) {
-        body.innerHTML = `<tr><td colspan="3" class="empty">無參數</td></tr>`;
+        body.innerHTML = `<tr><td colspan="2" class="empty">沒有讀到規則門檻</td></tr>`;
       }
     } catch (err) {
-      body.innerHTML = `<tr><td colspan="3" class="empty">載入失敗：${err.message}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="2" class="empty">載入失敗：${err.message}</td></tr>`;
     }
   }
 

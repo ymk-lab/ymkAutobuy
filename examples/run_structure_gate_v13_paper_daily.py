@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Structure Gate v13 paper job: Futu OpenD (SIMULATE) + SPY50/QQQ50 sleeves.
+"""Structure Gate v13 job: Futu OpenD + SPY50/QQQ50 sleeves.
 
 SPY 50% / QQQ 50% each run Structure Gate v13 independently; merged
-target weights are sent to one Futu paper account.
+target weights go to one Futu account.
 
 Schedule (America/New_York):
   - ``signal`` after cash close (~16:30): compute targets only
@@ -11,7 +11,7 @@ Schedule (America/New_York):
 Safety:
   - Default dry-run; submit only with QRESEARCH_SG_PAPER_SUBMIT=1
   - FUTU_TRD_ENV defaults to SIMULATE (paper)
-  - Refuses REAL unless QRESEARCH_FUTU_ALLOW_LIVE=1
+  - REAL orders require QRESEARCH_FUTU_ALLOW_LIVE=1; otherwise the job refuses
 """
 
 from __future__ import annotations
@@ -523,8 +523,16 @@ def main() -> int:
     ts = pd.Timestamp.now("UTC").tz_localize(None)
     cfg = StructureGateConfig.v13()
 
+    from qresearch.brokers.futu.config import configured_trd_env
+    from qresearch.ops.control import allow_live_locked
+
+    trd_env = configured_trd_env()
+    live_ok = allow_live_locked()
     log(f"mode={mode} submit={submit} weights={WEIGHTS} broker=futu out={base}")
-    log(f"opend={has_futu_opend()} simulate=1 paper_only=1")
+    log(f"opend={has_futu_opend()} trd_env={trd_env} allow_live={int(live_ok)} paper_only=1")
+    if trd_env == "REAL" and not live_ok:
+        log("REFUSE: REAL selected but QRESEARCH_FUTU_ALLOW_LIVE is off")
+        return 3
 
     want = sorted(
         set(WEIGHTS)
@@ -574,7 +582,6 @@ def main() -> int:
             dry_run=not submit,
             currency=os.getenv("QRESEARCH_LB_CURRENCY", "USD"),
             default_market="US",
-            simulate=True,
         )
     else:
         log("WARN: OpenD down — dry-run local ledger only")
@@ -623,9 +630,20 @@ def main() -> int:
 
         cash = broker.get_cash()
         eq = broker.get_equity(marks)
-        cap = _env_float("QRESEARCH_SLEEVE_USD", None)
-        if cap is not None and cap > 0:
+        from qresearch.ops.notional import resolve_sleeve_cap
+
+        try:
+            cap = resolve_sleeve_cap(os.getenv("QRESEARCH_SLEEVE_USD"), unset=None)
+        except ValueError as exc:
+            log(f"REFUSE: {exc}")
+            return 3
+        if cap is None:
+            log(f"sleeve=100% of account equity {eq:.2f}")
+        elif cap > 0:
             eq = min(eq, cap)
+            log(f"sleeve=min(cap {cap:.2f}, equity) -> {eq:.2f}")
+        else:
+            log(f"sleeve cap {cap:.2f} is not positive; sizing base stays {eq:.2f}")
 
         plan = {
             "asof": asof,
@@ -729,7 +747,7 @@ def main() -> int:
             log("REFUSE submit: OpenD not reachable")
             return 3
 
-        live = FutuBrokerAdapter.from_opend(dry_run=False, simulate=True, default_market="US")
+        live = FutuBrokerAdapter.from_opend(dry_run=False, default_market="US")
         submit_error: str | None = None
         try:
             positions_before_submit = live.get_positions()
@@ -806,7 +824,13 @@ def main() -> int:
             append_fills_ledger(
                 base,
                 ledger_rows,
-                meta={"asof": str(asof), "run_at": str(ts), "broker": "futu", "preset": "v13"},
+                meta={
+                    "asof": str(asof),
+                    "run_at": str(ts),
+                    "broker": "futu",
+                    "preset": "v13",
+                    "trd_env": trd_env,
+                },
             )
             audit = reconcile_fills(
                 preview_orders=plan.get("preview_orders") or [],

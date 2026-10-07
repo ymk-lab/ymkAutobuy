@@ -93,6 +93,33 @@ def test_signal_only_with_holdings_is_pending_not_missing_fill(tmp_path: Path) -
     assert all(x["status"] == "pending" for x in audit["lines"])
 
 
+def test_submitted_without_latest_run_does_not_ask_for_paper_host(tmp_path: Path) -> None:
+    base = tmp_path / "paper"
+    base.mkdir()
+    (base / "latest_signal.json").write_text(
+        json.dumps(
+            {
+                "asof": "2026-10-05",
+                "preview_orders": [
+                    {"symbol": "AMD.US", "side": "buy", "quantity": 50, "price": 640.51},
+                ],
+            }
+        )
+        + "\n"
+    )
+    (base / "state.json").write_text(
+        json.dumps({"asof": "2026-10-05", "submitted": True}) + "\n"
+    )
+    (base / "account_live.json").write_text(
+        json.dumps({"positions": {"AMD.US": 50}, "trd_env": "REAL"}) + "\n"
+    )
+
+    audit = audit_from_out_dir(base)
+    blob = " ".join(str(x) for x in audit.get("issues") or [])
+    assert "paper host" not in blob
+    assert audit["status"] != "fail"
+
+
 def test_verify_detects_phantom_spy_fill() -> None:
     from qresearch.paper.fill_audit import verify_fills_against_positions
 

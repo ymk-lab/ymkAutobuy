@@ -219,26 +219,55 @@ class FutuBrokerAdapter(BrokerAdapter):
         return float(row.get("total_assets", 0) or 0)
 
     def get_equity(self, marks: dict[str, float]) -> float:
-        if self.trade_ctx is not None:
-            from futu import RET_OK
+        """USD equity for sizing.
 
-            ret, data = self.trade_ctx.accinfo_query(trd_env=self._trd_env())
-            if ret == RET_OK and data is not None and len(data):
-                row = data.iloc[0]
-                for key in ("total_assets", "net_assets", "assets"):
-                    if key in row and row[key] is not None:
-                        try:
-                            return float(row[key])
-                        except Exception:
-                            pass
+        Hong Kong Futu accounts report ``total_assets`` in HKD. Using that
+        figure as dollars sizes the sleeve about 7.8× too large. Prefer USD
+        cash plus positions marked in USD. Only if a position has no mark,
+        ask OpenD for assets converted to USD.
+        """
         cash = self.get_cash()
-        eq = cash
+        eq = float(cash)
+        missing = False
         for sym, qty in self.get_positions().items():
             px = marks.get(sym, marks.get(sym.upper()))
-            if px is None or pd.isna(px):
+            if px is None or pd.isna(px) or float(px) <= 0:
+                missing = True
                 continue
             eq += float(qty) * float(px)
+        if not missing:
+            return float(eq)
+        usd_assets = self._usd_total_assets()
+        if usd_assets is not None:
+            return usd_assets
         return float(eq)
+
+    def _usd_total_assets(self) -> float | None:
+        if self.trade_ctx is None:
+            return None
+        from futu import RET_OK
+
+        try:
+            from futu import Currency
+        except Exception:
+            return None
+        try:
+            ret, data = self.trade_ctx.accinfo_query(
+                trd_env=self._trd_env(),
+                currency=Currency.USD,
+            )
+        except TypeError:
+            return None
+        if ret != RET_OK or data is None or len(data) == 0:
+            return None
+        row = data.iloc[0]
+        for key in ("usd_assets", "total_assets", "net_assets", "assets"):
+            if key in row and row[key] is not None:
+                try:
+                    return float(row[key])
+                except Exception:
+                    continue
+        return None
 
     def snapshot_quotes(self, symbols: list[str]) -> dict[str, float]:
         if self.quote_ctx is None or not symbols:
