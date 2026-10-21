@@ -153,6 +153,9 @@ class FutuBrokerAdapter(BrokerAdapter):
             else FutuOrderType.MARKET
         )
         remark = f"{self.remark_prefix}:{order.client_order_id}"[:64]
+        extra = {}
+        if getattr(order, "extended_hours", False):
+            extra["fill_outside_rth"] = True
         ret, data = self.trade_ctx.place_order(
             price=px,
             qty=qty,
@@ -162,6 +165,7 @@ class FutuBrokerAdapter(BrokerAdapter):
             trd_env=self._trd_env(),
             acc_id=self.acc_id,
             remark=remark,
+            **extra,
         )
         if ret != RET_OK:
             order.status = OrderStatus.REJECTED
@@ -199,6 +203,30 @@ class FutuBrokerAdapter(BrokerAdapter):
             if abs(qty) < 1e-12:
                 continue
             out[sym] = out.get(sym, 0.0) + qty
+        return out
+
+    def get_position_costs(self) -> dict[str, float]:
+        """Average cost per share, used by v13b to decide an after-hours sell."""
+        if self.trade_ctx is None:
+            return {}
+        from futu import RET_OK
+
+        ret, data = self.trade_ctx.position_list_query(trd_env=self._trd_env())
+        if ret != RET_OK or data is None or len(data) == 0:
+            return {}
+        out: dict[str, float] = {}
+        for _, row in data.iterrows():
+            sym = normalize_symbol(str(row["code"]), default_market=self.default_market)
+            qty = float(row.get("qty", 0) or 0)
+            if abs(qty) < 1e-12:
+                continue
+            raw = row.get("cost_price", row.get("average_cost"))
+            try:
+                cost = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if cost > 0:
+                out[sym] = cost
         return out
 
     def get_cash(self) -> float:

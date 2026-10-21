@@ -27,6 +27,7 @@ class TargetWeightExecutor:
         timestamp: pd.Timestamp,
         *,
         equity: float | None = None,
+        entry_prices: dict[str, float] | None = None,
     ) -> list[Fill]:
         if isinstance(target_weights, pd.Series):
             target_weights = target_weights.to_dict()
@@ -80,6 +81,10 @@ class TargetWeightExecutor:
                 order_type=OrderType.MARKET,
                 created_at=pd.Timestamp(timestamp),
             )
+            if delta < 0 and entry_prices:
+                entry = entry_prices.get(sym)
+                if entry is not None and px < float(entry):
+                    order.extended_hours = True
             (buys if delta > 0 else sells).append(order)
 
         fills: list[Fill] = []

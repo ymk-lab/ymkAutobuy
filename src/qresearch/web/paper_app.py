@@ -503,15 +503,15 @@ def structure_gate_v8_config() -> JSONResponse:
 
     from qresearch.strategy.structure_gate import V13_BOOK_WEIGHTS, StructureGateConfig
 
-    cfg = StructureGateConfig.v13()
+    cfg = StructureGateConfig.v13b()
     payload = asdict(cfg)
     # EmergingRSWaveConfig is nested; keep JSON-safe primitives only.
     if payload.get("ers_config") is not None:
         payload["ers_config"] = str(payload["ers_config"])
     return JSONResponse(
         {
-            "preset": "v13",
-            "rule": "structure_gate_v13_blend",
+            "preset": "v13b",
+            "rule": "structure_gate_v13b_blend",
             "weights": dict(V13_BOOK_WEIGHTS),
             "priority": [
                 "harsh_ret",
@@ -525,7 +525,7 @@ def structure_gate_v8_config() -> JSONResponse:
                 "cash",
             ],
             "modes": ["cash", "ers", "strong", "bench"],
-            "execution": "next_open",
+            "execution": "next_open; losing stock exits fill after hours at the signal close",
             "broker": "futu",
             "fee_note": "Futu US equity schedule + slippage_bps on notional",
             "config": payload,

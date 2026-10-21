@@ -573,7 +573,7 @@ def main() -> int:
     cache = base / "cache_ohlcv"
     state_path = base / "state.json"
     ts = pd.Timestamp.now("UTC").tz_localize(None)
-    cfg = StructureGateConfig.v13()
+    cfg = StructureGateConfig.v13b()
 
     log(f"mode={mode} submit={submit} weights={WEIGHTS} broker=futu out={base}")
     log(f"opend={has_futu_opend()} simulate=1 paper_only=1")
@@ -682,8 +682,8 @@ def main() -> int:
 
         plan = {
             "asof": asof,
-            "preset": "v13",
-            "rule": "structure_gate_v13_blend",
+            "preset": "v13b",
+            "rule": "structure_gate_v13b_blend",
             "broker": "futu",
             "weights": WEIGHTS,
             "books": book_meta,
@@ -769,7 +769,7 @@ def main() -> int:
                 asof=str(asof),
                 submitted=False,
                 ts=ts,
-                preset="v13",
+                preset="v13b",
             )
             return 0
 
@@ -798,8 +798,12 @@ def main() -> int:
         try:
             positions_before_submit = live.get_positions()
             try:
+                entry_px = live.get_position_costs()
+            except Exception:  # noqa: BLE001
+                entry_px = {}
+            try:
                 fills = TargetWeightExecutor(live, min_trade_notional=25.0).rebalance(
-                    target, marks, ts, equity=eq
+                    target, marks, ts, equity=eq, entry_prices=entry_px
                 )
             except Exception as exc:  # noqa: BLE001
                 # Keep any legs that already filled (e.g. QQQ before SPY timed out).
@@ -870,7 +874,7 @@ def main() -> int:
             append_fills_ledger(
                 base,
                 ledger_rows,
-                meta={"asof": str(asof), "run_at": str(ts), "broker": "futu", "preset": "v13"},
+                meta={"asof": str(asof), "run_at": str(ts), "broker": "futu", "preset": "v13b"},
             )
             audit = reconcile_fills(
                 preview_orders=plan.get("preview_orders") or [],
@@ -903,7 +907,7 @@ def main() -> int:
                 submitted=not bool(submit_error),
                 replace_submitted=True,
                 ts=ts,
-                preset="v13",
+                preset="v13b",
                 extra={
                     "paper_only": True,
                     "broker": "futu",

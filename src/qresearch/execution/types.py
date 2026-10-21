@@ -41,6 +41,8 @@ class Order:
     client_order_id: str = field(default_factory=_new_id)
     status: OrderStatus = OrderStatus.NEW
     created_at: pd.Timestamp | None = None
+    # v13b: losing stock exit may fill in the US extended session.
+    extended_hours: bool = False
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:

@@ -125,6 +125,9 @@ class StructureGateConfig:
     # Soft exits from ers/strong blocked until this many days in stock mode
     # (risk cash still pierces). 0 = disabled (v13 behavior).
     mode_min_hold_days: int = 0
+    # v13b: a stock exit already below its entry fills at that close
+    # (after-hours). Exits still above entry, ETF exits, and all buys stay next open.
+    ah_loser_exit: bool = False
     # When True, ``harsh_dd`` clears sticky_lock the same day (陰跌: don't sit
     # bench through a grinding DD just because sticky episode hasn't confirmed
     # exit yet). v13 default False — only ``harsh_ret`` / mild_top demote pierce.
@@ -203,6 +206,18 @@ class StructureGateConfig:
             mode_enter_immediate=False,
             mode_min_hold_days=0,
         )
+
+    @classmethod
+    def v13b(cls) -> "StructureGateConfig":
+        """v13 plus after-hours exit when the close is below the entry.
+
+        A stock the book has decided to sell, and whose close is already
+        under the buy price, fills at that close. A stock still above its
+        entry waits for the next regular open, as v13 does. Buys are unchanged.
+        """
+        cfg = cls.v13()
+        cfg.ah_loser_exit = True
+        return cfg
 
     @classmethod
     def v14(cls) -> "StructureGateConfig":
@@ -1112,6 +1127,7 @@ def simulate_structure_gate(
     pos_sym: str | None = None
     pos_shares = 0.0
     pos_kind = "cash"  # cash|ers|strong|bench
+    pos_entry: float | None = None
     pending = "cash"
     target_sym: str | None = None
     target_w = 0.0
@@ -1148,12 +1164,19 @@ def simulate_structure_gate(
     def _fees_for_kind(kind: str) -> object:
         return bench_fees if kind == "bench" else stock_fees
 
-    def _sell_all(dt: pd.Timestamp, reason: str) -> None:
-        nonlocal cash, pos_sym, pos_shares, pos_kind
+    def _sell_all(
+        dt: pd.Timestamp,
+        reason: str,
+        px_override: float | None = None,
+        session: str = "regular",
+    ) -> None:
+        nonlocal cash, pos_sym, pos_shares, pos_kind, pos_entry
         if pos_sym is None or pos_shares <= 0:
             return
         kind = pos_kind
-        if kind == "bench":
+        if px_override is not None:
+            px_o = float(px_override)
+        elif kind == "bench":
             px_o = float(qo.at[dt])
         else:
             px_o = float(op.at[dt, pos_sym])
@@ -1162,22 +1185,23 @@ def simulate_structure_gate(
         notional = pos_shares * px_o
         cost = float(_fees_for_kind(kind).total_cost_usd(notional, px_o))
         cash += notional - cost
-        trades.append(
-            {
-                "date": dt.strftime("%Y-%m-%d"),
-                "side": "SELL",
-                "symbol": pos_sym,
-                "shares": round(pos_shares, 4),
-                "price": round(px_o, 4),
-                "notional_usd": round(notional, 2),
-                "cost_usd": round(cost, 2),
-                "reason": reason,
-            }
-        )
-        pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
+        row = {
+            "date": dt.strftime("%Y-%m-%d"),
+            "side": "SELL",
+            "symbol": pos_sym,
+            "shares": round(pos_shares, 4),
+            "price": round(px_o, 4),
+            "notional_usd": round(notional, 2),
+            "cost_usd": round(cost, 2),
+            "reason": reason,
+        }
+        if session != "regular":
+            row["session"] = session
+        trades.append(row)
+        pos_sym, pos_shares, pos_kind, pos_entry = None, 0.0, "cash", None
 
     def _buy_stock(dt: pd.Timestamp, sym: str, weight: float, reason: str, kind: str) -> None:
-        nonlocal cash, pos_sym, pos_shares, pos_kind
+        nonlocal cash, pos_sym, pos_shares, pos_kind, pos_entry
         px_o = float(op.at[dt, sym])
         if not np.isfinite(px_o) or px_o <= 0:
             return
@@ -1193,7 +1217,7 @@ def simulate_structure_gate(
             notional = shares * px_o
             cost = float(stock_fees.total_cost_usd(notional, px_o))
         cash -= notional + cost
-        pos_sym, pos_shares, pos_kind = sym, shares, kind
+        pos_sym, pos_shares, pos_kind, pos_entry = sym, shares, kind, px_o
         trades.append(
             {
                 "date": dt.strftime("%Y-%m-%d"),
@@ -1327,9 +1351,41 @@ def simulate_structure_gate(
                 mode_exec.at[dt] = "cash"
         halt_flags.append(1.0 if dd_halt else 0.0)
 
+        if (
+            cfg.ah_loser_exit
+            and dt >= start
+            and pos_kind in ("ers", "strong")
+            and pos_sym is not None
+            and pos_entry is not None
+            and pos_entry > 0
+        ):
+            exit_reason = None
+            if pending == "cash":
+                if dd_halt:
+                    exit_reason = "book_dd_stop"
+                elif crash_flags and crash_flags[-1] >= 1.0:
+                    exit_reason = "risk_override_stock"
+                else:
+                    exit_reason = "to_cash"
+            elif pending == "bench":
+                exit_reason = "switch_to_bench"
+            elif pending in ("ers", "strong"):
+                if pos_kind != pending:
+                    exit_reason = f"switch_to_{pending}"
+                elif target_sym is None or target_w <= 0:
+                    exit_reason = f"{pending}_flat"
+                elif pos_sym != target_sym:
+                    exit_reason = f"{pending}_rotate"
+            if exit_reason is not None and pos_sym in px.columns:
+                cpx = float(px.at[dt, pos_sym])
+                if np.isfinite(cpx) and cpx < pos_entry:
+                    _sell_all(dt, f"{exit_reason}_ah", cpx, "after_hours")
+                    if eq_index and eq_index[-1] == dt:
+                        equity_rows[-1] = cash
+
         if dt < start:
             cash = float(capital)
-            pos_sym, pos_shares, pos_kind = None, 0.0, "cash"
+            pos_sym, pos_shares, pos_kind, pos_entry = None, 0.0, "cash", None
             peak_eq = float(capital)
             dd_halt = False
             dd_reentry = 0
