@@ -503,6 +503,58 @@ def _annotate_fill_costs(
     return out
 
 
+def _mark_to_market(cash: float, positions: dict, marks: dict) -> float:
+    total = float(cash)
+    for sym, qty in (positions or {}).items():
+        px = marks.get(sym)
+        if px is None:
+            px = marks.get(str(sym).upper())
+        try:
+            px_f = float(px) if px is not None else 0.0
+        except (TypeError, ValueError):
+            px_f = 0.0
+        if px_f > 0:
+            total += float(qty) * px_f
+    return total
+
+
+def _write_sleeve_day(
+    base: Path,
+    *,
+    asof: str,
+    job: str,
+    sleeve_notional: float,
+    cash: float,
+    equity: float,
+    positions: dict,
+    marks: dict,
+    fills: list | None,
+) -> None:
+    """Persist one blotter row. Never fail the paper job if the ledger write breaks."""
+    try:
+        from qresearch.paper.sleeve_daily import record_sleeve_day
+
+        row = record_sleeve_day(
+            base,
+            asof=str(asof),
+            job=job,
+            env="SIMULATE",
+            sleeve_notional=float(sleeve_notional),
+            cash=float(cash),
+            equity=float(equity),
+            positions=positions,
+            marks=marks,
+            fills=list(fills or []),
+        )
+        log(
+            f"sleeve_day asof={row.get('asof')} job={row.get('job')} "
+            f"equity={row.get('equity')} day_pnl={row.get('day_pnl')} "
+            f"slip_bps={row.get('realized_slip_bps')}"
+        )
+    except Exception as exc:  # noqa: BLE001
+        log(f"WARN: sleeve_day skipped: {exc}")
+
+
 def main() -> int:
     _configure_stdio()
     load_dotenv_if_present(ROOT / ".env")
@@ -622,10 +674,11 @@ def main() -> int:
                 log(f"marks_0940 failed: {exc}")
 
         cash = broker.get_cash()
-        eq = broker.get_equity(marks)
+        equity_mtm = float(broker.get_equity(marks))
         cap = _env_float("QRESEARCH_SLEEVE_USD", None)
+        eq = equity_mtm
         if cap is not None and cap > 0:
-            eq = min(eq, cap)
+            eq = min(equity_mtm, cap)
 
         plan = {
             "asof": asof,
@@ -700,6 +753,17 @@ def main() -> int:
         if mode == "signal" or not submit:
             if not submit:
                 log("SUBMIT=0 — plan only. Set QRESEARCH_SG_PAPER_SUBMIT=1 for Futu paper.")
+            _write_sleeve_day(
+                base,
+                asof=str(asof),
+                job="signal",
+                sleeve_notional=float(eq),
+                cash=float(cash),
+                equity=float(equity_mtm),
+                positions=positions,
+                marks=marks,
+                fills=[],
+            )
             write_paper_state(
                 state_path,
                 asof=str(asof),
@@ -817,6 +881,21 @@ def main() -> int:
                 run_at=str(ts),
             )
             write_audit(base, audit)
+            try:
+                equity_after = float(live.get_equity(marks))
+            except Exception:  # noqa: BLE001
+                equity_after = _mark_to_market(float(cash_after), positions_after, marks)
+            _write_sleeve_day(
+                base,
+                asof=str(asof),
+                job="once",
+                sleeve_notional=float(eq),
+                cash=float(cash_after),
+                equity=equity_after,
+                positions=positions_after,
+                marks=marks,
+                fills=ledger_rows,
+            )
             write_paper_state(
                 state_path,
                 asof=str(asof),

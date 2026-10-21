@@ -76,3 +76,35 @@ def test_once_overwrites_same_asof_signal(tmp_path: Path):
     lines = (tmp_path / "sleeve_daily.jsonl").read_text().strip().splitlines()
     assert len(lines) == 1
     assert '"job": "once"' in lines[0]
+
+
+def test_later_signal_does_not_wipe_once(tmp_path: Path):
+    record_sleeve_day(
+        tmp_path,
+        asof="2026-09-22",
+        job="once",
+        env="SIMULATE",
+        sleeve_notional=50_000,
+        cash=49_000,
+        equity=50_100,
+        positions={"SPY.US": 10},
+        marks={"SPY.US": 500.0},
+        fills=[{"symbol": "SPY.US", "side": "buy", "quantity": 10, "price": 501.5}],
+    )
+    again = record_sleeve_day(
+        tmp_path,
+        asof="2026-09-22",
+        job="signal",
+        env="SIMULATE",
+        sleeve_notional=50_000,
+        cash=50_000,
+        equity=50_000,
+        positions={},
+        marks={},
+        fills=[],
+    )
+    assert again["job"] == "once"
+    assert again["n_fills"] == 1
+    lines = (tmp_path / "sleeve_daily.jsonl").read_text().strip().splitlines()
+    assert len(lines) == 1
+    assert '"job": "once"' in lines[0]

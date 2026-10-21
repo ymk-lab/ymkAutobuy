@@ -121,6 +121,11 @@ def upsert_sleeve_day(base: Path, row: dict[str, Any]) -> dict[str, Any]:
         "written_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
     }
     kept = [r for r in existing if str(r.get("asof") or "") != asof]
+    prior = next((r for r in existing if str(r.get("asof") or "") == asof), None)
+    incoming_job = str(row.get("job") or "")
+    # Once is the execution record for that asof. A later signal must not wipe fills or slip.
+    if prior is not None and str(prior.get("job") or "") == "once" and incoming_job != "once":
+        return prior
     kept.append(payload)
     kept.sort(key=lambda r: str(r.get("asof") or ""))
     path = out / LEDGER

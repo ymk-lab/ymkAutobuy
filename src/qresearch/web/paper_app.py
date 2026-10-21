@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 
 from qresearch.paper.fill_audit import audit_from_out_dir, load_fills_ledger, write_audit
+from qresearch.paper.sleeve_daily import load_sleeve_daily
 
 ROOT = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parent / "static"
@@ -623,6 +624,7 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         diag_mtime.isoformat() if diag_mtime else None,
     )
     account_updated = _best_updated_at(account.get("updated_at_utc"))
+    sleeve_daily = load_sleeve_daily(out, limit=30)
     now_utc = datetime.now(timezone.utc)
     return {
         "ok": True,
@@ -642,6 +644,8 @@ def _sg_status_payload(*, live: bool = False) -> dict[str, Any]:
         "state": state,
         "backtest": backtest,
         "fill_audit": audit,
+        "sleeve_daily": sleeve_daily,
+        "sleeve_day": sleeve_daily[-1] if sleeve_daily else None,
         "diagnose": diagnose,
         "diagnose_text": diagnose_text,
         "server_time_utc": now_utc.isoformat(),

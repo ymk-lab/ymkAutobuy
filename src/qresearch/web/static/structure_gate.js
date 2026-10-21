@@ -353,6 +353,64 @@
     }
   }
 
+  function bpsText(x) {
+    if (x == null || Number.isNaN(Number(x))) return "—";
+    const n = Number(x);
+    const sign = n > 0 ? "+" : "";
+    return `${sign}${n.toFixed(1)}`;
+  }
+
+  function renderSleeveDaily(rows) {
+    const body = $("#sleeve-daily-body");
+    const badge = $("#sg-sleeve-day-badge");
+    const summary = $("#sg-sleeve-day-summary");
+    const list = Array.isArray(rows) ? rows : [];
+    const latest = list.length ? list[list.length - 1] : null;
+    if (badge) {
+      if (!latest) {
+        badge.textContent = "尚無帳本";
+        badge.className = "badge badge-idle";
+      } else {
+        const slip = latest.realized_slip_bps;
+        badge.textContent = latest.job === "once" ? `once · ${latest.asof || "—"}` : `signal · ${latest.asof || "—"}`;
+        badge.className = slip != null && Number(slip) > 50 ? "badge badge-off" : "badge badge-on";
+      }
+    }
+    if (summary) {
+      if (!latest) {
+        summary.textContent = "signal 或 once 跑完後會寫入 sleeve_daily.jsonl。";
+      } else {
+        const pnl = latest.day_pnl == null ? "當日 —" : `當日 ${signedMoney(latest.day_pnl)}`;
+        const slip =
+          latest.realized_slip_bps == null
+            ? "滑價 —"
+            : `滑價 ${bpsText(latest.realized_slip_bps)} bps / ${signedMoney(latest.realized_slip_usd || 0)}`;
+        summary.textContent = `${latest.asof || "—"} · ${latest.job || "—"} · 權益 ${money2(latest.equity)} · ${pnl} · ${slip}`;
+      }
+    }
+    if (!body) return;
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="7" class="empty">尚無每日帳本</td></tr>`;
+      return;
+    }
+    body.innerHTML = list
+      .slice()
+      .reverse()
+      .map((r) => {
+        const pnl = r.day_pnl;
+        return `<tr>
+          <td>${r.asof || "—"}</td>
+          <td>${r.job || "—"}</td>
+          <td>${money2(r.equity)}</td>
+          <td class="${pnlClass(pnl)}">${pnl == null ? "—" : signedMoney(pnl)}</td>
+          <td class="${pnlClass(r.realized_slip_bps)}">${bpsText(r.realized_slip_bps)}</td>
+          <td class="${pnlClass(r.realized_slip_usd)}">${r.realized_slip_usd == null ? "—" : signedMoney(r.realized_slip_usd)}</td>
+          <td>${r.n_fills ?? 0}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   function renderHoldings(account) {
     const body = $("#holdings-body");
     if (!body) return;
@@ -588,6 +646,7 @@
     }
 
     renderFillAudit(data.fill_audit || null);
+    renderSleeveDaily(data.sleeve_daily || []);
     renderHoldings(account);
     renderDiagnose(data.diagnose || null, data.diagnose_text || "");
 

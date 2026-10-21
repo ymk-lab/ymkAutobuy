@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=v13-sse-1" />
-    <link rel="stylesheet" href="/static/structure_gate.css?v=v13-sse-1" />
+    <link rel="stylesheet" href="/static/styles.css?v=v13-blotter-1" />
+    <link rel="stylesheet" href="/static/structure_gate.css?v=v13-blotter-1" />
     <script src="/config.js"></script>
   </head>
   <body class="sg-page sg-monitor">
@@ -154,6 +154,39 @@
             </table>
           </div>
           <ul class="sg-issue-list" id="sg-audit-issues"></ul>
+        </div>
+
+        <div class="sg-pane sg-pane-wide" aria-labelledby="sleeve-daily-title">
+          <div class="sg-pane-head">
+            <div>
+              <h2 id="sleeve-daily-title">每日帳本</h2>
+              <p class="sg-pane-support">每個 asof 一列。signal 記權益；once 覆寫並寫入相對 09:40／報價的實際滑價。之後的 signal 不會蓋掉已成交列。</p>
+            </div>
+            <div class="sg-pane-head-meta">
+              <span id="sg-sleeve-day-badge" class="badge badge-idle">尚無帳本</span>
+            </div>
+          </div>
+          <p class="sg-state-line" id="sg-sleeve-day-summary">signal 或 once 跑完後會寫入 sleeve_daily.jsonl。</p>
+          <div class="table-scroll">
+            <table class="sg-table" id="sleeve-daily-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>作業</th>
+                  <th>權益</th>
+                  <th>當日盈虧</th>
+                  <th>滑價 bps</th>
+                  <th>滑價 USD</th>
+                  <th>成交</th>
+                </tr>
+              </thead>
+              <tbody id="sleeve-daily-body">
+                <tr>
+                  <td colspan="7" class="empty">尚無每日帳本</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="sg-pane sg-pane-wide" aria-labelledby="holdings-title">
@@ -337,6 +370,6 @@
       <button type="button" id="sg-api-base" class="btn btn-ghost">API: 未設定</button>
     </footer>
 
-    <script src="/static/structure_gate.js?v=v13-sse-1" defer></script>
+    <script src="/static/structure_gate.js?v=v13-blotter-1" defer></script>
   </body>
 </html>
